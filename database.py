@@ -22,27 +22,8 @@ logger = logging.getLogger(__name__)
 
 def get_db_config():
     """Get database configuration from environment variables or Streamlit secrets."""
-    try:
-        # Try to import streamlit to check if running in Streamlit Cloud
-        import streamlit as st
-        
-        # If running in Streamlit Cloud, use secrets
-        if hasattr(st, 'secrets') and hasattr(st.secrets, 'get'):
-            return {
-                'host': st.secrets.get('DB_HOST', 'localhost'),
-                'port': int(st.secrets.get('DB_PORT', 5432)),
-                'database': st.secrets.get('DB_NAME'),
-                'user': st.secrets.get('DB_USER'),
-                'password': st.secrets.get('DB_PASSWORD'),
-                'sslmode': st.secrets.get('DB_SSL_MODE', 'prefer')
-            }
-    except ImportError:
-        pass
-    except Exception as e:
-        logger.warning(f"Could not access Streamlit secrets: {e}")
-    
-    # Fallback to environment variables
-    return {
+    # Check environment variables first (to avoid secrets warnings)
+    config = {
         'host': os.getenv('DB_HOST', 'localhost'),
         'port': int(os.getenv('DB_PORT', 5432)),
         'database': os.getenv('DB_NAME'),
@@ -50,6 +31,36 @@ def get_db_config():
         'password': os.getenv('DB_PASSWORD'),
         'sslmode': os.getenv('DB_SSL_MODE', 'prefer')
     }
+    
+    # Only check Streamlit secrets if environment variables are not set
+    if not config.get('database') or not config.get('user') or not config.get('password'):
+        try:
+            # Try to import streamlit to check if running in Streamlit Cloud
+            import streamlit as st
+            import warnings
+            
+            # Suppress warnings when accessing secrets
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                # If running in Streamlit Cloud, use secrets
+                if hasattr(st, 'secrets') and hasattr(st.secrets, 'get'):
+                    secrets_config = {
+                        'host': st.secrets.get('DB_HOST', config['host']),
+                        'port': int(st.secrets.get('DB_PORT', config['port'])),
+                        'database': st.secrets.get('DB_NAME', config['database']),
+                        'user': st.secrets.get('DB_USER', config['user']),
+                        'password': st.secrets.get('DB_PASSWORD', config['password']),
+                        'sslmode': st.secrets.get('DB_SSL_MODE', config['sslmode'])
+                    }
+                    # Use secrets values if they exist
+                    if secrets_config.get('database') and secrets_config.get('user'):
+                        config = secrets_config
+        except ImportError:
+            pass
+        except Exception as e:
+            logger.debug(f"Could not access Streamlit secrets: {e}")
+    
+    return config
 
 
 class DatabaseManager:
