@@ -28,35 +28,39 @@ def get_theme_colors() -> dict:
     All UI components should use these colors for consistency.
     """
     if is_dark_mode():
+        # Apple HIG Dark Mode Colors
+        # Reference: developer.apple.com/design/human-interface-guidelines/dark-mode
         return {
-            # Backgrounds
-            'bg_primary': '#0e1117',       # Main app background
-            'bg_secondary': '#1e2130',     # Cards, containers
-            'bg_tertiary': '#262b3d',      # Highlights, hover states
-            'bg_input': '#1a1d29',         # Input fields
+            # Backgrounds - Apple's Elevated Base System
+            'bg_primary': '#1C1C1E',       # System Background (avoid pure black)
+            'bg_secondary': '#2C2C2E',     # Secondary System Background (elevated)
+            'bg_tertiary': '#3A3A3C',      # Tertiary System Background (grouped)
+            'bg_input': '#2C2C2E',         # Input fields (elevated)
+            'bg_elevated': '#48484A',      # Elevated content (popovers, modals)
             
-            # Text
-            'text_primary': '#fafafa',     # Main text
-            'text_secondary': '#a0aec0',   # Muted/secondary text
-            'text_muted': '#718096',       # Very muted text
+            # Text - Apple's Label Colors with proper opacity
+            'text_primary': '#FFFFFF',                    # Primary Label
+            'text_secondary': 'rgba(235, 235, 245, 0.6)', # Secondary Label
+            'text_muted': 'rgba(235, 235, 245, 0.3)',     # Tertiary/Quaternary Label
+            'text_placeholder': 'rgba(235, 235, 245, 0.3)', # Placeholder text
             
-            # Accents
-            'accent': '#4facfe',           # Primary accent (links, highlights)
-            'accent_secondary': '#667eea', # Secondary accent
-            'success': '#38f9d7',          # Success states
-            'warning': '#fee140',          # Warning states
-            'error': '#f5576c',            # Error states
+            # Accents - Slightly desaturated for dark mode
+            'accent': '#0A84FF',           # iOS Blue (dark mode variant)
+            'accent_secondary': '#5E5CE6', # iOS Indigo (dark mode variant)
+            'success': '#30D158',          # iOS Green (dark mode variant)
+            'warning': '#FFD60A',          # iOS Yellow (dark mode variant)
+            'error': '#FF453A',            # iOS Red (dark mode variant)
             
-            # Borders & Dividers
-            'border': '#2d3748',           # Borders
-            'divider': '#374151',          # Dividers
+            # Borders & Separators - Apple system separator
+            'border': 'rgba(84, 84, 88, 0.65)',   # System separator (opaque)
+            'divider': 'rgba(84, 84, 88, 0.35)',  # System separator (non-opaque)
             
             # Shadows
-            'shadow': 'rgba(0, 0, 0, 0.3)',
+            'shadow': 'rgba(0, 0, 0, 0.5)',
             
             # Chart specific
-            'chart_grid': '#374151',
-            'chart_text': '#a0aec0',
+            'chart_grid': 'rgba(84, 84, 88, 0.35)',
+            'chart_text': 'rgba(235, 235, 245, 0.85)',
         }
     else:
         return {
@@ -147,51 +151,379 @@ def inject_theme_css():
     streamlit_overrides = ""
     if is_dark_mode():
         streamlit_overrides = f"""
-        /* Streamlit dark mode overrides */
+        /* ================================================
+           APPLE HIG DARK MODE - Streamlit Overrides
+           Follows elevated base pattern for visual hierarchy
+        ================================================ */
+        
+        /* Base App Background */
         .stApp {{
-            background-color: {colors['bg_primary']};
+            background-color: {colors['bg_primary']} !important;
         }}
         
-        .stMarkdown, .stText {{
-            color: {colors['text_primary']};
+        /* All text defaults */
+        .stMarkdown, .stText, p, span, label {{
+            color: {colors['text_primary']} !important;
         }}
         
-        /* Sidebar styling */
+        /* Sidebar - Elevated layer */
         [data-testid="stSidebar"] {{
-            background-color: {colors['bg_secondary']};
+            background-color: {colors['bg_secondary']} !important;
+            border-right: 1px solid {colors['border']} !important;
         }}
         
-        /* Expander styling */
-        .streamlit-expanderHeader {{
-            background-color: {colors['bg_secondary']};
-            color: {colors['text_primary']};
+        /* ================================================
+           INPUT FIELDS - Critical HIG Fix
+           Must have visible borders and elevated background
+        ================================================ */
+        
+        /* Text inputs */
+        .stTextInput > div > div > input {{
+            background-color: {colors['bg_secondary']} !important;
+            border: 1px solid {colors['border']} !important;
+            color: {colors['text_primary']} !important;
+            border-radius: 8px !important;
         }}
         
-        /* DataFrames */
+        .stTextInput > div > div > input::placeholder {{
+            color: {colors['text_muted']} !important;
+        }}
+        
+        .stTextInput > div > div > input:focus {{
+            border-color: {colors['accent']} !important;
+            box-shadow: 0 0 0 1px {colors['accent']} !important;
+        }}
+        
+        /* Input labels - Must be visible */
+        .stTextInput label, .stSelectbox label, .stMultiSelect label {{
+            color: {colors['text_secondary']} !important;
+            font-weight: 500 !important;
+        }}
+        
+        /* Selectbox / Dropdowns */
+        .stSelectbox > div > div {{
+            background-color: {colors['bg_secondary']} !important;
+            border: 1px solid {colors['border']} !important;
+            border-radius: 8px !important;
+        }}
+        
+        .stSelectbox > div > div > div {{
+            color: {colors['text_primary']} !important;
+        }}
+        
+        [data-baseweb="select"] > div {{
+            background-color: {colors['bg_secondary']} !important;
+            border-color: {colors['border']} !important;
+        }}
+        
+        [data-baseweb="popover"] {{
+            background-color: {colors['bg_tertiary']} !important;
+        }}
+        
+        /* MultiSelect */
+        .stMultiSelect > div > div {{
+            background-color: {colors['bg_secondary']} !important;
+            border: 1px solid {colors['border']} !important;
+        }}
+        
+        /* Date inputs */
+        .stDateInput > div > div > input {{
+            background-color: {colors['bg_secondary']} !important;
+            border: 1px solid {colors['border']} !important;
+            color: {colors['text_primary']} !important;
+        }}
+        
+        /* ================================================
+           DATA TABLES - Proper elevation & separation
+        ================================================ */
+        
         .stDataFrame {{
-            background-color: {colors['bg_secondary']};
+            background-color: {colors['bg_secondary']} !important;
+            border-radius: 10px !important;
+            overflow: hidden !important;
         }}
         
-        /* Metrics */
+        /* Table headers - most elevated */
+        .stDataFrame [data-testid="stDataFrameResizable"] {{
+            background-color: {colors['bg_secondary']} !important;
+        }}
+        
+        /* Streamlit dataframe headers */
+        .stDataFrame th, [data-testid="stDataFrame"] th {{
+            background-color: {colors['bg_tertiary']} !important;
+            color: {colors['text_primary']} !important;
+            border-bottom: 1px solid {colors['border']} !important;
+            font-weight: 600 !important;
+        }}
+        
+        /* Table cells */
+        .stDataFrame td, [data-testid="stDataFrame"] td {{
+            background-color: {colors['bg_secondary']} !important;
+            color: rgba(235, 235, 245, 0.85) !important;
+            border-bottom: 1px solid {colors['divider']} !important;
+        }}
+        
+        /* Alternating rows for better readability */
+        .stDataFrame tr:nth-child(even) td {{
+            background-color: rgba(58, 58, 60, 0.3) !important;
+        }}
+        
+        /* Glide data grid (used by st.dataframe) */
+        [data-testid="glideDataEditor"] {{
+            background-color: {colors['bg_secondary']} !important;
+        }}
+        
+        /* ================================================
+           METRICS - Elevated cards
+        ================================================ */
+        
+        [data-testid="stMetric"] {{
+            background-color: {colors['bg_secondary']} !important;
+            padding: 16px !important;
+            border-radius: 10px !important;
+            border: 1px solid {colors['divider']} !important;
+        }}
+        
         [data-testid="stMetricValue"] {{
-            color: {colors['text_primary']};
+            color: {colors['text_primary']} !important;
         }}
         
         [data-testid="stMetricLabel"] {{
-            color: {colors['text_secondary']};
+            color: {colors['text_secondary']} !important;
         }}
         
-        /* Tabs */
+        [data-testid="stMetricDelta"] {{
+            color: {colors['success']} !important;
+        }}
+        
+        /* ================================================
+           EXPANDERS - Proper elevation hierarchy
+        ================================================ */
+        
+        .streamlit-expanderHeader {{
+            background-color: {colors['bg_secondary']} !important;
+            color: {colors['text_primary']} !important;
+            border: 1px solid {colors['divider']} !important;
+            border-radius: 10px !important;
+        }}
+        
+        .streamlit-expanderContent {{
+            background-color: {colors['bg_primary']} !important;
+            border: 1px solid {colors['divider']} !important;
+            border-top: none !important;
+            border-radius: 0 0 10px 10px !important;
+        }}
+        
+        details {{
+            background-color: {colors['bg_secondary']} !important;
+            border: 1px solid {colors['divider']} !important;
+            border-radius: 10px !important;
+        }}
+        
+        details summary {{
+            color: {colors['text_primary']} !important;
+        }}
+        
+        /* ================================================
+           TABS - Consistent with elevation
+        ================================================ */
+        
         .stTabs [data-baseweb="tab-list"] {{
-            background-color: {colors['bg_secondary']};
+            background-color: {colors['bg_secondary']} !important;
+            border-radius: 10px !important;
+            padding: 4px !important;
         }}
         
         .stTabs [data-baseweb="tab"] {{
-            color: {colors['text_secondary']};
+            color: {colors['text_secondary']} !important;
+            background-color: transparent !important;
         }}
         
         .stTabs [aria-selected="true"] {{
-            color: {colors['accent']};
+            color: {colors['text_primary']} !important;
+            background-color: {colors['bg_tertiary']} !important;
+            border-radius: 8px !important;
+        }}
+        
+        /* ================================================
+           BUTTONS - Proper contrast
+        ================================================ */
+        
+        .stButton > button {{
+            background-color: {colors['bg_secondary']} !important;
+            color: {colors['text_primary']} !important;
+            border: 1px solid {colors['border']} !important;
+        }}
+        
+        .stButton > button:hover {{
+            background-color: {colors['bg_tertiary']} !important;
+            border-color: {colors['accent']} !important;
+        }}
+        
+        /* Primary buttons */
+        .stButton > button[kind="primary"] {{
+            background-color: {colors['accent']} !important;
+            color: #FFFFFF !important;
+            border: none !important;
+        }}
+        
+        /* ================================================
+           RADIO & CHECKBOX - Soften pure white
+        ================================================ */
+        
+        .stRadio label, .stCheckbox label {{
+            color: {colors['text_primary']} !important;
+        }}
+        
+        .stRadio > div {{
+            background-color: transparent !important;
+        }}
+        
+        /* ================================================
+           SUCCESS/WARNING/ERROR BOXES
+        ================================================ */
+        
+        .stSuccess {{
+            background-color: rgba(48, 209, 88, 0.15) !important;
+            color: {colors['success']} !important;
+            border: 1px solid {colors['success']} !important;
+        }}
+        
+        .stWarning {{
+            background-color: rgba(255, 214, 10, 0.15) !important;
+            color: {colors['warning']} !important;
+        }}
+        
+        .stError {{
+            background-color: rgba(255, 69, 58, 0.15) !important;
+            color: {colors['error']} !important;
+        }}
+        
+        .stInfo {{
+            background-color: rgba(10, 132, 255, 0.15) !important;
+            color: {colors['accent']} !important;
+        }}
+        
+        /* ================================================
+           SCROLLBARS - Subtle dark styling
+        ================================================ */
+        
+        ::-webkit-scrollbar {{
+            width: 8px;
+            height: 8px;
+        }}
+        
+        ::-webkit-scrollbar-track {{
+            background: {colors['bg_primary']};
+        }}
+        
+        ::-webkit-scrollbar-thumb {{
+            background: {colors['bg_tertiary']};
+            border-radius: 4px;
+        }}
+        
+        ::-webkit-scrollbar-thumb:hover {{
+            background: {colors['bg_elevated']};
+        }}
+        
+        /* ================================================
+           HAMBURGER MENU / DROPDOWN - Fix white popup
+        ================================================ */
+        
+        /* Main dropdown container */
+        [data-testid="stMainMenu"] {{
+            background-color: {colors['bg_secondary']} !important;
+        }}
+        
+        [data-testid="stMainMenuList"] {{
+            background-color: {colors['bg_secondary']} !important;
+        }}
+        
+        /* Menu popover/dropdown */
+        [data-baseweb="menu"], 
+        [data-baseweb="popover"],
+        [role="listbox"] {{
+            background-color: {colors['bg_secondary']} !important;
+            border: 1px solid {colors['border']} !important;
+            border-radius: 10px !important;
+        }}
+        
+        /* Menu items */
+        [data-baseweb="menu"] li,
+        [role="option"] {{
+            background-color: {colors['bg_secondary']} !important;
+            color: {colors['text_primary']} !important;
+        }}
+        
+        [data-baseweb="menu"] li:hover,
+        [role="option"]:hover {{
+            background-color: {colors['bg_tertiary']} !important;
+        }}
+        
+        /* The three-dot menu icon */
+        [data-testid="stMainMenu"] button {{
+            color: {colors['text_primary']} !important;
+        }}
+        
+        /* Dropdown/select options */
+        [data-baseweb="list-item"] {{
+            background-color: {colors['bg_secondary']} !important;
+            color: {colors['text_primary']} !important;
+        }}
+        
+        /* ================================================
+           RUNNING/RERUNNING STATUS BAR
+        ================================================ */
+        
+        /* The "Running..." status bar at top */
+        [data-testid="stStatusWidget"] {{
+            background-color: {colors['bg_tertiary']} !important;
+            color: {colors['text_primary']} !important;
+            border: 1px solid {colors['border']} !important;
+        }}
+        
+        /* Spinner/loading animation container */
+        .stSpinner {{
+            background-color: transparent !important;
+        }}
+        
+        .stSpinner > div {{
+            background-color: {colors['bg_secondary']} !important;
+            border-radius: 10px !important;
+            padding: 1rem !important;
+        }}
+        
+        /* Status elements text */
+        [data-testid="stStatusWidget"] span,
+        [data-testid="stStatusWidget"] p {{
+            color: {colors['text_primary']} !important;
+        }}
+        
+        /* Stop button in running state */
+        [data-testid="stStatusWidget"] button {{
+            background-color: {colors['bg_tertiary']} !important;
+            color: {colors['text_primary']} !important;
+            border: 1px solid {colors['border']} !important;
+        }}
+        
+        /* Header toolbar area */
+        [data-testid="stToolbar"] {{
+            background-color: transparent !important;
+        }}
+        
+        /* Deploy button and menu in header */
+        [data-testid="stToolbar"] button {{
+            color: {colors['text_secondary']} !important;
+        }}
+        
+        /* Streamlit's built-in dialogs/modals */
+        [data-baseweb="modal"] {{
+            background-color: {colors['bg_secondary']} !important;
+        }}
+        
+        [data-baseweb="modal"] > div {{
+            background-color: {colors['bg_secondary']} !important;
+            border: 1px solid {colors['border']} !important;
         }}
         """
     
@@ -202,15 +534,53 @@ def inject_theme_css():
        Generated dynamically by theme_utils.py
     ============================================ */
     
+    /* SF Pro Font - Apple's System Font */
+    @import url('https://fonts.cdnfonts.com/css/sf-pro-display');
+    
+    /* Global Font Reset */
+    *, *::before, *::after {{
+        font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif !important;
+    }}
+    
+    html, body, [data-testid="stAppViewContainer"] {{
+        font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif !important;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }}
+    
+    /* Typography Scale */
+    h1, h2, h3, h4, h5, h6 {{
+        font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif !important;
+        font-weight: 600 !important;
+        letter-spacing: -0.02em;
+    }}
+    
+    p, span, label, div {{
+        font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif !important;
+        letter-spacing: -0.01em;
+    }}
+    
+    /* Streamlit Specific Font Overrides */
+    .stMarkdown, .stText, [data-testid="stMarkdownContainer"] {{
+        font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    }}
+    
+    [data-testid="stMetricValue"] {{
+        font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif !important;
+        font-weight: 600 !important;
+        font-feature-settings: 'tnum' on, 'lnum' on;
+    }}
+    
     {streamlit_overrides}
     
     /* Custom Dashboard Classes */
     .main-header {{
-        font-size: 2.5rem;
+        font-size: 2.2rem;
         color: {colors['accent']};
         text-align: center;
-        margin-bottom: 2rem;
-        font-weight: 700;
+        margin-bottom: 1.5rem;
+        font-weight: 600;
+        letter-spacing: -0.03em;
     }}
     
     .section-header {{
@@ -317,22 +687,25 @@ def inject_theme_css():
         box-shadow: 0 4px 12px {colors['shadow']};
     }}
     
-    /* Mode indicator badges */
+    /* Mode indicator badges - Apple-style pills */
     .mode-badge {{
-        padding: 5px 15px;
-        border-radius: 20px;
-        font-size: 0.9em;
+        padding: 6px 14px;
+        border-radius: 100px;
+        font-size: 0.85em;
         font-weight: 500;
+        letter-spacing: -0.01em;
     }}
     
     .mode-badge-developer {{
-        background-color: #4CAF50;
-        color: white;
+        background-color: {'rgba(48, 209, 88, 0.2)' if is_dark_mode() else '#E8F5E9'};
+        color: {colors['success']};
+        border: 1px solid {'rgba(48, 209, 88, 0.3)' if is_dark_mode() else '#C8E6C9'};
     }}
     
     .mode-badge-business {{
-        background-color: #2196F3;
-        color: white;
+        background-color: {'rgba(10, 132, 255, 0.2)' if is_dark_mode() else '#E3F2FD'};
+        color: {colors['accent']};
+        border: 1px solid {'rgba(10, 132, 255, 0.3)' if is_dark_mode() else '#BBDEFB'};
     }}
     
     /* Info boxes and alerts */
