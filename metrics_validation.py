@@ -304,7 +304,7 @@ def display_data_quality_summary() -> None:
         
         if not df.empty:
             st.markdown("### Table Row Counts")
-            st.dataframe(df, use_container_width=True, hide_index=True)
+            st.dataframe(df, width="stretch", hide_index=True)
             
             # Check for empty tables
             empty_tables = df[df['row_count'] == 0]['table_name'].tolist()

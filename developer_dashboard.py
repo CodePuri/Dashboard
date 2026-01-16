@@ -157,7 +157,7 @@ def show_acquisition_section(start_date: Optional[datetime], end_date: Optional[
                     hovermode='x unified',
                     height=400
                 )
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width="stretch")
             
             with col2:
                 # Pie chart: Signup method distribution
@@ -173,7 +173,7 @@ def show_acquisition_section(start_date: Optional[datetime], end_date: Optional[
                     color_discrete_map={'OAuth': '#ff7f0e', 'Email': '#2ca02c'}
                 )
                 fig.update_layout(height=400)
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width="stretch")
             
             # Cumulative signups
             st.markdown("#### Cumulative Signup Growth")
@@ -193,12 +193,12 @@ def show_acquisition_section(start_date: Optional[datetime], end_date: Optional[
                 hovermode='x unified',
                 height=400
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
             
             # Data table
             with st.expander("📊 View Raw Data"):
                 from dashboard_components import export_button
-                st.dataframe(signups_df, use_container_width=True, hide_index=True)
+                st.dataframe(signups_df, width="stretch", hide_index=True)
                 export_button(signups_df, "daily_signups", "csv")
         else:
             st.info("No signup data available for the selected date range.")
@@ -223,10 +223,10 @@ def show_acquisition_section(start_date: Optional[datetime], end_date: Optional[
                     color_continuous_scale='Blues'
                 )
                 fig.update_layout(height=400, xaxis_tickangle=-45)
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width="stretch")
             
             with col2:
-                st.dataframe(sources_df, use_container_width=True, hide_index=True)
+                st.dataframe(sources_df, width="stretch", hide_index=True)
         else:
             st.info("No signup source data available.")
     
@@ -260,7 +260,7 @@ def show_acquisition_section(start_date: Optional[datetime], end_date: Optional[
             title="Onboarding Completion Funnel",
             height=300
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
     
     st.markdown("---")
     
@@ -296,7 +296,7 @@ def show_acquisition_section(start_date: Optional[datetime], end_date: Optional[
                 color_continuous_scale='Oranges'
             )
             fig.update_layout(height=400)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
         else:
             st.info("No trial start data available.")
     
@@ -339,7 +339,7 @@ def show_acquisition_section(start_date: Optional[datetime], end_date: Optional[
                         yaxis_title="Number of Users",
                         hovermode='x unified'
                     )
-                    st.plotly_chart(fig, use_container_width=True)
+                    st.plotly_chart(fig, width="stretch")
                 else:
                     # Only one date - show as bar chart instead
                     st.info("ℹ️ Only one date of data available. Showing current status distribution.")
@@ -361,7 +361,7 @@ def show_acquisition_section(start_date: Optional[datetime], end_date: Optional[
                         xaxis_title="Status",
                         yaxis_title="Number of Users"
                     )
-                    st.plotly_chart(fig, use_container_width=True)
+                    st.plotly_chart(fig, width="stretch")
                 
                 # Current status distribution
                 if 'status_date' in status_df.columns and len(status_df) > 0:
@@ -376,7 +376,7 @@ def show_acquisition_section(start_date: Optional[datetime], end_date: Optional[
                             title=f"Current Status Distribution (as of {latest_date.strftime('%Y-%m-%d') if hasattr(latest_date, 'strftime') else latest_date})"
                         )
                         fig.update_layout(height=400)
-                        st.plotly_chart(fig, use_container_width=True)
+                        st.plotly_chart(fig, width="stretch")
             else:
                 st.warning("Data was loaded but became empty after processing. Check date formats.")
         else:
@@ -394,20 +394,25 @@ def show_impression_section(start_date: Optional[datetime], end_date: Optional[d
         return
     
     with st.spinner("Loading active user metrics..."):
-        dau_wau_mau = get_dau_wau_mau(start_date, end_date)
+        try:
+            dau_wau_mau = get_dau_wau_mau(start_date, end_date)
+        except Exception as e:
+            logger.error(f"Failed to load DAU/WAU/MAU metrics: {e}")
+            dau_wau_mau = {'dau': 0, 'wau': 0, 'mau': 0, 'dau_mau_ratio': 0.0}
+            st.warning("⚠️ Could not load active user metrics. Showing default values.")
         
         col1, col2, col3, col4 = st.columns(4)
         with col1:
-            st.metric("Daily Active Users (DAU)", f"{dau_wau_mau['dau']:,}",
+            st.metric("Daily Active Users (DAU)", f"{dau_wau_mau.get('dau', 0):,}",
                     help="Daily Active Users: Count of unique users with activity (prompt generation in save_enhance_prompt) on the current day (DATE(created_at) = CURRENT_DATE)")
         with col2:
-            st.metric("Weekly Active Users (WAU)", f"{dau_wau_mau['wau']:,}",
+            st.metric("Weekly Active Users (WAU)", f"{dau_wau_mau.get('wau', 0):,}",
                     help="Weekly Active Users: Count of unique users with activity in the last 7 days (created_at >= CURRENT_DATE - INTERVAL '7 days')")
         with col3:
-            st.metric("Monthly Active Users (MAU)", f"{dau_wau_mau['mau']:,}",
+            st.metric("Monthly Active Users (MAU)", f"{dau_wau_mau.get('mau', 0):,}",
                     help="Monthly Active Users: Count of unique users with activity in the last 30 days (created_at >= CURRENT_DATE - INTERVAL '30 days')")
         with col4:
-            st.metric("Stickiness (DAU/MAU)", f"{dau_wau_mau['dau_mau_ratio']:.1f}%",
+            st.metric("Stickiness (DAU/MAU)", f"{dau_wau_mau.get('dau_mau_ratio', 0.0):.1f}%",
                     help="User stickiness metric. Formula: (DAU / MAU) × 100. Measures how frequently users return. Higher values indicate better engagement. Good: >20%, Excellent: >40%")
         
         # DAU/WAU/MAU trend chart
@@ -431,7 +436,7 @@ def show_impression_section(start_date: Optional[datetime], end_date: Optional[d
                 color_continuous_scale='Blues'
             )
             fig.update_layout(height=500)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
         else:
             st.info("No activity pattern data available.")
     
@@ -459,7 +464,7 @@ def show_impression_section(start_date: Optional[datetime], end_date: Optional[d
                     color_discrete_map={'Enhance': '#1f77b4', 'Refine': '#ff7f0e'}
                 )
                 fig.update_layout(height=400)
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width="stretch")
             
             with col2:
                 # Adoption rates
@@ -476,9 +481,9 @@ def show_impression_section(start_date: Optional[datetime], end_date: Optional[d
                     color_discrete_map={'Enhance': '#1f77b4', 'Refine': '#ff7f0e'}
                 )
                 fig.update_layout(height=400)
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width="stretch")
             
-            st.dataframe(feature_usage, use_container_width=True, hide_index=True)
+            st.dataframe(feature_usage, width="stretch", hide_index=True)
         else:
             # Show at least adoption rates even if usage counts are empty
             if adoption_rates['enhance_adoption'] > 0 or adoption_rates['refine_adoption'] > 0:
@@ -495,7 +500,7 @@ def show_impression_section(start_date: Optional[datetime], end_date: Optional[d
                     color_discrete_map={'Enhance': '#1f77b4', 'Refine': '#ff7f0e'}
                 )
                 fig.update_layout(height=400)
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width="stretch")
             else:
                 st.info("No feature usage data available.")
 
@@ -532,7 +537,7 @@ def show_retention_section(start_date: Optional[datetime], end_date: Optional[da
         # Cohort retention table
         if not cohort_df.empty:
             st.markdown("#### Retention by Cohort")
-            st.dataframe(cohort_df, use_container_width=True, hide_index=True)
+            st.dataframe(cohort_df, width="stretch", hide_index=True)
             
             # Retention curve chart
             if 'cohort_week' in cohort_df.columns:
@@ -555,7 +560,7 @@ def show_retention_section(start_date: Optional[datetime], end_date: Optional[da
                     yaxis_title="Active Users",
                     height=400
                 )
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width="stretch")
         else:
             st.info("No cohort retention data available.")
     
@@ -622,7 +627,7 @@ def show_retention_section(start_date: Optional[datetime], end_date: Optional[da
             }
         )
         fig.update_layout(height=400)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
 
 def show_engagement_section(start_date: Optional[datetime], end_date: Optional[datetime]):
@@ -664,7 +669,7 @@ def show_engagement_section(start_date: Optional[datetime], end_date: Optional[d
                 markers=True
             )
             fig.update_layout(height=400)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
         else:
             st.info("No usage intensity data available.")
         
@@ -696,7 +701,7 @@ def show_engagement_section(start_date: Optional[datetime], end_date: Optional[d
                 color_continuous_scale='Viridis'
             )
             fig.update_layout(height=400)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
     
     st.markdown("---")
     
@@ -704,17 +709,22 @@ def show_engagement_section(start_date: Optional[datetime], end_date: Optional[d
     st.markdown("### 4.2 Feature Engagement")
     
     with st.spinner("Loading feature engagement..."):
-        prompt_metrics = get_prompt_generation_metrics(start_date, end_date)
+        try:
+            prompt_metrics = get_prompt_generation_metrics(start_date, end_date)
+        except Exception as e:
+            logger.error(f"Failed to load prompt generation metrics: {e}")
+            prompt_metrics = {'total_prompts': 0, 'unique_users': 0, 'prompts_per_user': 0.0}
+            st.warning("⚠️ Could not load feature engagement metrics. Showing default values.")
         
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.metric("Total Prompts", f"{prompt_metrics['total_prompts']:,}",
+            st.metric("Total Prompts", f"{prompt_metrics.get('total_prompts', 0):,}",
                     help="Total number of prompts generated in the selected period. Count of records in save_enhance_prompt table")
         with col2:
-            st.metric("Unique Users", f"{prompt_metrics['unique_users']:,}",
+            st.metric("Unique Users", f"{prompt_metrics.get('unique_users', 0):,}",
                     help="Count of unique users who generated at least one prompt in the selected period. DISTINCT count of user_id from save_enhance_prompt")
         with col3:
-            st.metric("Prompts per User", f"{prompt_metrics['prompts_per_user']:.2f}",
+            st.metric("Prompts per User", f"{prompt_metrics.get('prompts_per_user', 0.0):.2f}",
                     help="Average number of prompts generated per active user. Formula: Total prompts / Unique users who generated prompts")
     
     st.markdown("---")
@@ -812,7 +822,7 @@ def show_engagement_section(start_date: Optional[datetime], end_date: Optional[d
                 display_df_final = display_df_final.rename(columns=col_mapping)
                 
                 # Show main table
-                st.dataframe(display_df_final, use_container_width=True, hide_index=True)
+                st.dataframe(display_df_final, width="stretch", hide_index=True)
             
             # Full details expander
             with st.expander("🔍 View Full Details of Recent Entries (Latest 10)", expanded=False):
@@ -905,10 +915,10 @@ def show_engagement_section(start_date: Optional[datetime], end_date: Optional[d
                     color='platform'
                 )
                 fig.update_layout(height=400)
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width="stretch")
             
             with col2:
-                st.dataframe(context_df, use_container_width=True, hide_index=True)
+                st.dataframe(context_df, width="stretch", hide_index=True)
 
 
 def apply_filters_and_search(df: pd.DataFrame, filters: Dict, search_text: str, search_columns: List[str]) -> pd.DataFrame:
@@ -1040,13 +1050,13 @@ def show_database_tables_section(start_date: Optional[datetime], end_date: Optio
                         color_discrete_map={'OAuth': '#ff7f0e', 'Email': '#2ca02c', 'Unknown': '#d62728'}
                     )
                     fig.update_layout(height=400)
-                    st.plotly_chart(fig, use_container_width=True)
+                    st.plotly_chart(fig, width="stretch")
             
             with col_table:
                 # Data table
                 display_cols = ['user_id', 'name', 'email', 'auth_method', 'created_at']
                 display_cols = [c for c in display_cols if c in filtered_df.columns]
-                st.dataframe(filtered_df[display_cols], use_container_width=True, hide_index=True, height=400)
+                st.dataframe(filtered_df[display_cols], width="stretch", hide_index=True, height=400)
         else:
             st.warning("No user data available. The usertable may be empty.")
     
@@ -1139,13 +1149,13 @@ def show_database_tables_section(start_date: Optional[datetime], end_date: Optio
                         labels={'prompt_length': 'Prompt Length (characters)', 'count': 'Number of Prompts'}
                     )
                     fig.update_layout(height=400)
-                    st.plotly_chart(fig, use_container_width=True)
+                    st.plotly_chart(fig, width="stretch")
             
             with col_table:
                 # Data table
                 display_cols = ['prompt_id', 'user_id', 'prompt_preview', 'prompt_length', 'created_at']
                 display_cols = [c for c in display_cols if c in filtered_df.columns]
-                st.dataframe(filtered_df[display_cols], use_container_width=True, hide_index=True, height=400)
+                st.dataframe(filtered_df[display_cols], width="stretch", hide_index=True, height=400)
         else:
             st.warning("No user prompts data available. The user_prompts table may be empty.")
     
@@ -1252,7 +1262,7 @@ def show_database_tables_section(start_date: Optional[datetime], end_date: Optio
                         labels={'x': 'LLM Model', 'y': 'Usage Count'}
                     )
                     fig.update_layout(height=300, xaxis_tickangle=-45)
-                    st.plotly_chart(fig, use_container_width=True)
+                    st.plotly_chart(fig, width="stretch")
             
             with col_chart2:
                 # Domain distribution
@@ -1264,13 +1274,13 @@ def show_database_tables_section(start_date: Optional[datetime], end_date: Optio
                         title="Top 10 Domain Distribution"
                     )
                     fig.update_layout(height=300)
-                    st.plotly_chart(fig, use_container_width=True)
+                    st.plotly_chart(fig, width="stretch")
             
             # Data table
             display_cols = ['enhanced_prompt_id', 'prompt_id', 'user_id', 'enhanced_prompt_preview', 
                           'domain', 'intent', 'llm_used', 'mode', 'processing_time', 'created_at']
             display_cols = [c for c in display_cols if c in filtered_df.columns]
-            st.dataframe(filtered_df[display_cols], use_container_width=True, hide_index=True)
+            st.dataframe(filtered_df[display_cols], width="stretch", hide_index=True)
         else:
             st.warning("No enhanced prompts data available. The save_enhance_prompt table may be empty.")
     
@@ -1363,14 +1373,14 @@ def show_database_tables_section(start_date: Optional[datetime], end_date: Optio
                         labels={'processing_time': 'Processing Time (ms)', 'count': 'Number of Refinements'}
                     )
                     fig.update_layout(height=400)
-                    st.plotly_chart(fig, use_container_width=True)
+                    st.plotly_chart(fig, width="stretch")
             
             with col_table:
                 # Data table
                 display_cols = ['refine_id', 'prompt_id', 'enhanced_prompt_id', 'refined_prompt_preview', 
                               'processing_time', 'created_at']
                 display_cols = [c for c in display_cols if c in filtered_df.columns]
-                st.dataframe(filtered_df[display_cols], use_container_width=True, hide_index=True, height=400)
+                st.dataframe(filtered_df[display_cols], width="stretch", hide_index=True, height=400)
         else:
             st.warning("No refined prompts data available. The refine_prompt table may be empty.")
     
@@ -1468,13 +1478,13 @@ def show_database_tables_section(start_date: Optional[datetime], end_date: Optio
                         }
                     )
                     fig.update_layout(height=400)
-                    st.plotly_chart(fig, use_container_width=True)
+                    st.plotly_chart(fig, width="stretch")
             
             with col_table:
                 # Data table
                 display_cols = ['user_id', 'status', 'created_at', 'updated_at']
                 display_cols = [c for c in display_cols if c in filtered_df.columns]
-                st.dataframe(filtered_df[display_cols], use_container_width=True, hide_index=True, height=400)
+                st.dataframe(filtered_df[display_cols], width="stretch", hide_index=True, height=400)
         else:
             st.warning("No user status data available. The userstatus table may be empty.")
     
@@ -1508,7 +1518,7 @@ def show_database_tables_section(start_date: Optional[datetime], end_date: Optio
                                 sample_df = db_manager.execute_query(sample_query)
                                 if not sample_df.empty:
                                     st.markdown("**Sample data (first 5 rows):**")
-                                    st.dataframe(sample_df, use_container_width=True, hide_index=True)
+                                    st.dataframe(sample_df, width="stretch", hide_index=True)
                                     st.markdown("**Available columns:**")
                                     st.write(list(sample_df.columns))
                             except Exception as e2:
@@ -1607,7 +1617,7 @@ def show_database_tables_section(start_date: Optional[datetime], end_date: Optio
                         labels={'x': 'Source', 'y': 'Count'}
                     )
                     fig.update_layout(height=300, xaxis_tickangle=-45)
-                    st.plotly_chart(fig, use_container_width=True)
+                    st.plotly_chart(fig, width="stretch")
             
             with col_chart2:
                 # Completion status
@@ -1626,12 +1636,12 @@ def show_database_tables_section(start_date: Optional[datetime], end_date: Optio
                         color_discrete_map={'Completed': '#2ca02c', 'Incomplete': '#d62728'}
                     )
                     fig.update_layout(height=300)
-                    st.plotly_chart(fig, use_container_width=True)
+                    st.plotly_chart(fig, width="stretch")
             
             # Data table
             display_cols = ['user_id', 'user_name', 'email', 'source', 'completed_at', 'user_signup_date']
             display_cols = [c for c in display_cols if c in filtered_df.columns]
-            st.dataframe(filtered_df[display_cols], use_container_width=True, hide_index=True)
+            st.dataframe(filtered_df[display_cols], width="stretch", hide_index=True)
         else:
             st.warning("No onboarding data available. The onboarding_data table may be empty.")
     

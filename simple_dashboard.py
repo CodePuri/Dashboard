@@ -916,13 +916,13 @@ def show_prompt_reviews_table():
                     SELECT prompt_id, user_id, user_prompt, created_at 
                     FROM public.user_prompts ORDER BY created_at DESC LIMIT 10
                 """)
-                st.dataframe(up_df, use_container_width=True, hide_index=True)
+                st.dataframe(up_df, width="stretch", hide_index=True)
             with tab2:
                 sep_df = db_manager.execute_query("""
                     SELECT enhanced_prompt_id, prompt_id, user_id, enhanced_prompt, processing_time, intent, llm_used, mode, created_at 
                     FROM public.save_enhance_prompt ORDER BY created_at DESC LIMIT 10
                 """)
-                st.dataframe(sep_df, use_container_width=True, hide_index=True)
+                st.dataframe(sep_df, width="stretch", hide_index=True)
         except Exception:
             pass
         return
@@ -1011,7 +1011,7 @@ def show_prompt_reviews_table():
     # Show the main table
     st.dataframe(
         display_df_final,
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
         column_config={
             'User Name': st.column_config.TextColumn(
@@ -1110,7 +1110,7 @@ def show_user_prompts_table():
             LIMIT 50
             """
         )
-        st.dataframe(up_df, use_container_width=True, hide_index=True)
+        st.dataframe(up_df, width="stretch", hide_index=True)
     except Exception as e:
         st.warning(f"Failed to load user_prompts: {e}")
 
@@ -1130,7 +1130,7 @@ def show_save_enhance_prompt_table():
             LIMIT 50
             """
         )
-        st.dataframe(sep_df, use_container_width=True, hide_index=True)
+        st.dataframe(sep_df, width="stretch", hide_index=True)
     except Exception as e:
         st.warning(f"Failed to load save_enhance_prompt: {e}")
 
@@ -1150,7 +1150,7 @@ def show_refine_prompt_table():
             LIMIT 50
             """
         )
-        st.dataframe(rp_df, use_container_width=True, hide_index=True)
+        st.dataframe(rp_df, width="stretch", hide_index=True)
     except Exception as e:
         st.warning(f"Failed to load refine_prompt: {e}")
 
@@ -1194,7 +1194,7 @@ def show_all_tables_section():
         df = pd.DataFrame(rows).sort_values("Table")
         st.dataframe(
             df,
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
             column_config={
                 'Table': st.column_config.TextColumn('Table', width='small'),
@@ -1238,14 +1238,14 @@ def show_ai_usage_chart():
         **get_plotly_layout_overrides()
     )
     
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
     
     # Show summary table
     st.markdown("### 📊 AI Usage Summary")
     ai_summary = ai_data.copy()
     ai_summary['percentage'] = (ai_summary['count'] / ai_summary['count'].sum() * 100).round(1)
     ai_summary.columns = ['AI Model', 'Usage Count', 'Percentage (%)']
-    st.dataframe(ai_summary, use_container_width=True, hide_index=True)
+    st.dataframe(ai_summary, width="stretch", hide_index=True)
 
 def show_retention_analysis():
     """Display retention analysis with metrics and detailed data."""
@@ -1300,7 +1300,7 @@ def show_retention_analysis():
         
         st.dataframe(
             retention_display,
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
             column_config={
                 'Signup Date': st.column_config.DateColumn(
@@ -1402,19 +1402,19 @@ def show_cohort_analysis():
                     **get_plotly_layout_overrides()
                 )
                 
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width="stretch")
                 
             except Exception as e:
                 logger.error(f"Heatmap creation failed: {e}")
                 # Fallback to regular dataframe
-                st.dataframe(pivot_data, use_container_width=True)
+                st.dataframe(pivot_data, width="stretch")
                 
         except Exception as e:
             logger.error(f"Cohort pivot failed: {e}")
             # Show raw data
             cohort_display = cohort_data.copy()
             cohort_display.columns = ['Cohort Week', 'Activity Week', 'Active Users']
-            st.dataframe(cohort_display, use_container_width=True, hide_index=True)
+            st.dataframe(cohort_display, width="stretch", hide_index=True)
 
 def show_churn_analysis():
     """Display churn analysis."""
@@ -1461,7 +1461,7 @@ def show_churn_analysis():
         
         st.dataframe(
             churn_display,
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
             column_config={
                 'User ID': st.column_config.NumberColumn('User ID', format='%d'),
@@ -1518,7 +1518,7 @@ def show_prompt_reuse_analysis():
         
         st.dataframe(
             reuse_display,
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
             column_config={
                 'User ID': st.column_config.NumberColumn('User ID', format='%d'),
@@ -1554,7 +1554,7 @@ def show_prompt_reuse_analysis():
                 **get_plotly_layout_overrides()
             )
             
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
             
         except Exception as e:
             logger.error(f"Prompt distribution chart failed: {e}")
@@ -1627,7 +1627,7 @@ def show_signup_trends():
         
         st.dataframe(
             trends_display,
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
             column_config={
                 'Signup Date': st.column_config.TextColumn('Signup Date', width='medium'),
@@ -1675,7 +1675,7 @@ def show_signup_trends():
                 'weekly_installations': 'Weekly Installations'
             }[t.name]))
             
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
             
         except Exception as e:
             logger.error(f"Weekly trends chart failed: {e}")
@@ -1713,7 +1713,7 @@ def show_installation_analysis():
             fig.update_traces(textposition='inside', textinfo='percent+label')
             fig.update_layout(height=400, **get_plotly_layout_overrides())
             
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
         
         with col2:
             st.markdown("### 📊 Installation Summary")
@@ -1735,7 +1735,7 @@ def show_installation_analysis():
             
             st.dataframe(
                 install_summary,
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
                 column_config={
                     'Status': st.column_config.TextColumn('Status', width='medium'),
@@ -1796,7 +1796,7 @@ def show_recent_users():
     
     st.dataframe(
         display_df,
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
         column_config={
             'Name': st.column_config.TextColumn('Name', width='medium'),
@@ -1932,7 +1932,7 @@ def show_user_table_full_section():
     
     st.dataframe(
         safe_df,
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
         column_config={
             'user_id': st.column_config.NumberColumn('User ID', format='%d') if 'user_id' in safe_df.columns else None,
@@ -1984,7 +1984,7 @@ def show_onboarding_data_section():
                                 simple_df[col] = pd.to_datetime(simple_df[col]).dt.strftime('%Y-%m-%d %H:%M')
                             except Exception:
                                 simple_df[col] = simple_df[col].astype(str)
-                    st.dataframe(simple_df, use_container_width=True, hide_index=True)
+                    st.dataframe(simple_df, width="stretch", hide_index=True)
                     return
         except Exception as e:
             st.warning(f"Onboarding diagnostics failed: {e}")
@@ -2011,7 +2011,7 @@ def show_onboarding_data_section():
     
     st.dataframe(
         df,
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
         column_config={
             'id': st.column_config.NumberColumn('ID', format='%d') if 'id' in df.columns else None,
@@ -2157,7 +2157,7 @@ def show_user_status_table():
     
     st.dataframe(
         display_df,
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
         column_config={
             'status_id': st.column_config.NumberColumn('Status ID', format='%d') if 'status_id' in display_df.columns else None,
@@ -2485,7 +2485,7 @@ def show_natural_language_search():
             if col.button(
                 query,
                 key=f"example_query_{idx}",
-                use_container_width=True,
+                width="stretch",
                 help=f"Click to use: {query}"
             ):
                 # Store the selected query in session state
@@ -2506,7 +2506,7 @@ def show_natural_language_search():
     with col2:
         st.write("")  # Spacing
         st.write("")  # Spacing
-        execute_button = st.button("🔍 Execute", type="primary", use_container_width=True)
+        execute_button = st.button("🔍 Execute", type="primary", width="stretch")
     
     if user_query and execute_button:
         with st.spinner("🤖 Converting to SQL query..."):
@@ -2551,7 +2551,7 @@ def show_natural_language_search():
                         # Display results
                         st.dataframe(
                             result_df,
-                            use_container_width=True,
+                            width="stretch",
                             hide_index=True
                         )
                         
@@ -2604,7 +2604,7 @@ def show_global_search_block():
     tabs = st.tabs(list(results.keys()))
     for tab, label in zip(tabs, results.keys()):
         with tab:
-            st.dataframe(results[label], use_container_width=True, hide_index=True)
+            st.dataframe(results[label], width="stretch", hide_index=True)
 
 
 def render_dashboard_by_mode():

@@ -173,25 +173,50 @@ def inject_theme_css():
         }}
         
         /* ================================================
-           INPUT FIELDS - Critical HIG Fix
-           Must have visible borders and elevated background
+           INPUT FIELDS - NUCLEAR FIX for Dark Mode
+           Maximum specificity to override Streamlit defaults
         ================================================ */
         
-        /* Text inputs */
-        .stTextInput > div > div > input {{
+        /* Force ALL text inputs to have proper styling - NUCLEAR OPTION */
+        input {{
             background-color: {colors['bg_secondary']} !important;
-            border: 1px solid {colors['border']} !important;
             color: {colors['text_primary']} !important;
+            border: 1px solid {colors['border']} !important;
             border-radius: 8px !important;
         }}
         
-        .stTextInput > div > div > input::placeholder {{
-            color: {colors['text_muted']} !important;
+        /* Streamlit-specific input overrides */
+        .stTextInput input,
+        .stTextInput > div > div > input,
+        [data-testid="stTextInput"] input,
+        [data-baseweb="input"] input,
+        input[type="text"],
+        input[type="search"],
+        input[type="email"],
+        input[type="url"] {{
+            background-color: {colors['bg_secondary']} !important;
+            color: {colors['text_primary']} !important;
+            border: 1px solid {colors['border']} !important;
+            border-radius: 8px !important;
+            -webkit-text-fill-color: {colors['text_primary']} !important;
         }}
         
-        .stTextInput > div > div > input:focus {{
+        /* Placeholder styling */
+        input::placeh older,
+        .stTextInput input::placeholder {{
+            color: {colors['text_muted']} !important;
+            opacity: 0.6 !important;
+            -webkit-text-fill-color: {colors['text_muted']} !important;
+        }}
+        
+        /* Focus state */
+        input:focus,
+        .stTextInput input:focus {{
             border-color: {colors['accent']} !important;
             box-shadow: 0 0 0 1px {colors['accent']} !important;
+            outline: none !important;
+            background-color: {colors['bg_secondary']} !important;
+            color: {colors['text_primary']} !important;
         }}
         
         /* Input labels - Must be visible */
@@ -282,18 +307,28 @@ def inject_theme_css():
             padding: 16px !important;
             border-radius: 10px !important;
             border: 1px solid {colors['divider']} !important;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
         }}
         
         [data-testid="stMetricValue"] {{
             color: {colors['text_primary']} !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }}
         
         [data-testid="stMetricLabel"] {{
             color: {colors['text_secondary']} !important;
+            text-align: center;
         }}
         
         [data-testid="stMetricDelta"] {{
             color: {colors['success']} !important;
+            text-align: center;
         }}
         
         /* ================================================
@@ -537,15 +572,57 @@ def inject_theme_css():
     /* SF Pro Font - Apple's System Font */
     @import url('https://fonts.cdnfonts.com/css/sf-pro-display');
     
-    /* Global Font Reset */
-    *, *::before, *::after {{
-        font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif !important;
-    }}
-    
+    /* Global Font Reset - Selective Application to Avoid Breaking Icons */
+    /* DO NOT use * selector - it breaks Material Icons in Streamlit expanders */
     html, body, [data-testid="stAppViewContainer"] {{
-        font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif !important;
+        font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif !important;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
+    }}
+    
+    /* Apply to text elements only - NOT to icons or buttons */
+    p, span:not([class*="icon"]):not([data-icon]), label, div.stMarkdown {{
+        font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif !important;
+        letter-spacing: -0.01em;
+    }}
+    
+    /* CRITICAL: Hide keyboard_arrow text in expanders */
+    .streamlit-expanderHeader span {{
+        font-family: 'Material Icons' !important;
+        letter-spacing: normal !important;
+    }}
+    
+    /* NUCLEAR: Hide Material Icon text - target the specific element */
+    [data-testid="stIconMaterial"] {{
+        display: none !important;
+    }}
+    
+    summary [data-testid="stIconMaterial"],
+    .streamlit-expanderHeader [data-testid="stIconMaterial"] {{
+        visibility: hidden !important;
+        font-size: 0 !important;
+        width: 0 !important;
+        height: 0 !important;
+        position: absolute !important;
+        left: -9999px !important;
+    }}
+    
+    /* Nuclear option: Hide any text containing keyboard_arrow */
+    .streamlit-expanderHeader *:not(svg):not(path) {{
+        font-size: 0 !important;
+    }}
+    
+    .streamlit-expanderHeader svg {{
+        font-size: initial !important;
+    }}
+    
+    /* Ensure section headers are still visible */
+    .streamlit-expanderHeader {{
+        font-size: 1rem !important;
+    }}
+    
+    .streamlit-expanderHeader > div:first-child {{
+        font-size: 1rem !important;
     }}
     
     /* Typography Scale */
@@ -708,14 +785,26 @@ def inject_theme_css():
         border: 1px solid {'rgba(10, 132, 255, 0.3)' if is_dark_mode() else '#BBDEFB'};
     }}
     
-    /* Info boxes and alerts */
+    /* Info boxes and alerts - Improved spacing for sidebar */
     .info-box {{
         background-color: {colors['bg_secondary']};
         border-left: 4px solid {colors['accent']};
-        padding: 1rem;
+        padding: 1.5rem;
         margin: 1rem 0;
         border-radius: 0 0.5rem 0.5rem 0;
         color: {colors['text_primary']};
+        line-height: 1.6;
+    }}
+    
+    /* Sidebar info boxes - Extra spacing for Business dashboard */
+    [data-testid="stSidebar"] .stAlert,
+    [data-testid="stSidebar"] .element-container {{
+        margin-bottom: 1.5rem !important;
+    }}
+    
+    [data-testid="stSidebar"] p {{
+        line-height: 1.7 !important;
+        margin: 0.5rem 0 !important;
     }}
     
     /* Table styling for dark mode */
@@ -736,7 +825,74 @@ def inject_theme_css():
     </style>
     """
     
-    st.markdown(css, unsafe_allow_html=True)
+    # NUCLEAR OPTION: JavaScript injection to force fix stubborn issues
+    # This runs after page load and on every Streamlit rerun
+    js_fix = """
+    <script>
+    (function() {
+        'use strict';
+        
+        // Force fix all input text visibility
+        function fixInputs() {
+            const inputs = document.querySelectorAll('input[type="text"], input[type="search"], input, [data-baseweb="input"] input');
+            inputs.forEach(function(input) {
+                input.style.setProperty('background-color', 'rgba(28, 28, 30, 1)', 'important');
+                input.style.setProperty('color', 'rgba(255, 255, 255, 0.85)', 'important');
+                input.style.setProperty('border', '1px solid rgba(255, 255, 255, 0.15)', 'important');
+                input.style.setProperty('-webkit-text-fill-color', 'rgba(255, 255, 255, 0.85)', 'important');
+                input.style.setProperty('caret-color', 'rgba(255, 255, 255, 0.85)', 'important');
+            });
+        }
+        
+        // Remove keyboard_arrow text from expanders
+        function fixExpanders() {
+            const headers = document.querySelectorAll('.streamlit-expanderHeader, [data-testid^="stExpander"]');
+            headers.forEach(function(header) {
+                const spans = header.querySelectorAll('span');
+                spans.forEach(function(span) {
+                    const text = span.innerText || span.textContent || '';
+                    if (text.includes('keyboard_arrow') || text === 'keyboard_arrow_down' || text === 'keyboard_arrow_right') {
+                        span.style.fontSize = '0';
+                        span.style.width = '0';
+                        span.style.height = '0';
+                        span.style.overflow = 'hidden';
+                        span.style.display = 'inline-block';
+                        span.textContent = '';
+                    }
+                });
+            });
+        }
+        
+        // Run fixes immediately
+        function runFixes() {
+            fixInputs();
+            fixExpanders();
+        }
+        
+        // Initial run after DOM loads
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', runFixes);
+        } else {
+            runFixes();
+        }
+        
+        // Re-run on Streamlit reruns (watch for DOM changes)
+        const observer = new MutationObserver(function(mutations) {
+            runFixes();
+        });
+        
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+        
+        // Also run every 500ms for stubborn cases
+        setInterval(runFixes, 500);
+    })();
+    </script>
+    """
+    
+    st.markdown(css + js_fix, unsafe_allow_html=True)
 
 
 def render_theme_toggle():
