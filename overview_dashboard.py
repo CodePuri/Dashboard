@@ -958,29 +958,94 @@ def render_overview_dashboard():
         # Deep Insights
         st.markdown('<div class="section-header">Deep Insights</div>', unsafe_allow_html=True)
         
-        # Row 1: Prompt Length Stats & Processing Time Histogram
+        # Row 1: Prompt Length Statistics Tiles
+        if 'user_prompt_length' in tab_df.columns:
+            user_mean = tab_df['user_prompt_length'].mean()
+            user_min = tab_df['user_prompt_length'].min()
+            user_max = tab_df['user_prompt_length'].max()
+            enh_mean = tab_df['enhanced_prompt_length'].mean() if 'enhanced_prompt_length' in tab_df.columns else 0
+            enh_min = tab_df['enhanced_prompt_length'].min() if 'enhanced_prompt_length' in tab_df.columns else 0
+            enh_max = tab_df['enhanced_prompt_length'].max() if 'enhanced_prompt_length' in tab_df.columns else 0
+            avg_processing = tab_df['processing_time'].mean() if 'processing_time' in tab_df.columns else 0
+            avg_user_words = tab_df['user_prompt_word_count'].mean() if 'user_prompt_word_count' in tab_df.columns else 0
+            avg_enh_words = tab_df['enhanced_prompt_word_count'].mean() if 'enhanced_prompt_word_count' in tab_df.columns else 0
+            expansion_ratio = (avg_enh_words / avg_user_words) if avg_user_words > 0 else 0
+            
+            di_col1, di_col2, di_col3, di_col4 = st.columns(4)
+            
+            with di_col1:
+                st.markdown(f"""
+                    <div class="metric-card" style="border-left: 4px solid #8b5cf6;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 0.75rem;">
+                                    <span class="metric-label" style="margin-bottom: 0;">Avg User Prompt</span>
+                                    <span title="Average character count of user input prompts." style="cursor: help; opacity: 0.6; font-size: 0.8rem;">ℹ️</span>
+                                </div>
+                                <div class="metric-value">{user_mean:.0f}</div>
+                                <div class="metric-subtitle">chars (Min: {user_min:.0f} | Max: {user_max:.0f})</div>
+                            </div>
+                            <div style="font-size: 2rem; color: #8b5cf6; opacity: 0.7;">📏</div>
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
+            
+            with di_col2:
+                st.markdown(f"""
+                    <div class="metric-card" style="border-left: 4px solid #10b981;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 0.75rem;">
+                                    <span class="metric-label" style="margin-bottom: 0;">Avg Enhanced</span>
+                                    <span title="Average character count of enhanced prompts." style="cursor: help; opacity: 0.6; font-size: 0.8rem;">ℹ️</span>
+                                </div>
+                                <div class="metric-value">{enh_mean:.0f}</div>
+                                <div class="metric-subtitle">chars (Min: {enh_min:.0f} | Max: {enh_max:.0f})</div>
+                            </div>
+                            <div style="font-size: 2rem; color: #10b981; opacity: 0.7;">✨</div>
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
+            
+            with di_col3:
+                st.markdown(f"""
+                    <div class="metric-card" style="border-left: 4px solid #f59e0b;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 0.75rem;">
+                                    <span class="metric-label" style="margin-bottom: 0;">Avg Processing</span>
+                                    <span title="Average time to process a prompt." style="cursor: help; opacity: 0.6; font-size: 0.8rem;">ℹ️</span>
+                                </div>
+                                <div class="metric-value">{avg_processing:.2f}s</div>
+                                <div class="metric-subtitle">per prompt</div>
+                            </div>
+                            <div style="font-size: 2rem; color: #f59e0b; opacity: 0.7;">⏱️</div>
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
+            
+            with di_col4:
+                st.markdown(f"""
+                    <div class="metric-card" style="border-left: 4px solid #3b82f6;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 0.75rem;">
+                                    <span class="metric-label" style="margin-bottom: 0;">Expansion Ratio</span>
+                                    <span title="How much prompts are expanded (enhanced words / user words)." style="cursor: help; opacity: 0.6; font-size: 0.8rem;">ℹ️</span>
+                                </div>
+                                <div class="metric-value">{expansion_ratio:.1f}x</div>
+                                <div class="metric-subtitle">{avg_user_words:.0f} → {avg_enh_words:.0f} words</div>
+                            </div>
+                            <div style="font-size: 2rem; color: #3b82f6; opacity: 0.7;">📊</div>
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
+        
+        # Row 2: Charts (Processing Time Histogram & User Segments)
+        st.markdown("##### Detailed Distributions")
         i_col1, i_col2 = st.columns(2)
         
         with i_col1:
-            # Prompt Length Statistics - Mean/Min/Max
-            if 'user_prompt_length' in tab_df.columns:
-                user_mean = tab_df['user_prompt_length'].mean()
-                user_min = tab_df['user_prompt_length'].min()
-                user_max = tab_df['user_prompt_length'].max()
-                enh_mean = tab_df['enhanced_prompt_length'].mean() if 'enhanced_prompt_length' in tab_df.columns else 0
-                enh_min = tab_df['enhanced_prompt_length'].min() if 'enhanced_prompt_length' in tab_df.columns else 0
-                enh_max = tab_df['enhanced_prompt_length'].max() if 'enhanced_prompt_length' in tab_df.columns else 0
-                
-                st.markdown("**📏 Prompt Length Statistics** <span title='Character count statistics for user input vs enhanced output.' style='cursor: help; opacity: 0.6; font-size: 0.8rem;'>ℹ️</span>", unsafe_allow_html=True)
-                stats_col1, stats_col2 = st.columns(2)
-                with stats_col1:
-                    st.metric("User Prompt (Avg)", f"{user_mean:.0f} chars")
-                    st.caption(f"Min: {user_min:.0f} | Max: {user_max:.0f}")
-                with stats_col2:
-                    st.metric("Enhanced (Avg)", f"{enh_mean:.0f} chars")
-                    st.caption(f"Min: {enh_min:.0f} | Max: {enh_max:.0f}")
-        
-        with i_col2:
             # Processing Time Histogram
             if 'processing_time' in tab_df.columns:
                 st.markdown("**⏱️ Processing Time Distribution** <span title='Histogram showing how long prompts take to process.' style='cursor: help; opacity: 0.6; font-size: 0.8rem;'>ℹ️</span>", unsafe_allow_html=True)
@@ -992,10 +1057,7 @@ def render_overview_dashboard():
                 )
                 st.plotly_chart(style_chart(fig, remove_legend=True), use_container_width=True)
         
-        # Row 2: User Segments & Word Count Comparison
-        i_col3, i_col4 = st.columns(2)
-        
-        with i_col3:
+        with i_col2:
             st.markdown("**👥 User Segments** <span title='One-time: 1 prompt | Casual: 2-5 | Regular: 6-20 | Power: 21+' style='cursor: help; opacity: 0.6; font-size: 0.8rem;'>ℹ️</span>", unsafe_allow_html=True)
             user_segments = calculate_user_segments(tab_df)
             if not user_segments.empty:
@@ -1013,7 +1075,10 @@ def render_overview_dashboard():
                 )
                 st.plotly_chart(style_chart(fig), use_container_width=True)
         
-        with i_col4:
+        # Row 3: Word Count Comparison Chart
+        i_col3, i_col4 = st.columns(2)
+        
+        with i_col3:
             # Word Count Comparison
             if 'user_prompt_word_count' in tab_df.columns and 'enhanced_prompt_word_count' in tab_df.columns:
                 st.markdown("**📊 Word Count Expansion** <span title='Average word count comparison between user input and enhanced output.' style='cursor: help; opacity: 0.6; font-size: 0.8rem;'>ℹ️</span>", unsafe_allow_html=True)
@@ -1028,17 +1093,17 @@ def render_overview_dashboard():
                     yaxis_title=""
                 )
                 st.plotly_chart(style_chart(fig, remove_legend=True), use_container_width=True)
-                st.caption(f"📈 {expansion:.1f}x expansion ratio")
         
-        # LLM Distribution (Extension only)
-        if label != "Chat":
-            if 'llm_used' in tab_df.columns:
-                st.markdown("**🤖 LLM Distribution** <span title='Breakdown of which LLM models are being used for enhancements.' style='cursor: help; opacity: 0.6; font-size: 0.8rem;'>ℹ️</span>", unsafe_allow_html=True)
-                llm_counts = tab_df['llm_used'].value_counts().reset_index()
-                llm_counts.columns = ['LLM', 'Count']
-                fig = go.Figure(data=[go.Pie(labels=llm_counts['LLM'], values=llm_counts['Count'], hole=0.4, marker_colors=['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'], textinfo='label+percent')])
-                fig.update_layout(title='', height=280, showlegend=True)
-                st.plotly_chart(style_chart(fig), use_container_width=True)
+        with i_col4:
+            # LLM Distribution (Extension only)
+            if label != "Chat":
+                if 'llm_used' in tab_df.columns:
+                    st.markdown("**🤖 LLM Distribution** <span title='Breakdown of which LLM models are being used for enhancements.' style='cursor: help; opacity: 0.6; font-size: 0.8rem;'>ℹ️</span>", unsafe_allow_html=True)
+                    llm_counts = tab_df['llm_used'].value_counts().reset_index()
+                    llm_counts.columns = ['LLM', 'Count']
+                    fig = go.Figure(data=[go.Pie(labels=llm_counts['LLM'], values=llm_counts['Count'], hole=0.4, marker_colors=['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'], textinfo='label+percent')])
+                    fig.update_layout(title='', height=220, showlegend=True)
+                    st.plotly_chart(style_chart(fig), use_container_width=True)
 
     with tab_overall:
         render_metrics_tab(df, "Overall")
