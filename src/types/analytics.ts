@@ -37,12 +37,26 @@ export interface Distributions {
   complexity: ChartDataPoint[];
   mode: ChartDataPoint[];
   llm: ChartDataPoint[];
+  userStatus: ChartDataPoint[];
 }
 
 export interface TimeAnalysis {
   dailyActivity: DailyActivityPoint[];
   dayOfWeek: ChartDataPoint[];
   timePeriod: ChartDataPoint[];
+}
+
+export interface PowerUser {
+  userId: string;
+  promptCount: number;
+  lastActive: string;
+  avgEnhancementScore: number;
+}
+
+export interface HighIntentAction {
+  action: string;
+  count: number;
+  frequency: number;
 }
 
 export interface InsightsData {
@@ -52,6 +66,8 @@ export interface InsightsData {
   avgEnhancedWords: number;
   expansionRatio: number;
   userSegments: ChartDataPoint[];
+  topPowerUsers: PowerUser[];
+  highIntentActions: HighIntentAction[];
 }
 
 export interface AnalyticsData {
@@ -61,6 +77,8 @@ export interface AnalyticsData {
   timeAnalysis: TimeAnalysis;
   insights: InsightsData;
 }
+
+export type SourceFilterOption = "All" | "Chat" | "Extension";
 
 export interface AnalyticsResponse {
   success: boolean;

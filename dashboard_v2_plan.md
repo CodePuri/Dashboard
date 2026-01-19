@@ -58,7 +58,10 @@ Transform the current analytics overview into a **full-fledged product analytics
 
 - DAU/WAU/MAU ratio
 - Feature adoption funnel
-- Power users vs casual (segments)
+- **Deep User Panel (Cohort Analysis)**:
+  - **Power User Profile**: Who are they? (Top 5% by usage), What do they do? (Feature usage heatmap)
+  - **Paid User Behavior**: Usage patterns vs Free users, Premium feature adoption
+  - **High Intent Signals**: Frequency of specific high-value actions (e.g., "Refine", "Copy Code")
 
 ### Retention
 

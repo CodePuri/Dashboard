@@ -177,48 +177,85 @@ export async function POST(req: Request) {
     while (turnCount < MAX_TURNS) {
       turnCount++;
 
-      // Call Groq
-      const response = await fetch(
-        "https://api.groq.com/openai/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${GROQ_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "llama-3.3-70b-versatile",
-            messages: currentMessages,
-            tools: [
-              {
-                type: "function",
-                function: {
-                  name: "execute_sql",
-                  description:
-                    "Execute a read-only SQL query against the database.",
-                  parameters: {
-                    type: "object",
-                    properties: {
-                      query: {
-                        type: "string",
-                        description: "The SQL query to run",
+      // Retry logic for Rate Limits
+      let response;
+      let retries = 0;
+      const MAX_RETRIES = 3;
+
+      while (retries < MAX_RETRIES) {
+        try {
+          response = await fetch(
+            "https://api.groq.com/openai/v1/chat/completions",
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${GROQ_API_KEY}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                model: "llama-3.3-70b-versatile",
+                messages: currentMessages,
+                tools: [
+                  {
+                    type: "function",
+                    function: {
+                      name: "execute_sql",
+                      description:
+                        "Execute a read-only SQL query against the database.",
+                      parameters: {
+                        type: "object",
+                        properties: {
+                          query: {
+                            type: "string",
+                            description: "The SQL query to run",
+                          },
+                        },
+                        required: ["query"],
                       },
                     },
-                    required: ["query"],
                   },
-                },
-              },
-            ],
-            tool_choice: "auto",
-            temperature: 0.1, // Lower temp for precision
-            max_tokens: 1000,
-          }),
-        },
-      );
+                ],
+                tool_choice: "auto",
+                temperature: 0.1, // Lower temp for precision
+                max_tokens: 1000,
+              }),
+            },
+          );
 
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`Groq API Error: ${errText}`);
+          if (response.status === 429) {
+            const errText = await response.text();
+            // Extract wait time from error message, e.g., "Please try again in 9.86s"
+            const waitMatch = errText.match(/in\s+(\d+(\.\d+)?)(s|ms)/);
+            let waitMs = 2000; // Default 2s
+            if (waitMatch) {
+              const val = parseFloat(waitMatch[1]);
+              const unit = waitMatch[3];
+              waitMs = unit === "ms" ? val : val * 1000;
+              // Add buffer
+              waitMs += 1000;
+            }
+            console.warn(`Groq Rate Limit. Retrying in ${waitMs}ms...`);
+            await new Promise((resolve) => setTimeout(resolve, waitMs));
+            retries++;
+            continue;
+          }
+
+          if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`Groq API Error: ${errText}`);
+          }
+
+          break; // Success
+        } catch (e: any) {
+          if (retries === MAX_RETRIES - 1) throw e;
+          console.warn(`Groq API Fetch Error. Retrying...`, e);
+          retries++;
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+        }
+      }
+
+      if (!response || !response.ok) {
+        throw new Error("Groq API failed after retries");
       }
 
       const json = await response.json();

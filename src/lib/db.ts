@@ -53,10 +53,11 @@ export async function executeQuery<T = Record<string, unknown>>(
   }
 }
 
-// Get analytics data with date range (READ-ONLY QUERY)
+// Get analytics data with date range and source filter (READ-ONLY QUERY)
 export async function getAnalyticsData(
   startDate: Date | null,
   endDate: Date | null,
+  source: "All" | "Chat" | "Extension" = "All",
 ) {
   // Using correct table names from database schema:
   // - user_prompts: Original user prompts
@@ -75,6 +76,7 @@ export async function getAnalyticsData(
       sep.complexity,
       sep.domain,
       sep.mode,
+      sep.user_status,
       sep.created_at as enhanced_prompt_created_at,
       CASE WHEN rp.refine_id IS NOT NULL THEN true ELSE false END as has_refinement
     FROM user_prompts up
@@ -95,6 +97,17 @@ export async function getAnalyticsData(
     conditions.push(`up.created_at <= $${params.length}`);
   }
 
+  // Source filtering based on llm_used
+  if (source === "Chat") {
+    params.push("velocity");
+    conditions.push(`sep.llm_used ILIKE $${params.length}`);
+  } else if (source === "Extension") {
+    params.push("velocity");
+    conditions.push(
+      `(sep.llm_used NOT ILIKE $${params.length} OR sep.llm_used IS NULL)`,
+    );
+  }
+
   if (conditions.length > 0) {
     query += ` WHERE ${conditions.join(" AND ")}`;
   }
@@ -102,6 +115,166 @@ export async function getAnalyticsData(
   query += ` ORDER BY up.created_at DESC`;
 
   return executeQuery(query, params);
+}
+
+// Get attrition data with filters
+export async function getUserAttritionData(
+  startDate: Date | null,
+  endDate: Date | null,
+  source: "All" | "Chat" | "Extension" = "All",
+) {
+  const params: unknown[] = [];
+  const sourceConditions: string[] = [];
+
+  // Source filtering conditions (applied to prompts before aggregation)
+  if (source === "Chat") {
+    params.push("velocity");
+    sourceConditions.push(`sep.llm_used ILIKE $${params.length}`);
+  } else if (source === "Extension") {
+    params.push("velocity");
+    sourceConditions.push(
+      `(sep.llm_used NOT ILIKE $${params.length} OR sep.llm_used IS NULL)`,
+    );
+  }
+
+  const whereClause =
+    sourceConditions.length > 0
+      ? `WHERE ${sourceConditions.join(" AND ")}`
+      : "";
+
+  // Date filtering conditions (applied to User Aggregates)
+  // We use HAVING to filter by "First Active" date (Cohort Analysis)
+  const havingConditions: string[] = [];
+
+  if (startDate) {
+    params.push(startDate.toISOString());
+    havingConditions.push(`MIN(up.created_at) >= $${params.length}`);
+  }
+
+  if (endDate) {
+    params.push(endDate.toISOString());
+    havingConditions.push(`MIN(up.created_at) <= $${params.length}`);
+  }
+
+  const havingClause =
+    havingConditions.length > 0
+      ? `HAVING ${havingConditions.join(" AND ")}`
+      : "";
+
+  const query = `
+    WITH UserStats AS (
+      SELECT 
+        up.user_id,
+        COUNT(up.prompt_id) as total_prompts,
+        MIN(up.created_at) as first_active,
+        MAX(up.created_at) as last_active
+      FROM user_prompts up
+      LEFT JOIN save_enhance_prompt sep ON up.prompt_id = sep.prompt_id
+      ${whereClause}
+      GROUP BY up.user_id
+      ${havingClause}
+    ),
+    LastPrompt AS (
+      SELECT DISTINCT ON (up.user_id) 
+        up.user_id,
+        sep.intent,
+        sep.enhanced_prompt,
+        sep.mode
+      FROM user_prompts up
+      LEFT JOIN save_enhance_prompt sep ON up.prompt_id = sep.prompt_id
+      ORDER BY up.user_id, up.created_at DESC
+    )
+    SELECT 
+      s.user_id,
+      s.total_prompts,
+      s.first_active,
+      s.last_active,
+      l.intent as last_intent,
+      l.enhanced_prompt as last_enhanced_prompt,
+      l.mode as last_mode
+    FROM UserStats s
+    JOIN LastPrompt l ON s.user_id = l.user_id
+  `;
+
+  return executeQuery(query, params);
+}
+
+// Get conversion metrics (Onboarding & Sources)
+export async function getConversionMetrics(
+  startDate: Date | null,
+  endDate: Date | null,
+) {
+  const params: unknown[] = [];
+  const conditions: string[] = [];
+
+  if (startDate) {
+    params.push(startDate.toISOString());
+    conditions.push(`u.created_at >= $${params.length}`);
+  }
+
+  if (endDate) {
+    params.push(endDate.toISOString());
+    conditions.push(`u.created_at <= $${params.length}`);
+  }
+
+  const whereClause =
+    conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+
+  // Query 1: Onboarding Completion
+  const onboardingQuery = `
+    SELECT 
+        COUNT(DISTINCT u.user_id) AS total_signups,
+        COUNT(DISTINCT ob.user_id) AS completed_onboarding
+    FROM usertable u
+    LEFT JOIN onboarding_data ob ON u.user_id = ob.user_id
+    ${whereClause}
+  `;
+
+  // Query 2: Signup Sources
+  const sourcesQuery = `
+    SELECT 
+        COALESCE(ob.source, 'unknown') as source,
+        COUNT(*) as count
+    FROM usertable u
+    LEFT JOIN onboarding_data ob ON u.user_id = ob.user_id
+    ${whereClause}
+    GROUP BY COALESCE(ob.source, 'unknown')
+    ORDER BY count DESC
+  `;
+
+  try {
+    const [onboardingResult, sourcesResult] = await Promise.all([
+      executeQuery(onboardingQuery, params),
+      executeQuery(sourcesQuery, params),
+    ]);
+
+    const total = parseInt((onboardingResult[0] as any).total_signups || "0");
+    const completed = parseInt(
+      (onboardingResult[0] as any).completed_onboarding || "0",
+    );
+
+    return {
+      onboarding: {
+        totalSignups: total,
+        completedOnboarding: completed,
+        completionRate: total > 0 ? (completed / total) * 100 : 0,
+      },
+      sources: sourcesResult.map((row: any) => ({
+        name: row.source,
+        count: parseInt(row.count),
+      })),
+    };
+  } catch (error) {
+    console.error("Failed to fetch conversion metrics:", error);
+    return {
+      onboarding: {
+        totalSignups: 0,
+        completedOnboarding: 0,
+        completionRate: 0,
+      },
+      sources: [],
+    };
+  }
 }
 
 // Close pool on exit

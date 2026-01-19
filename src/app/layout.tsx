@@ -1,23 +1,17 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import { ThemeProvider } from "@/components/theme-provider";
+import { Inter } from "next/font/google";
 import "./globals.css";
+import { ThemeProvider } from "@/components/theme-provider";
+import { LayoutClient } from "@/components/layout/layout-client";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: "Overview Dashboard",
-  description:
-    "A production-ready dashboard with collapsible sidebar and chat panel built with Next.js and shadcn/ui",
-  keywords: ["dashboard", "next.js", "shadcn", "react", "typescript"],
+  title: "Velocity Analytics",
+  description: "Product analytics dashboard powered by Velocity",
 };
 
 export default function RootLayout({
@@ -27,16 +21,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${inter.variable} antialiased`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <LayoutClient>{children}</LayoutClient>
         </ThemeProvider>
       </body>
     </html>

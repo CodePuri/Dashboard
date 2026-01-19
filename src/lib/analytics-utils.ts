@@ -12,6 +12,14 @@ export interface PromptData {
   mode: string | null;
   enhanced_prompt_created_at: string | null;
   has_refinement: boolean;
+  user_status: string | null;
+}
+
+// Helper to get date shifted to IST (UTC + 5:30) for display alignment
+function getDisplayDate(dateStr: string): Date {
+  const date = new Date(dateStr);
+  // Add 5 hours 30 minutes to recover Local Face Value from the UTC-shifted string
+  return new Date(date.getTime() + 5.5 * 60 * 60 * 1000);
 }
 
 export function processData(data: PromptData[]) {
@@ -106,7 +114,8 @@ export function processData(data: PromptData[]) {
   // Daily active users
   const dailyActiveUsers: Record<string, Set<string>> = {};
   unique.forEach((d) => {
-    const date = new Date(d.prompt_created_at).toISOString().split("T")[0];
+    const displayDate = getDisplayDate(d.prompt_created_at);
+    const date = displayDate.toISOString().split("T")[0];
     if (!dailyActiveUsers[date]) dailyActiveUsers[date] = new Set();
     dailyActiveUsers[date].add(d.user_id);
   });
@@ -114,7 +123,8 @@ export function processData(data: PromptData[]) {
   // Daily activity
   const dailyCounts: Record<string, number> = {};
   unique.forEach((d) => {
-    const date = new Date(d.prompt_created_at).toISOString().split("T")[0];
+    const displayDate = getDisplayDate(d.prompt_created_at);
+    const date = displayDate.toISOString().split("T")[0];
     dailyCounts[date] = (dailyCounts[date] || 0) + 1;
   });
   const dailyActivity = Object.entries(dailyCounts)
@@ -145,7 +155,8 @@ export function processData(data: PromptData[]) {
     Sunday: 0,
   };
   unique.forEach((d) => {
-    const day = dayNames[new Date(d.prompt_created_at).getDay()];
+    const displayDate = getDisplayDate(d.prompt_created_at);
+    const day = dayNames[displayDate.getUTCDay()]; // Use UTC methods on shifted date
     dowCounts[day] = (dowCounts[day] || 0) + 1;
   });
   const dayOfWeekData = [
@@ -166,7 +177,8 @@ export function processData(data: PromptData[]) {
     Evening: 0,
   };
   unique.forEach((d) => {
-    const hour = new Date(d.prompt_created_at).getHours();
+    const displayDate = getDisplayDate(d.prompt_created_at);
+    const hour = displayDate.getUTCHours(); // Use UTC methods on shifted date
     let period = "Night";
     if (hour >= 6 && hour < 12) period = "Morning";
     else if (hour >= 12 && hour < 18) period = "Afternoon";
@@ -200,6 +212,17 @@ export function processData(data: PromptData[]) {
     else segmentCounts["Power"]++;
   });
   const userSegments = Object.entries(segmentCounts).map(([name, count]) => ({
+    name,
+    count,
+  }));
+
+  // User Status distribution
+  const statusCounts: Record<string, number> = {};
+  unique.forEach((d) => {
+    const status = d.user_status || "Unknown";
+    statusCounts[status] = (statusCounts[status] || 0) + 1;
+  });
+  const userStatusData = Object.entries(statusCounts).map(([name, count]) => ({
     name,
     count,
   }));
@@ -256,7 +279,24 @@ export function processData(data: PromptData[]) {
           uniqueUsers) *
         100
       : 0;
-  const intensity = uniqueUsers > 0 ? enhanced / uniqueUsers : 0;
+  // Calculate Intensity (Avg Max Daily Prompts per User)
+  const userDailyPrompts: Record<string, Record<string, number>> = {};
+  unique.forEach((d) => {
+    const displayDate = getDisplayDate(d.prompt_created_at)
+      .toISOString()
+      .split("T")[0];
+    if (!userDailyPrompts[d.user_id]) userDailyPrompts[d.user_id] = {};
+    userDailyPrompts[d.user_id][displayDate] =
+      (userDailyPrompts[d.user_id][displayDate] || 0) + 1;
+  });
+
+  const userMaxPrompts = Object.values(userDailyPrompts).map((days) =>
+    Math.max(...Object.values(days)),
+  );
+  const intensity =
+    userMaxPrompts.length > 0
+      ? userMaxPrompts.reduce((a, b) => a + b, 0) / userMaxPrompts.length
+      : 0;
 
   // Retention Rate: % of users who were active on more than 1 distinct day in this period
   const returningUsers = Object.values(userDaysActive).filter(
@@ -264,6 +304,164 @@ export function processData(data: PromptData[]) {
   ).length;
   const retentionRate =
     uniqueUsers > 0 ? (returningUsers / uniqueUsers) * 100 : 0;
+
+  // Calculate Power User details (Top 5)
+  const userStats: Record<
+    string,
+    {
+      count: number;
+      lastActive: string;
+      totalExpansion: number;
+      enhancedCount: number;
+      totalTimeSaved: number;
+      status: string;
+    }
+  > = {};
+
+  unique.forEach((d) => {
+    if (!userStats[d.user_id]) {
+      userStats[d.user_id] = {
+        count: 0,
+        lastActive: "",
+        totalExpansion: 0,
+        enhancedCount: 0,
+        totalTimeSaved: 0,
+        status: d.user_status || "Free",
+      };
+    }
+    const stats = userStats[d.user_id];
+    stats.count++;
+
+    // Update status if present (assuming later prompts might have updated status)
+    if (d.user_status) {
+      stats.status = d.user_status;
+    }
+
+    // Update last active
+    if (
+      !stats.lastActive ||
+      new Date(d.prompt_created_at) > new Date(stats.lastActive)
+    ) {
+      stats.lastActive = d.prompt_created_at;
+    }
+
+    // Calculate expansion and time saved
+    if (d.enhanced_prompt && d.user_prompt) {
+      const uWords = d.user_prompt.split(/\s+/).length || 1;
+      const eWords = d.enhanced_prompt.split(/\s+/).length || 0;
+      stats.totalExpansion += eWords / uWords;
+      stats.enhancedCount++;
+
+      const extraWords = Math.max(0, eWords - uWords);
+      stats.totalTimeSaved += extraWords / 40; // minutes
+    }
+  });
+
+  const topPowerUsers = Object.entries(userStats)
+    .sort((a, b) => b[1].count - a[1].count)
+    .slice(0, 5)
+    .map(([userId, stats]) => ({
+      userId,
+      promptCount: stats.count,
+      lastActive: stats.lastActive,
+      avgEnhancementScore:
+        stats.enhancedCount > 0
+          ? stats.totalExpansion / stats.enhancedCount
+          : 0,
+      timeSavedHours: stats.totalTimeSaved / 60,
+      status: stats.status,
+    }));
+
+  // High Intent Actions
+  // 1. Refine (Explicit action)
+  // 2. Deep Research (High value mode)
+  // 3. Coding Intent (Value proxy)
+
+  const deepResearchCount = unique.filter(
+    (d) => d.mode === "research" || d.mode === "deep research",
+  ).length;
+  const codeIntentCount = unique.filter((d) =>
+    (d.intent || "").toLowerCase().includes("code"),
+  ).length;
+
+  const highIntentActions = [
+    {
+      action: "Refine Prompt",
+      count: refinedCount,
+      frequency: total > 0 ? refinedCount / total : 0,
+    },
+    {
+      action: "Deep Research",
+      count: deepResearchCount,
+      frequency: total > 0 ? deepResearchCount / total : 0,
+    },
+    {
+      action: "Code Generation",
+      count: codeIntentCount,
+      frequency: total > 0 ? codeIntentCount / total : 0,
+    },
+  ];
+
+  // Plan Analysis (Paid vs Free)
+  const isPaid = (status: string | null) => {
+    const s = (status || "").toLowerCase();
+    return s.includes("paid") || s.includes("pro") || s.includes("premium");
+  };
+
+  const paidPrompts = unique.filter((d) => isPaid(d.user_status));
+  const freePrompts = unique.filter((d) => !isPaid(d.user_status));
+
+  const calculateSegmentMetrics = (prompts: PromptData[]) => {
+    const uUsers = new Set(prompts.map((d) => d.user_id)).size;
+    const count = prompts.length;
+    const deepRes = prompts.filter(
+      (d) => d.mode === "research" || d.mode === "deep research",
+    ).length;
+
+    // Time Saved per User
+    let totalSaved = 0;
+    prompts.forEach((d) => {
+      if (d.enhanced_prompt && d.user_prompt) {
+        const uW = d.user_prompt.split(/\s+/).length || 1;
+        const eW = d.enhanced_prompt.split(/\s+/).length || 0;
+        totalSaved += Math.max(0, eW - uW) / 40;
+      }
+    });
+
+    return {
+      userCount: uUsers,
+      promptCount: count,
+      promptsPerUser: uUsers > 0 ? count / uUsers : 0,
+      deepResearchRate: count > 0 ? (deepRes / count) * 100 : 0,
+      avgTimeSavedHours: uUsers > 0 ? totalSaved / 60 / uUsers : 0,
+    };
+  };
+
+  const planAnalysis = {
+    paid: calculateSegmentMetrics(paidPrompts),
+    free: calculateSegmentMetrics(freePrompts),
+  };
+
+  // Business / Conversion Metrics
+  const activePromptThreshold = 3;
+  const activatedUsers = Object.values(userPromptCounts).filter(
+    (c) => c >= activePromptThreshold,
+  ).length;
+  const activationRate =
+    uniqueUsers > 0 ? (activatedUsers / uniqueUsers) * 100 : 0;
+
+  // Potential Paid Users (Free users with > 20 prompts)
+  let potentialPaidUsers = 0;
+  Object.values(userStats).forEach((stats) => {
+    const isFree =
+      !stats.status ||
+      (!stats.status.toLowerCase().includes("paid") &&
+        !stats.status.toLowerCase().includes("pro") &&
+        !stats.status.toLowerCase().includes("premium"));
+    if (isFree && stats.count > 20) {
+      potentialPaidUsers++;
+    }
+  });
 
   return {
     metrics: {
@@ -276,6 +474,11 @@ export function processData(data: PromptData[]) {
       avgProcessingTime,
       totalTimeSavedHours,
       refineRate,
+    },
+    conversion: {
+      activationRate,
+      activatedUsers,
+      potentialPaidUsers,
     },
     growth: {
       activeUsers: uniqueUsers,
@@ -290,6 +493,7 @@ export function processData(data: PromptData[]) {
       complexity: complexityData,
       mode: modeData,
       llm: llmData,
+      userStatus: userStatusData,
     },
     timeAnalysis: {
       dailyActivity,
@@ -303,6 +507,9 @@ export function processData(data: PromptData[]) {
       avgEnhancedWords,
       expansionRatio,
       userSegments,
+      topPowerUsers,
+      highIntentActions,
+      planAnalysis,
     },
   };
 }

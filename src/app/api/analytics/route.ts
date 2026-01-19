@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAnalyticsData } from "@/lib/db";
+import { getAnalyticsData, getConversionMetrics } from "@/lib/db";
 
 // Test users to exclude from analytics
 const TEST_USERS = [
@@ -26,19 +26,36 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const startDateStr = searchParams.get("startDate");
     const endDateStr = searchParams.get("endDate");
+    const sourceStr = searchParams.get("source");
 
     const startDate = startDateStr ? new Date(startDateStr) : null;
     const endDate = endDateStr ? new Date(endDateStr) : null;
+    const source = (
+      ["All", "Chat", "Extension"].includes(sourceStr || "") ? sourceStr : "All"
+    ) as "All" | "Chat" | "Extension";
 
-    console.log("Fetching analytics data...", { startDate, endDate });
+    console.log("Fetching analytics data...", { startDate, endDate, source });
 
-    const data = (await getAnalyticsData(
-      startDate,
-      endDate,
-    )) as unknown as PromptData[];
+    const [data, conversionMetrics] = await Promise.all([
+      getAnalyticsData(startDate, endDate, source) as unknown as Promise<
+        PromptData[]
+      >,
+      getConversionMetrics(startDate, endDate),
+    ]);
 
-    console.log(`Fetched ${data.length} records`);
+    console.log(
+      `Fetched ${data.length} records, Onboarding: ${conversionMetrics.onboarding.completedOnboarding}`,
+    );
     const processed = processData(data);
+
+    // Merge DB-based Onboarding Metrics (User requested DB logic for onboarding)
+    processed.conversion.activationRate =
+      conversionMetrics.onboarding.completionRate;
+    processed.conversion.activatedUsers =
+      conversionMetrics.onboarding.completedOnboarding;
+
+    // Add Signup Sources to distributions
+    (processed.distributions as any).signupSources = conversionMetrics.sources;
 
     return NextResponse.json({
       success: true,
