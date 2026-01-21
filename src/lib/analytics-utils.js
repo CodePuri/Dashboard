@@ -5,7 +5,7 @@ function getDisplayDate(dateStr) {
   return new Date(date.getTime() + 5.5 * 60 * 60 * 1000);
 }
 
-export function processData(data) {
+export function processData(data, initialPaidUserIds = []) {
   // Remove duplicates
   const seen = new Set();
   const unique = data.filter((item) => {
@@ -86,13 +86,25 @@ export function processData(data) {
     count,
   }));
 
-  // Daily active users
+  // Daily active users and paid users
   const dailyActiveUsers = {};
+  const dailyPaidUsersSet = {};
+
+  // Helper to check if user is paid
+  const isPaidUser = (status) => {
+    const s = (status || "").toLowerCase();
+    return s.includes("paid") || s.includes("pro") || s.includes("premium");
+  };
+
   unique.forEach((d) => {
     const displayDate = getDisplayDate(d.prompt_created_at);
     const date = displayDate.toISOString().split("T")[0];
     if (!dailyActiveUsers[date]) dailyActiveUsers[date] = new Set();
+    if (!dailyPaidUsersSet[date]) dailyPaidUsersSet[date] = new Set();
     dailyActiveUsers[date].add(d.user_id);
+    if (isPaidUser(d.user_status)) {
+      dailyPaidUsersSet[date].add(d.user_id);
+    }
   });
 
   // Daily activity
@@ -102,13 +114,27 @@ export function processData(data) {
     const date = displayDate.toISOString().split("T")[0];
     dailyCounts[date] = (dailyCounts[date] || 0) + 1;
   });
-  const dailyActivity = Object.entries(dailyCounts)
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([date, count]) => ({
+  const dailyActivity = Object.entries(dailyCounts).sort((a, b) =>
+    a[0].localeCompare(b[0]),
+  );
+
+  // Calculate cumulative paid users
+  const cumulativePaidUsers = new Set(initialPaidUserIds);
+  const dailyActivityWithCumulative = dailyActivity.map(([date, count]) => {
+    // Add all paid users from this day to the cumulative set
+    if (dailyPaidUsersSet[date]) {
+      dailyPaidUsersSet[date].forEach((userId) =>
+        cumulativePaidUsers.add(userId),
+      );
+    }
+
+    return {
       date,
       prompts: count,
       users: dailyActiveUsers[date] ? dailyActiveUsers[date].size : 0,
-    }));
+      paidUsers: cumulativePaidUsers.size,
+    };
+  });
 
   // Day of week distribution
   const dayNames = [
@@ -474,10 +500,23 @@ export function processData(data) {
       userStatus: userStatusData,
     },
     timeAnalysis: {
-      dailyActivity,
+      dailyActivity: dailyActivityWithCumulative,
       dayOfWeek: dayOfWeekData,
       timePeriod: timePeriodData,
     },
+    latestPrompts: unique.map((d) => ({
+      name: d.user_name || "Unknown",
+      email: d.user_email || "—",
+      prompt: d.user_prompt || "",
+      enhancedPrompt: d.enhanced_prompt || "",
+      platform:
+        d.llm_used && d.llm_used.toLowerCase().includes("velocity")
+          ? "Chat"
+          : "Ext",
+      plan: isPaidUser(d.user_status) ? "Paid" : "Free",
+      totalPrompts: userPromptCounts[d.user_id] || 1,
+      createdAt: d.prompt_created_at,
+    })),
     insights: {
       avgUserPromptLength,
       avgEnhancedPromptLength,

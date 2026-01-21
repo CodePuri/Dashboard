@@ -132,6 +132,60 @@ export async function getAnalyticsData(
   return executeQuery(query, params);
 }
 
+// Get distinct paid users active before a specific date (for cumulative baseline)
+// Get distinct paid users active before a specific date (for cumulative baseline)
+export async function getPriorPaidUsers(
+  beforeDate,
+  source = "All",
+  excludeUsers = [],
+) {
+  if (!beforeDate) return [];
+
+  const params = [beforeDate.toISOString()];
+  const conditions = [`u.created_at < $1`];
+
+  // Helper for paid status check matches the one in analytics-utils
+  conditions.push(
+    `(LOWER(COALESCE(us.status, '')) LIKE '%paid%' OR LOWER(COALESCE(us.status, '')) LIKE '%pro%' OR LOWER(COALESCE(us.status, '')) LIKE '%premium%')`,
+  );
+
+  let joinClause = "LEFT JOIN userstatus us ON u.user_id = us.user_id";
+
+  if (source === "Chat") {
+    joinClause +=
+      " LEFT JOIN user_prompts up_filter ON u.user_id = up_filter.user_id LEFT JOIN save_enhance_prompt sep_filter ON up_filter.prompt_id = sep_filter.prompt_id";
+    params.push("velocity");
+    conditions.push(`sep_filter.llm_used ILIKE $${params.length}`);
+  } else if (source === "Extension") {
+    joinClause +=
+      " LEFT JOIN user_prompts up_filter ON u.user_id = up_filter.user_id LEFT JOIN save_enhance_prompt sep_filter ON up_filter.prompt_id = sep_filter.prompt_id";
+    params.push("velocity");
+    conditions.push(
+      `(sep_filter.llm_used NOT ILIKE $${params.length} OR sep_filter.llm_used IS NULL)`,
+    );
+  }
+
+  if (excludeUsers.length > 0) {
+    const exclusionConditions = excludeUsers.map((name) => {
+      params.push(`%${name.toLowerCase()}%`);
+      return `LOWER(u.name) NOT LIKE $${params.length}`;
+    });
+    if (exclusionConditions.length > 0) {
+      conditions.push(`(${exclusionConditions.join(" AND ")})`);
+    }
+  }
+
+  const query = `
+    SELECT DISTINCT u.user_id
+    FROM usertable u
+    ${joinClause}
+    WHERE ${conditions.join(" AND ")}
+  `;
+
+  const rows = await executeQuery(query, params);
+  return rows.map((r) => r.user_id);
+}
+
 // Get attrition data with filters
 export async function getUserAttritionData(startDate, endDate, source = "All") {
   const params = [];

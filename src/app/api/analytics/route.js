@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { getAnalyticsData, getConversionMetrics } from "@/lib/db";
+import {
+  getAnalyticsData,
+  getConversionMetrics,
+  getPriorPaidUsers,
+} from "@/lib/db";
 
 // Test users to exclude from analytics
 const TEST_USERS = [
@@ -34,15 +38,18 @@ export async function GET(request) {
 
     console.log("Fetching analytics data...", { startDate, endDate, source });
 
-    const [data, conversionMetrics] = await Promise.all([
+    const [data, conversionMetrics, priorPaidUsers] = await Promise.all([
       getAnalyticsData(startDate, endDate, source, TEST_USERS),
       getConversionMetrics(startDate, endDate, TEST_USERS),
+      startDate
+        ? getPriorPaidUsers(startDate, source, TEST_USERS)
+        : Promise.resolve([]),
     ]);
 
     console.log(
-      `Fetched ${data.length} records, Onboarding: ${conversionMetrics.onboarding.completedOnboarding}`,
+      `Fetched ${data.length} records, Onboarding: ${conversionMetrics.onboarding.completedOnboarding}, Prior Paid Users: ${priorPaidUsers.length}`,
     );
-    const processed = processData(data);
+    const processed = processData(data, priorPaidUsers);
 
     // Merge DB-based Onboarding Metrics (User requested DB logic for onboarding)
     processed.conversion.activationRate =
@@ -119,6 +126,7 @@ export async function GET(request) {
           { name: "Regular", count: 0 },
           { name: "Power", count: 0 },
         ],
+        latestPrompts: [],
       },
     };
 

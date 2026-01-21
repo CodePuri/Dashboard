@@ -10,6 +10,11 @@ import {
 import { FilterBar } from "@/components/ui/filter-bar";
 import { Activity, Zap, Crown, Sparkles } from "lucide-react";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
@@ -354,7 +359,6 @@ export default function EngagementPage() {
                         className="col-span-3 text-muted-foreground truncate"
                         title={user.email || "-"}
                       >
-                        {user.email || user.name ? "" : "No Email"}
                         {user.email || "-"}
                       </div>
                       <div className="col-span-2 text-muted-foreground text-xs text-center">

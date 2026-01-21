@@ -1,166 +1,125 @@
 import { NextResponse } from "next/server";
-import { getAnalyticsData, executeQuery } from "@/lib/db";
-import { processData } from "@/lib/analytics-utils";
+import { executeQuery } from "@/lib/db";
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
-// Schema definition for the LLM
+// Test users to exclude from analytics (same as analytics API for consistency)
+const TEST_USERS = [
+  "aniket gupta",
+  "arjun gujar",
+  "aakash puri",
+  "minal hussain",
+  "vaishnavi parab",
+  "rahul thokal",
+  "rana basant",
+  "shoeb",
+  "aniket",
+  "arjun",
+  "abhishek",
+  "test",
+];
+
+// Simple SQL Rules for the LLM
+const SQL_RULES = `
+## 🚨 CRITICAL SQL RULES (Follow EXACTLY!)
+
+### 1. ALWAYS Use DISTINCT for Counts
+- Prompts: COUNT(DISTINCT up.prompt_id)
+- Users: COUNT(DISTINCT up.user_id)
+
+### 2. ALWAYS Exclude Test Users
+Join usertable and filter:
+\`\`\`sql
+LEFT JOIN usertable u ON up.user_id = u.user_id
+WHERE LOWER(u.name) NOT IN ('aniket gupta', 'arjun gujar', 'aakash puri', 'minal hussain', 'vaishnavi parab', 'rahul thokal', 'rana basant', 'shoeb', 'aniket', 'arjun', 'abhishek', 'test')
+  AND LOWER(u.name) NOT LIKE 'test%'
+\`\`\`
+
+### 3. Timezone: All times are IST (UTC+05:30)
+Use: \`up.created_at AT TIME ZONE 'Asia/Kolkata'\`
+
+### 4. Date Ranges
+- Last 7 days: \`WHERE up.created_at >= NOW() - INTERVAL '7 days'\`
+- Last 30 days: \`WHERE up.created_at >= NOW() - INTERVAL '30 days'\`
+
+### 5. Time Saved Calculation (Complex!)
+Time Saved = SUM((enhanced_words - user_words) / 40) / 60 hours
+Use this EXACT SQL:
+\`\`\`sql
+SELECT SUM(
+  GREATEST(0, 
+    array_length(regexp_split_to_array(sep.enhanced_prompt, '\\s+'), 1) - 
+    array_length(regexp_split_to_array(up.user_prompt, '\\s+'), 1)
+  ) / 40.0
+) / 60.0 AS time_saved_hours
+FROM user_prompts up
+JOIN save_enhance_prompt sep ON up.prompt_id = sep.prompt_id
+LEFT JOIN usertable u ON up.user_id = u.user_id
+WHERE sep.enhanced_prompt IS NOT NULL AND up.user_prompt IS NOT NULL
+  AND LOWER(u.name) NOT IN ('aniket gupta', 'arjun gujar', 'aakash puri', 'minal hussain', 'vaishnavi parab', 'rahul thokal', 'rana basant', 'shoeb', 'aniket', 'arjun', 'abhishek', 'test')
+  AND up.created_at >= NOW() - INTERVAL '7 days'
+\`\`\`
+`;
+
+// Database Schema (from db_knowledge.md)
 const DB_SCHEMA = `
-# Database Schema
+## Database Tables
 
-## 📝 Detailed Table Schemas
+### user_prompts (Original prompts)
+- prompt_id (TEXT PK) - UUID
+- user_id (INTEGER)
+- user_prompt (TEXT)
+- conversation_id (TEXT) - NULL=Extension, UUID=Chat
+- created_at (TIMESTAMP)
 
-### 1. \`usertable\` - User Accounts
-\`\`\`sql
-CREATE TABLE usertable (
-    user_id SERIAL PRIMARY KEY,
-    name VARCHAR(255),
-    email VARCHAR(255) UNIQUE NOT NULL,
-    tokens INTEGER DEFAULT 0,
-    created_at TIMESTAMP DEFAULT NOW()
-);
-\`\`\`
+### save_enhance_prompt (Enhanced prompts)
+- enhanced_prompt_id (TEXT PK)
+- prompt_id (TEXT) - FK to user_prompts
+- user_id (INTEGER)
+- enhanced_prompt (TEXT)
+- processing_time (DECIMAL)
+- intent, llm_used, complexity, domain, mode
+- created_at (TIMESTAMP)
 
-### 2. \`userstatus\` - User Status/Subscription
-\`\`\`sql
-CREATE TABLE userstatus (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER UNIQUE NOT NULL,
-    status VARCHAR(50),           -- 'free', 'pro', 'freetrial', 'expired'
-    created_at TIMESTAMP DEFAULT NOW()
-);
-\`\`\`
+### usertable (Users)
+- user_id (SERIAL PK)
+- name, email (UNIQUE)
+- created_at (TIMESTAMP)
 
-### 3. \`user_prompts\` - Original User Prompts ⭐
-\`\`\`sql
-CREATE TABLE user_prompts (
-    prompt_id TEXT PRIMARY KEY,   -- UUID as text
-    user_id INTEGER NOT NULL,     -- References usertable.user_id
-    user_prompt TEXT,             -- The original prompt text
-    conversation_id TEXT,         -- NULL for Extension, UUID for Velocity Chat
-    created_at TIMESTAMP DEFAULT NOW()
-);
-\`\`\`
+### userstatus (Subscription)
+- user_id (INTEGER UNIQUE)
+- status ('free', 'pro', 'freetrial', 'expired')
 
-### 4. \`save_enhance_prompt\` - Enhanced Prompts ⭐
-\`\`\`sql
-CREATE TABLE save_enhance_prompt (
-    enhanced_prompt_id TEXT PRIMARY KEY,  -- UUID as text
-    prompt_id TEXT NOT NULL,              -- References user_prompts.prompt_id
-    user_id INTEGER,
-    enhanced_prompt TEXT,
-    processing_time DECIMAL,              -- Time taken (seconds/ms check data)
-    intent VARCHAR(255),
-    llm_used VARCHAR(100),
-    complexity VARCHAR(50),               -- 'low', 'medium', 'high'
-    domain VARCHAR(255),
-    mode VARCHAR(100),
-    user_status VARCHAR(50),
-    conversation_id TEXT,
-    created_at TIMESTAMP DEFAULT NOW()
-);
-\`\`\`
-
-### 5. \`refine_prompt\` - Refined Prompts
-\`\`\`sql
-CREATE TABLE refine_prompt (
-    refine_id TEXT PRIMARY KEY,
-    prompt_id TEXT,
-    enhanced_prompt_id TEXT,
-    user_id INTEGER,
-    refined_prompt TEXT,
-    created_at TIMESTAMP DEFAULT NOW()
-);
-\`\`\`
-
-### 6. \`conversations\` - Velocity Chat
-\`\`\`sql
-CREATE TABLE conversations (
-    id SERIAL PRIMARY KEY,
-    conversation_id TEXT UNIQUE,
-    user_id INTEGER,
-    title VARCHAR(255),
-    created_at TIMESTAMP DEFAULT NOW()
-);
-\`\`\`
-
-### 7. \`conversation_contexts\` - Extension Synced Contexts
-\`\`\`sql
-CREATE TABLE conversation_contexts (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL,
-    session_id VARCHAR(255) NOT NULL,
-    platform VARCHAR(100),                -- 'chatgpt', 'claude', 'gemini', 'mistral'
-    messages JSONB,                       -- Array of {role, content} messages
-    url TEXT,
-    summary TEXT,
-    created_at TIMESTAMP DEFAULT NOW()
-);
-\`\`\`
-
-### 8. \`processed_contexts\` - Embeddings
-\`\`\`sql
-CREATE TABLE processed_contexts (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL,
-    session_id VARCHAR(255) NOT NULL,
-    essence TEXT,
-    intent VARCHAR(255),
-    domains TEXT[],
-    created_at TIMESTAMP DEFAULT NOW()
-);
-\`\`\`
-
-### 9. \`essence_usage_tracking\` - Usage Analytics
-\`\`\`sql
-CREATE TABLE essence_usage_tracking (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL,
-    date DATE NOT NULL DEFAULT CURRENT_DATE,
-    essence_creations INTEGER DEFAULT 0,
-    api_calls INTEGER DEFAULT 0,
-    cost_estimate DECIMAL(10, 4) DEFAULT 0,
-    created_at TIMESTAMP DEFAULT NOW()
-);
-\`\`\`
+### refine_prompt (Refined prompts)
+- refine_id (TEXT PK)
+- prompt_id, enhanced_prompt_id
+- refined_prompt (TEXT)
+- created_at (TIMESTAMP)
 `;
 
 export async function POST(req) {
   try {
     const { messages } = await req.json();
 
-    // 1. Fetch Summary Context (Keep this for fast high-level answers)
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - 365);
-    const rawData = await getAnalyticsData(startDate, new Date());
-    const summaryData = processData(rawData);
+    // Get current IST time for context
+    const nowIST = new Date().toLocaleString("en-US", {
+      timeZone: "Asia/Kolkata",
+    });
 
     // Initial System Prompt
-    const systemPrompt = `You are a sophisticated Analytics Agent for the Dashboard.
-    
-    CAPABILITIES:
-    1. **Statistical Summary**: You have instant access to high-level stats (below). USE THIS for general trends/totals.
-    2. **Deep Database Access**: You have a tool \`execute_sql\` to run READ-ONLY queries on the database. USE THIS for specific user lookups, top lists, or complex filtering not covered by the summary.
-    
-    DATABASE KNOWLEDGE BASE (SCHEMA):
-    ${DB_SCHEMA}
+    const systemPrompt = `You are an Analytics Agent for the Velocity Dashboard. You answer questions by running SQL queries.
 
-    IMPORTANT RULES:
-    - **Schema Fidelity**: ONLY query tables/columns that exist in the Schema above. Do NOT hallucinate columns like 'enhancement_status' (use 'failed' logic: total - enhanced).
-    - **IDs**: 'user_id' is INTEGER (or string in prompts). 'prompt_id' is TEXT (UUID).
-    - **Time**: 'processing_time' is usually stored in milliseconds or seconds (check data).
-    - **Safety**: READ-ONLY. SELECT only.
+CURRENT TIME (IST): ${nowIST}
 
-    SUMMARY DATA (Context):
-    ${JSON.stringify(
-      {
-        metrics: summaryData.metrics,
-        insights: summaryData.insights,
-      },
-      null,
-      2,
-    )}
-    `;
+${SQL_RULES}
+
+${DB_SCHEMA}
+
+CAPABILITIES:
+- Use the \`execute_sql\` tool to run READ-ONLY SELECT queries against the database.
+- ALWAYS follow the SQL RULES above exactly.
+- For Time Saved questions, use the EXACT SQL provided in the rules.
+`;
 
     // Agent Loop (Max 3 turns)
     let currentMessages = [

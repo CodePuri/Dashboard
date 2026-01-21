@@ -3,6 +3,11 @@
 import * as React from "react";
 import { Info, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 // Brighter color palette for better dark mode visibility
 export const COLORS = {
@@ -37,10 +42,7 @@ export function MetricCard({
   tooltip,
 }) {
   return (
-    <div
-      className="rounded-xl border bg-card p-3 md:p-5 shadow-sm transition-all hover:shadow-md dark:hover:bg-accent/10 dark:hover:border-primary/20"
-      title={tooltip}
-    >
+    <div className="rounded-xl border bg-card p-3 md:p-5 shadow-sm transition-all hover:shadow-md dark:hover:bg-accent/10 dark:hover:border-primary/20">
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">
@@ -48,12 +50,16 @@ export function MetricCard({
               {title}
             </p>
             {tooltip && (
-              <span
-                className="text-muted-foreground/60 transition-colors hover:text-foreground cursor-help"
-                title={tooltip}
-              >
-                <Info className="h-3.5 w-3.5" />
-              </span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-muted-foreground/60 transition-colors hover:text-foreground cursor-help">
+                    <Info className="h-3.5 w-3.5" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs">
+                  <p>{tooltip}</p>
+                </TooltipContent>
+              </Tooltip>
             )}
           </div>
           <p className="text-xl md:text-3xl font-bold tracking-tight text-foreground truncate">
@@ -99,12 +105,16 @@ export function ChartCard({ title, children, tooltip }) {
           {title}
         </h3>
         {tooltip && (
-          <span
-            className="text-muted-foreground/60 transition-colors hover:text-foreground cursor-help"
-            title={tooltip}
-          >
-            <Info className="h-3.5 w-3.5" />
-          </span>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="text-muted-foreground/60 transition-colors hover:text-foreground cursor-help">
+                <Info className="h-3.5 w-3.5" />
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="max-w-xs">
+              <p>{tooltip}</p>
+            </TooltipContent>
+          </Tooltip>
         )}
       </div>
       {children}

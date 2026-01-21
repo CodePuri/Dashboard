@@ -21,7 +21,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MetricCard } from "@/components/ui/metric-card"; // Assuming this exists based on dir list, reused for stats if needed or just use standard cards
+import { MetricCard } from "@/components/ui/metric-card";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export default function GetDataPage() {
   const [prompt, setPrompt] = useState("");
@@ -275,7 +280,7 @@ export default function GetDataPage() {
                                     title={
                                       typeof cell === "object" && cell !== null
                                         ? JSON.stringify(cell)
-                                        : String(cell)
+                                        : String(cell ?? "")
                                     }
                                     className="whitespace-nowrap max-w-[300px] truncate font-mono text-xs py-3"
                                   >

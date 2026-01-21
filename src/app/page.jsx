@@ -5,21 +5,17 @@ import { useAnalyticsData } from "@/hooks/use-analytics-data";
 import { useAttritionData } from "@/hooks/use-attrition-data";
 import { MetricCard, ChartCard, COLORS } from "@/components/ui/metric-card";
 import { FilterBar } from "@/components/ui/filter-bar";
-import { Button } from "@/components/ui/button";
+import { Users, Zap, Clock, UserMinus } from "lucide-react";
 import {
-  Users,
-  Zap,
-  Clock,
-  Target,
-  ArrowRight,
-  UserMinus,
-  TrendingUp,
-  Activity,
-} from "lucide-react";
-import Link from "next/link";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -76,6 +72,7 @@ export default function OverviewPage() {
   const churnRate =
     totalUsersLifetime > 0 ? (churnedUsers / totalUsersLifetime) * 100 : 0;
   const dailyTrend = analytics?.timeAnalysis?.dailyActivity || [];
+  const latestPrompts = analytics?.latestPrompts || [];
   const dateLabel = getDateLabel(dateFilter);
 
   if (isLoading || !analytics || !attrition) {
@@ -138,13 +135,6 @@ export default function OverviewPage() {
               success rate.
             </p>
           </div>
-          <div className="flex gap-3">
-            <Button asChild variant="default" className="gap-2">
-              <Link href="/roi">
-                View ROI Report <ArrowRight className="w-4 h-4" />
-              </Link>
-            </Button>
-          </div>
         </div>
 
         {/* Abstract Background Shapes */}
@@ -188,131 +178,226 @@ export default function OverviewPage() {
         />
       </div>
 
-      {/* Main Charts Area */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Activity Trend (2/3 width) */}
-        <div className="lg:col-span-2">
-          <ChartCard
-            title="Is usage growing?"
-            tooltip="Daily prompt volume trend"
-          >
-            <div className="h-[300px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={dailyTrend}>
-                  <defs>
-                    <linearGradient
-                      id="colorPromptsOverview"
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop
-                        offset="5%"
-                        stopColor={COLORS.primary}
-                        stopOpacity={0.3}
-                      />
-                      <stop
-                        offset="95%"
-                        stopColor={COLORS.primary}
-                        stopOpacity={0}
-                      />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="#e5e7eb"
-                    vertical={false}
-                  />
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fontSize: 12, fill: "#888" }}
-                    tickFormatter={(v) => format(new Date(v), "MMM d")}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 12, fill: "#888" }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      borderRadius: "8px",
-                      border: "none",
-                      boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                    }}
-                    labelFormatter={(v) => format(new Date(v), "MMM d, yyyy")}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="prompts"
-                    stroke={COLORS.primary}
-                    strokeWidth={3}
-                    fillOpacity={1}
-                    fill="url(#colorPromptsOverview)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartCard>
-        </div>
-
-        {/* Quick Links / Status (1/3 width) */}
-        <div className="space-y-6">
-          <div className="rounded-xl border bg-card p-6 shadow-sm h-full flex flex-col justify-between">
-            <div>
-              <h3 className="font-semibold text-lg flex items-center gap-2 mb-4">
-                <Target className="w-5 h-5 text-primary" />
-                Quick Actions
-              </h3>
-              <div className="space-y-3">
-                <Button
-                  variant="outline"
-                  className="w-full justify-start h-12"
-                  asChild
-                >
-                  <Link href="/activity">
-                    <Activity className="mr-2 h-4 w-4" />
-                    Check Daily Activity
-                  </Link>
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start h-12"
-                  asChild
-                >
-                  <Link href="/attrition">
-                    <UserMinus className="mr-2 h-4 w-4" />
-                    Analyze Churn
-                  </Link>
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start h-12"
-                  asChild
-                >
-                  <Link href="/acquisition">
-                    <TrendingUp className="mr-2 h-4 w-4" />
-                    View Growth
-                  </Link>
-                </Button>
-              </div>
-            </div>
-
-            <div className="mt-8 rounded-lg bg-muted/50 p-4">
-              <p className="text-sm font-medium mb-1">System Status</p>
-              <div className="flex items-center gap-2 text-green-600">
-                <span className="relative flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
-                </span>
-                <span className="text-xs font-bold">Live & Processing</span>
-              </div>
-            </div>
+      {/* Main Charts Area - Side by Side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Usage Growing Chart */}
+        <ChartCard
+          title="Is usage growing?"
+          tooltip="Daily prompt volume trend"
+        >
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={dailyTrend}>
+                <defs>
+                  <linearGradient
+                    id="colorPromptsOverview"
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop
+                      offset="5%"
+                      stopColor={COLORS.primary}
+                      stopOpacity={0.3}
+                    />
+                    <stop
+                      offset="95%"
+                      stopColor={COLORS.primary}
+                      stopOpacity={0}
+                    />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="#e5e7eb"
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 12, fill: "#888" }}
+                  tickFormatter={(v) => format(new Date(v), "MMM d")}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fontSize: 12, fill: "#888" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: "8px",
+                    border: "none",
+                    boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                  }}
+                  labelFormatter={(v) => format(new Date(v), "MMM d, yyyy")}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="prompts"
+                  stroke={COLORS.primary}
+                  strokeWidth={3}
+                  fillOpacity={1}
+                  fill="url(#colorPromptsOverview)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
-        </div>
+        </ChartCard>
+
+        {/* Paid Users Growing Chart */}
+        <ChartCard
+          title="Are paid users growing?"
+          tooltip="Daily paid user count trend"
+        >
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={dailyTrend}>
+                <defs>
+                  <linearGradient
+                    id="colorPaidUsersOverview"
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop
+                      offset="5%"
+                      stopColor={COLORS.success}
+                      stopOpacity={0.3}
+                    />
+                    <stop
+                      offset="95%"
+                      stopColor={COLORS.success}
+                      stopOpacity={0}
+                    />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="#e5e7eb"
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 12, fill: "#888" }}
+                  tickFormatter={(v) => format(new Date(v), "MMM d")}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fontSize: 12, fill: "#888" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: "8px",
+                    border: "none",
+                    boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                  }}
+                  labelFormatter={(v) => format(new Date(v), "MMM d, yyyy")}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="paidUsers"
+                  name="Paid Users"
+                  stroke={COLORS.success}
+                  strokeWidth={3}
+                  fillOpacity={1}
+                  fill="url(#colorPaidUsersOverview)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartCard>
       </div>
+
+      {/* Latest Prompts Table */}
+      <ChartCard
+        title="Latest Prompts"
+        tooltip="Most recent prompts with user details"
+      >
+        <div className="rounded-md border">
+          <ScrollArea className="h-[400px] rounded-md">
+            <Table>
+              <TableHeader className="bg-muted/50 sticky top-0 z-10">
+                <TableRow>
+                  <TableHead className="whitespace-nowrap font-bold text-foreground">
+                    NAME
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap font-bold text-foreground">
+                    EMAIL
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap font-bold text-foreground">
+                    PROMPT
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap font-bold text-foreground">
+                    ENHANCED PROMPT
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap font-bold text-foreground">
+                    SOURCE
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap font-bold text-foreground">
+                    PLAN
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap font-bold text-foreground">
+                    TOTAL PROMPTS
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {latestPrompts.length > 0 ? (
+                  latestPrompts.map((row, i) => (
+                    <TableRow
+                      key={i}
+                      className="even:bg-muted/30 hover:bg-muted/50 transition-colors"
+                    >
+                      <TableCell className="whitespace-nowrap font-medium py-3">
+                        {row.name}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap font-mono text-xs py-3 text-muted-foreground">
+                        {row.email}
+                      </TableCell>
+                      <TableCell
+                        className="max-w-[200px] truncate font-mono text-xs py-3"
+                        title={row.prompt}
+                      >
+                        {row.prompt}
+                      </TableCell>
+                      <TableCell
+                        className="max-w-[200px] truncate font-mono text-xs py-3"
+                        title={row.enhancedPrompt || "No enhanced prompt"}
+                      >
+                        {row.enhancedPrompt || "—"}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap py-3 text-muted-foreground">
+                        {row.platform}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap py-3 text-muted-foreground">
+                        {row.plan}
+                      </TableCell>
+                      <TableCell className="text-center font-medium py-3">
+                        {row.totalPrompts}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell
+                      colSpan={7}
+                      className="h-24 text-center text-muted-foreground"
+                    >
+                      No prompts found for this period.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </ScrollArea>
+        </div>
+      </ChartCard>
     </div>
   );
 }
