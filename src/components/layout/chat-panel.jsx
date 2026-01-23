@@ -13,6 +13,7 @@ export function ChatPanel() {
   const [inputValue, setInputValue] = React.useState("");
   const [isTyping, setIsTyping] = React.useState(false);
   const [showBubble, setShowBubble] = React.useState(true);
+  const [hasError, setHasError] = React.useState(false);
   const scrollRef = React.useRef(null);
 
   React.useEffect(() => {
@@ -22,17 +23,18 @@ export function ChatPanel() {
 
   React.useEffect(() => {
     if (messages.length === 0) {
+      setHasError(false); // Reset error state on new chat
       setMessages([
         {
           id: "1",
           role: "assistant",
           content:
-            "Hello! I have access to your database insights. Ask me about trends, user growth, or enhancement performance.",
+            "Hey! 👋 I'm Velo, your data sidekick. Ask me anything about user trends, prompts, or how Velocity is performing. I'll dig into the numbers for you!",
           timestamp: new Date(),
         },
       ]);
     }
-  }, []);
+  }, [messages.length]);
 
   React.useEffect(() => {
     if (isChatOpen && scrollRef.current) {
@@ -69,7 +71,7 @@ export function ChatPanel() {
 
       if (!res.ok) {
         const errData = await res.json();
-        throw new Error(errData.error || "Failed to fetch response");
+        throw new Error(errData.error || "API_ERROR");
       }
 
       const data = await res.json();
@@ -77,14 +79,24 @@ export function ChatPanel() {
         data.choices?.[0]?.message?.content ||
         "Sorry, I couldn't process that.";
 
+      // Check if it's the max turns message (contains "rabbit hole" from our custom message)
+      const isMaxTurns =
+        content.includes("rabbit hole") || content.includes("simpler question");
+
       const aiMsg = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: content,
+        content: isMaxTurns
+          ? "Oops, I got a bit lost in the data! 🐰 Please click **New Chat** above to start fresh with a simpler question."
+          : content,
         timestamp: new Date(),
+        isError: isMaxTurns,
       };
 
       setMessages((prev) => [...prev, aiMsg]);
+      if (isMaxTurns) {
+        setHasError(true);
+      }
     } catch (error) {
       console.error(error);
       setMessages((prev) => [
@@ -92,10 +104,13 @@ export function ChatPanel() {
         {
           id: Date.now().toString(),
           role: "assistant",
-          content: "Sorry, there was an error connecting to the AI.",
+          content:
+            "😔 Sorry, there was an issue connecting to the AI. Please try again in a moment, or click **New Chat** to start fresh.",
           timestamp: new Date(),
+          isError: true,
         },
       ]);
+      setHasError(true);
     } finally {
       setIsTyping(false);
     }
@@ -150,11 +165,21 @@ export function ChatPanel() {
           <div className="flex items-center justify-between p-4 border-b">
             <div className="flex items-center gap-2">
               <Bot className="h-5 w-5 text-primary" />
-              <h2 className="font-semibold">AI Assistant</h2>
+              <h2 className="font-semibold">Velo</h2>
             </div>
-            <Button variant="ghost" size="icon" onClick={toggleChat}>
-              <X className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setMessages([])}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                New Chat
+              </Button>
+              <Button variant="ghost" size="icon" onClick={toggleChat}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
 
           {/* Messages */}
@@ -222,17 +247,27 @@ export function ChatPanel() {
 
           {/* Input */}
           <div className="p-4 border-t bg-card">
+            {hasError && (
+              <p className="text-xs text-muted-foreground text-center mb-2">
+                Click "New Chat" above to continue
+              </p>
+            )}
             <form onSubmit={handleSend} className="flex items-center gap-2">
               <Input
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                placeholder="Ask about your data..."
+                placeholder={
+                  hasError
+                    ? "Start a new chat to continue..."
+                    : "Ask about your data..."
+                }
                 className="flex-1"
+                disabled={hasError}
               />
               <Button
                 type="submit"
                 size="icon"
-                disabled={isTyping || !inputValue.trim()}
+                disabled={isTyping || !inputValue.trim() || hasError}
               >
                 <Send className="h-4 w-4" />
               </Button>

@@ -75,6 +75,7 @@ export default function ActivityPage() {
   const metrics = data?.metrics;
   const timeAnalysis = data?.timeAnalysis;
   const growth = data?.growth;
+  const distributions = data?.distributions;
 
   const promptsPerUser = growth?.activeUsers
     ? (metrics?.total || 0) / growth.activeUsers
@@ -234,6 +235,74 @@ export default function ActivityPage() {
                   dataKey="count"
                   fill={COLORS.warning}
                   radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ChartContainer>
+          </ChartCard>
+        </div>
+      </section>
+
+      {/* Usage Patterns */}
+      <section>
+        <h2 className="text-lg md:text-xl font-bold mb-4 pb-2 border-b-2">
+          Usage Patterns
+        </h2>
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2">
+          <ChartCard
+            title="Top Intents"
+            tooltip="What users are trying to accomplish"
+          >
+            <ChartContainer
+              config={chartConfig}
+              className="h-[200px] sm:h-[220px] md:h-[250px] w-full"
+            >
+              <BarChart
+                data={(distributions?.topIntents || []).slice(0, 8)}
+                layout="vertical"
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis type="number" />
+                <YAxis
+                  dataKey="name"
+                  type="category"
+                  width={100}
+                  tick={{ fontSize: 11 }}
+                />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Bar
+                  dataKey="count"
+                  fill={COLORS.warning}
+                  radius={[0, 4, 4, 0]}
+                />
+              </BarChart>
+            </ChartContainer>
+          </ChartCard>
+
+          <ChartCard
+            title="Domain Distribution"
+            tooltip="Content domains being enhanced"
+          >
+            <ChartContainer
+              config={chartConfig}
+              className="h-[200px] sm:h-[220px] md:h-[250px] w-full"
+            >
+              <BarChart
+                data={(distributions?.topDomains || []).slice(0, 8)}
+                layout="vertical"
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis type="number" />
+                <YAxis
+                  dataKey="name"
+                  type="category"
+                  width={100}
+                  tick={{ fontSize: 11 }}
+                />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Bar
+                  dataKey="count"
+                  fill={COLORS.secondary}
+                  radius={[0, 4, 4, 0]}
                 />
               </BarChart>
             </ChartContainer>

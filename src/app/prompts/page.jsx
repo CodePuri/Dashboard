@@ -1,14 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import {
-  MetricCard,
-  ChartCard,
-  COLORS,
-  PIE_COLORS,
-} from "@/components/ui/metric-card";
+import { MetricCard, ChartCard, COLORS } from "@/components/ui/metric-card";
 import { FilterBar } from "@/components/ui/filter-bar";
-import { Clock, Zap, TrendingUp, Timer } from "lucide-react";
+import { TrendingUp, Timer, MessageSquare } from "lucide-react";
 import {
   ChartContainer,
   ChartTooltip,
@@ -25,7 +20,7 @@ const chartConfig = {
   },
 };
 
-export default function ROIPage() {
+export default function PromptsPage() {
   const [dateFilter, setDateFilter] = useState("Last 7 Days");
   const [sourceFilter, setSourceFilter] = useState("All");
   const [customDateRange, setCustomDateRange] = useState();
@@ -41,9 +36,9 @@ export default function ROIPage() {
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-              Value / ROI
+              Prompts
             </h1>
-            <p className="text-muted-foreground">Loading value metrics...</p>
+            <p className="text-muted-foreground">Loading metrics...</p>
           </div>
         </div>
         <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
@@ -57,9 +52,6 @@ export default function ROIPage() {
 
   const metrics = data?.metrics;
   const insights = data?.insights;
-  const distributions = data?.distributions;
-
-  const timeSavedHours = metrics?.totalTimeSavedHours || 0;
 
   return (
     <div className="space-y-6 md:space-y-8">
@@ -67,10 +59,10 @@ export default function ROIPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
-            Value / ROI
+            Prompts
           </h1>
           <p className="mt-2 text-muted-foreground text-sm md:text-base">
-            Measuring the impact and value created by Velocity
+            Detailed breakdown of prompt enhancement and processing
           </p>
         </div>
         <FilterBar
@@ -83,87 +75,64 @@ export default function ROIPage() {
         />
       </div>
 
-      {/* Key Value Metrics */}
+      {/* Metrics */}
       <section>
         <h2 className="text-lg md:text-xl font-bold mb-4 pb-2 border-b-2">
-          Value & Key Metrics
+          Key Metrics
         </h2>
         <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           <MetricCard
-            title="Time Saved"
-            value={`${timeSavedHours.toFixed(1)}h`}
-            subtitle="Estimated hours"
-            icon={Clock}
+            title="Expansion Ratio"
+            value={`${(insights?.expansionRatio || 0).toFixed(1)}x`}
+            subtitle={`${(insights?.avgUserWords || 0).toFixed(0)} → ${(insights?.avgEnhancedWords || 0).toFixed(0)} words`}
+            icon={TrendingUp}
             color={COLORS.secondary}
-            tooltip="Estimated hours saved by enhancements based on words added"
+            tooltip="How much prompts are expanded during enhancement"
           />
           <MetricCard
-            title="Enhancement"
-            value={`${(metrics?.enhancementRate || 0).toFixed(1)}%`}
-            subtitle="Success rate"
-            icon={Zap}
-            color={COLORS.success}
-            tooltip="% of prompts successfully enhanced"
+            title="Avg Processing"
+            value={`${((metrics?.avgProcessingTime || 0) / 1000).toFixed(2)}s`}
+            subtitle="Per prompt"
+            icon={Timer}
+            color={COLORS.warning}
+            tooltip="Average time (in seconds) to process a prompt"
           />
         </div>
       </section>
 
-      {/* Deep Insights -> Productivity Impact */}
+      {/* Charts */}
       <section>
         <h2 className="text-lg md:text-xl font-bold mb-4 pb-2 border-b-2">
-          Productivity Impact
+          Expansion Analysis
         </h2>
         <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
           <ChartCard
-            title="Mode Distribution"
-            tooltip="Enhancement mode breakdown"
+            title="Word Count Expansion"
+            tooltip="Comparison of average word count before and after enhancement"
           >
             <ChartContainer
               config={chartConfig}
               className="h-[180px] sm:h-[200px] md:h-[220px] w-full"
             >
-              <BarChart data={distributions?.mode || []}>
+              <BarChart
+                data={[
+                  { name: "User Input", count: insights?.avgUserWords || 0 },
+                  { name: "Enhanced", count: insights?.avgEnhancedWords || 0 },
+                ]}
+                layout="vertical"
+              >
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-                <YAxis />
+                <XAxis type="number" tick={{ fontSize: 10 }} />
+                <YAxis dataKey="name" type="category" width={100} />
                 <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                  {(distributions?.mode || []).map((_, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={PIE_COLORS[index % PIE_COLORS.length]}
-                    />
-                  ))}
+                <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+                  <Cell fill="#94a3b8" />
+                  <Cell fill={COLORS.success} />
                 </Bar>
               </BarChart>
             </ChartContainer>
           </ChartCard>
         </div>
-      </section>
-
-      {/* LLM Distribution (Target AI Platforms) */}
-      <section>
-        <h2 className="text-lg md:text-xl font-bold mb-4 pb-2 border-b-2">
-          Target AI Platforms
-        </h2>
-        <ChartCard
-          title="LLM Distribution"
-          tooltip="Breakdown of which AI models users are targeting"
-        >
-          <ChartContainer config={chartConfig} className="h-[250px] w-full">
-            <BarChart data={distributions?.llm || []}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="name" tickLine={false} axisLine={false} />
-              <YAxis tickLine={false} axisLine={false} />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Bar
-                dataKey="count"
-                fill={COLORS.primary}
-                radius={[4, 4, 0, 0]}
-              />
-            </BarChart>
-          </ChartContainer>
-        </ChartCard>
       </section>
     </div>
   );

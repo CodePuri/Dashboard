@@ -14,7 +14,7 @@
 
 ---
 
-## 📊 Production Tables (32 Total)
+## 📊 Production Tables (33 Total)
 
 ### Core Tables Overview
 
@@ -376,6 +376,25 @@ CREATE TABLE essence_usage_tracking (
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW(),
     UNIQUE(user_id, date)
+);
+```
+
+---
+
+### 12. `api_error_logs` - API Error Tracking
+
+Stores logs of API errors for diagnostics and debugging.
+
+```sql
+CREATE TABLE api_error_logs (
+    id SERIAL PRIMARY KEY,
+    error_id VARCHAR(255),                -- Unique error identifier
+    api_endpoint VARCHAR(500),            -- The failing API endpoint
+    api_method VARCHAR(10),               -- HTTP method (GET, POST, etc.)
+    error_message TEXT,                   -- Detailed error message
+    error_type VARCHAR(100),              -- Type of error (e.g., 'Network timeout', 'HTTP error')
+    user_id INTEGER,                      -- User ID if authenticated, else NULL
+    created_at TIMESTAMP DEFAULT NOW()
 );
 ```
 

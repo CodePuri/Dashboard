@@ -4,20 +4,21 @@ import { executeQuery } from "@/lib/db";
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
 // Test users to exclude from analytics (same as analytics API for consistency)
-const TEST_USERS = [
-  "aniket gupta",
-  "arjun gujar",
-  "aakash puri",
-  "minal hussain",
-  "vaishnavi parab",
-  "rahul thokal",
-  "rana basant",
-  "shoeb",
-  "aniket",
-  "arjun",
-  "abhishek",
-  "test",
-];
+// const TEST_USERS = [
+//   "aniket gupta",
+//   "arjun gujar",
+//   "aakash puri",
+//   "minal hussain",
+//   "vaishnavi parab",
+//   "rahul thokal",
+//   "rana basant",
+//   "shoeb",
+//   "aniket",
+//   "arjun",
+//   "abhishek",
+//   "test",
+// ];
+const TEST_USER_IDS = [329];
 
 // Simple SQL Rules for the LLM
 const SQL_RULES = `
@@ -31,20 +32,23 @@ const SQL_RULES = `
 Join usertable and filter:
 \`\`\`sql
 LEFT JOIN usertable u ON up.user_id = u.user_id
-WHERE LOWER(u.name) NOT IN ('aniket gupta', 'arjun gujar', 'aakash puri', 'minal hussain', 'vaishnavi parab', 'rahul thokal', 'rana basant', 'shoeb', 'aniket', 'arjun', 'abhishek', 'test')
-  AND LOWER(u.name) NOT LIKE 'test%'
+WHERE u.user_id NOT IN (329)
 \`\`\`
 
 ### 3. Timezone: All times are IST (UTC+05:30)
-Use: \`up.created_at AT TIME ZONE 'Asia/Kolkata'\`
+Database stores timestamps. When user asks about "today" or date ranges, use NOW() which reflects server time.
 
 ### 4. Date Ranges
+Use these simple patterns:
+- Today: \`WHERE up.created_at >= CURRENT_DATE AND up.created_at < CURRENT_DATE + INTERVAL '1 day'\`
 - Last 7 days: \`WHERE up.created_at >= NOW() - INTERVAL '7 days'\`
 - Last 30 days: \`WHERE up.created_at >= NOW() - INTERVAL '30 days'\`
 
+Note: There may be a small difference (1-2%) from dashboard due to timezone edge cases. This is acceptable.
+
 ### 5. Time Saved Calculation (Complex!)
 Time Saved = SUM((enhanced_words - user_words) / 40) / 60 hours
-Use this EXACT SQL:
+Use this EXACT SQL for last 7 days:
 \`\`\`sql
 SELECT SUM(
   GREATEST(0, 
@@ -56,7 +60,7 @@ FROM user_prompts up
 JOIN save_enhance_prompt sep ON up.prompt_id = sep.prompt_id
 LEFT JOIN usertable u ON up.user_id = u.user_id
 WHERE sep.enhanced_prompt IS NOT NULL AND up.user_prompt IS NOT NULL
-  AND LOWER(u.name) NOT IN ('aniket gupta', 'arjun gujar', 'aakash puri', 'minal hussain', 'vaishnavi parab', 'rahul thokal', 'rana basant', 'shoeb', 'aniket', 'arjun', 'abhishek', 'test')
+  AND u.user_id NOT IN (329)
   AND up.created_at >= NOW() - INTERVAL '7 days'
 \`\`\`
 `;
@@ -106,8 +110,33 @@ export async function POST(req) {
       timeZone: "Asia/Kolkata",
     });
 
-    // Initial System Prompt
-    const systemPrompt = `You are an Analytics Agent for the Velocity Dashboard. You answer questions by running SQL queries.
+    // Initial System Prompt with personality
+    const systemPrompt = `You are **Velo**, the Analytics Agent for the Velocity Dashboard. You're a sharp, friendly data nerd who loves uncovering insights.
+
+## YOUR PERSONALITY
+- 🚀 You're enthusiastic about data and get genuinely excited about interesting patterns
+- 💡 You explain things clearly but with a bit of flair - use analogies when helpful
+- 🎯 You're concise but not robotic - add brief commentary or observations
+- ⚡ You use emojis sparingly to add warmth (1-2 per response max)
+- 🔥 When you find something notable, call it out! ("Whoa, that's a 40% jump!")
+
+## RESPONSE STYLE
+- Start with a brief, engaging answer before diving into details
+- Add context: compare to previous periods, highlight trends, note anomalies
+- End with a quick insight or suggestion when relevant
+- If the data is boring, make the delivery interesting
+
+## CONVERSATION RULES
+- For greetings (hi, hello, hey, etc.): Just reply warmly! Don't run SQL queries.
+- For vague questions: Ask what specifically they want to know before querying
+- For "how are we doing": Ask if they want prompts, users, or something specific
+- Only run SQL when you have a CLEAR data question to answer
+
+## EFFICIENCY RULES (CRITICAL!)
+- Run AT MOST 2 SQL queries per question - plan your queries wisely
+- After getting results, IMMEDIATELY provide your answer - don't loop unnecessarily
+- If you need multiple metrics, combine them into ONE query when possible
+- Never run the same query twice
 
 CURRENT TIME (IST): ${nowIST}
 
@@ -115,10 +144,12 @@ ${SQL_RULES}
 
 ${DB_SCHEMA}
 
-CAPABILITIES:
+## CAPABILITIES
 - Use the \`execute_sql\` tool to run READ-ONLY SELECT queries against the database.
 - ALWAYS follow the SQL RULES above exactly.
 - For Time Saved questions, use the EXACT SQL provided in the rules.
+
+Remember: You're not just a query runner - you're a data storyteller. Make the numbers come alive! 🎯
 `;
 
     // Agent Loop (Max 3 turns)
@@ -269,7 +300,7 @@ CAPABILITIES:
           message: {
             role: "assistant",
             content:
-              "I reached my maximum thinking steps. Please try a simpler request.",
+              "Whew, that was a deep rabbit hole! 🐰 I got a bit lost crunching those numbers. Could you try breaking that down into a simpler question? I work best with one metric at a time!",
           },
         },
       ],

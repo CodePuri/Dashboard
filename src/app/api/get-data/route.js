@@ -3,20 +3,7 @@ import { executeQuery } from "@/lib/db";
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
-const TEST_USERS = [
-  "aniket gupta",
-  "arjun gujar",
-  "aakash puri",
-  "minal hussain",
-  "vaishnavi parab",
-  "rahul thokal",
-  "rana basant",
-  "shoeb",
-  "aniket",
-  "arjun",
-  "abhishek",
-  "test",
-];
+// user_id = 329 is excluded from all queries as per user request.
 
 // Schema definition for the LLM
 const DB_SCHEMA = `
@@ -137,6 +124,20 @@ CREATE TABLE essence_usage_tracking (
     created_at TIMESTAMP DEFAULT NOW()
 );
 \`\`\`
+
+### 11. \`api_error_logs\` - API Error Tracking
+\`\`\`sql
+CREATE TABLE api_error_logs (
+    id SERIAL PRIMARY KEY,
+    error_id VARCHAR(255),
+    api_endpoint VARCHAR(500),
+    api_method VARCHAR(10),
+    error_message TEXT,
+    error_type VARCHAR(100),
+    user_id INTEGER,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+\`\`\`
 `;
 
 export async function POST(req) {
@@ -176,9 +177,11 @@ export async function POST(req) {
       5. 'user_id' is usually an integer. 'prompt_id' is a text UUID.
       6. For dates, use standard PostgreSQL syntax (e.g., CURRENT_DATE, INTERVAL).
       7. LIMIT results to 100 unless asked otherwise.
-      8. IMPORTANT: ALWAYS exclude test users from your queries if 'usertable' or user names are involved.
-         Use a WHERE clause to filter out these names: ${JSON.stringify(TEST_USERS)}.
-         Example: ... WHERE name NOT IN ('${TEST_USERS.join("', '")}') ...
+      8. IMPORTANT: ALWAYS exclude user_id 329 from your queries. Do NOT return data for user 329.
+         Use a WHERE clause: WHERE user_id != 329 ... or WHERE user_id NOT IN (329) ...
+      9. AVOID using UNION between different tables (usertable, user_prompts, save_enhance_prompt, etc.) because they have different column counts and types.
+      10. If the user asks for "all data" for a specific user, prioritize returning their basic info from 'usertable' or their latest prompts from 'user_prompts'. Do NOT try to UNION everything.
+      11. For questions about "errors", "failures", or "bugs", usage the 'api_error_logs' table.
       `;
 
       // Call Groq to generate SQL

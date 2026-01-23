@@ -13,6 +13,13 @@ import {
   Users,
   Zap,
   Database,
+  Activity as ActivityIcon, // Alias to avoid conflict with 'Activity' component if needed, but 'Activity' is already imported.
+  // Wait, Activity is already imported on line 5.
+  // Let's check imports. 'Activity' is imported from lucide-react.
+  // I will just add CreditCard and AlertTriangle.
+  CreditCard,
+  AlertTriangle,
+  MessageSquare,
 } from "lucide-react";
 
 import {
@@ -75,6 +82,25 @@ const analyticsItems = [
   },
 ];
 
+// Developer items
+const developerItems = [
+  {
+    title: "Diagnostics",
+    url: "/diagnostics",
+    icon: AlertTriangle,
+  },
+  {
+    title: "Costs",
+    url: "/costs",
+    icon: CreditCard,
+  },
+  {
+    title: "Prompts",
+    url: "/prompts",
+    icon: MessageSquare,
+  },
+];
+
 // Data items
 const dataItems = [
   {
@@ -103,6 +129,24 @@ export function AppSidebar({ ...props }) {
           <SidebarGroupContent>
             <SidebarMenu>
               {analyticsItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild tooltip={item.title}>
+                    <a href={item.url}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Developer</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {developerItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild tooltip={item.title}>
                     <a href={item.url}>

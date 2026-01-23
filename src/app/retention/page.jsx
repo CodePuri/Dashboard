@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/chart";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid } from "recharts";
 import { useAnalyticsData } from "@/hooks/use-analytics-data";
+import { useAttritionData } from "@/hooks/use-attrition-data";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 
@@ -36,7 +37,10 @@ export default function RetentionPage() {
     customDateRange,
   );
 
-  if (isLoading) {
+  const { data: attritionData, isLoading: isAttritionLoading } =
+    useAttritionData(dateFilter, sourceFilter, customDateRange);
+
+  if (isLoading || isAttritionLoading) {
     return (
       <div className="space-y-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -65,6 +69,11 @@ export default function RetentionPage() {
     growth?.activeUsers && growth.activeUsers > 0
       ? (growth.dailyHabitUsers / growth.activeUsers) * 100
       : 0;
+
+  const totalUsers = attritionData?.length || 0;
+  const churnedUsers = attritionData?.filter((u) => u.isChurned) || [];
+  const churnRate =
+    totalUsers > 0 ? (churnedUsers.length / totalUsers) * 100 : 0;
 
   return (
     <div className="space-y-6 md:space-y-8">
@@ -101,6 +110,14 @@ export default function RetentionPage() {
             icon={Repeat}
             color={COLORS.success}
             tooltip="Percentage of users who returned on multiple distinct days"
+          />
+          <MetricCard
+            title="Attrition Rate"
+            value={`${churnRate.toFixed(1)}%`}
+            subtitle="Overall Churn"
+            icon={Users}
+            color={COLORS.danger}
+            tooltip="% of users inactive for > 30 days"
           />
           <MetricCard
             title="Daily Habit"

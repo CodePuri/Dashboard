@@ -141,7 +141,7 @@ export default function AcquisitionPage() {
         <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
           <ChartCard
             title="User Segments"
-            tooltip="One-time (1), Casual (2-5), Regular (6-20), Power (20+) prompts"
+            tooltip="Distribution by plan: Free, Freetrial, Pro"
           >
             <ChartContainer
               config={chartConfig}

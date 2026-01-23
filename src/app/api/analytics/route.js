@@ -3,23 +3,25 @@ import {
   getAnalyticsData,
   getConversionMetrics,
   getPriorPaidUsers,
+  getTotalPaidUsersByDate,
 } from "@/lib/db";
 
 // Test users to exclude from analytics
-const TEST_USERS = [
-  "aniket gupta",
-  "arjun gujar",
-  "aakash puri",
-  "minal hussain",
-  "vaishnavi parab",
-  "rahul thokal",
-  "rana basant",
-  "shoeb",
-  "aniket",
-  "arjun",
-  "abhishek",
-  "test",
-];
+// const TEST_USERS = [
+//   "aniket gupta",
+//   "arjun gujar",
+//   "aakash puri",
+//   "minal hussain",
+//   "vaishnavi parab",
+//   "rahul thokal",
+//   "rana basant",
+//   "shoeb",
+//   "aniket",
+//   "arjun",
+//   "abhishek",
+//   "test",
+// ];
+const TEST_USER_IDS = [329];
 
 import { processData } from "@/lib/analytics-utils";
 
@@ -38,18 +40,20 @@ export async function GET(request) {
 
     console.log("Fetching analytics data...", { startDate, endDate, source });
 
-    const [data, conversionMetrics, priorPaidUsers] = await Promise.all([
-      getAnalyticsData(startDate, endDate, source, TEST_USERS),
-      getConversionMetrics(startDate, endDate, TEST_USERS),
-      startDate
-        ? getPriorPaidUsers(startDate, source, TEST_USERS)
-        : Promise.resolve([]),
-    ]);
+    const [data, conversionMetrics, priorPaidUsers, allPaidUsers] =
+      await Promise.all([
+        getAnalyticsData(startDate, endDate, source, TEST_USER_IDS),
+        getConversionMetrics(startDate, endDate, TEST_USER_IDS),
+        startDate
+          ? getPriorPaidUsers(startDate, source, TEST_USER_IDS)
+          : Promise.resolve([]),
+        getTotalPaidUsersByDate(startDate, endDate, TEST_USER_IDS),
+      ]);
 
     console.log(
-      `Fetched ${data.length} records, Onboarding: ${conversionMetrics.onboarding.completedOnboarding}, Prior Paid Users: ${priorPaidUsers.length}`,
+      `Fetched ${data.length} records, Onboarding: ${conversionMetrics.onboarding.completedOnboarding}, Prior Paid Users: ${priorPaidUsers.length}, Total Paid Users: ${allPaidUsers.length}`,
     );
-    const processed = processData(data, priorPaidUsers);
+    const processed = processData(data, priorPaidUsers, allPaidUsers);
 
     // Merge DB-based Onboarding Metrics (User requested DB logic for onboarding)
     processed.conversion.activationRate =

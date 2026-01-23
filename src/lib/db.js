@@ -110,17 +110,10 @@ export async function getAnalyticsData(
     );
   }
 
-  // Exclude test users
+  // Exclude test users by ID
   if (excludeUsers.length > 0) {
-    // Check if user name matches any of the excluded names (case-insensitive)
-    // We use LOWER() for comparison to ensure robustness
-    const exclusionConditions = excludeUsers.map((name) => {
-      params.push(`%${name.toLowerCase()}%`);
-      return `LOWER(u.name) NOT LIKE $${params.length}`;
-    });
-    if (exclusionConditions.length > 0) {
-      conditions.push(`(${exclusionConditions.join(" AND ")})`);
-    }
+    const ids = excludeUsers.join(", ");
+    conditions.push(`u.user_id NOT IN (${ids})`);
   }
 
   if (conditions.length > 0) {
@@ -130,6 +123,39 @@ export async function getAnalyticsData(
   query += ` ORDER BY up.created_at DESC`;
 
   return executeQuery(query, params);
+}
+
+// Get total paid users cumulative count by date (regardless of activity)
+export async function getTotalPaidUsersByDate(
+  startDate,
+  endDate,
+  excludeUsers = [],
+) {
+  const params = [];
+  const conditions = [];
+
+  // Paid status check - exact match for 'pro' status
+  conditions.push(`COALESCE(us.status, 'free') = 'pro'`);
+
+  // Exclude test users by ID
+  if (excludeUsers.length > 0) {
+    const ids = excludeUsers.join(", ");
+    conditions.push(`u.user_id NOT IN (${ids})`);
+  }
+
+  // Get all paid users with their creation date
+  const query = `
+    SELECT 
+      u.user_id,
+      u.created_at::date as user_created_date
+    FROM usertable u
+    JOIN userstatus us ON u.user_id = us.user_id
+    WHERE ${conditions.join(" AND ")}
+    ORDER BY u.created_at
+  `;
+
+  const rows = await executeQuery(query, params);
+  return rows;
 }
 
 // Get distinct paid users active before a specific date (for cumulative baseline)
@@ -165,14 +191,10 @@ export async function getPriorPaidUsers(
     );
   }
 
+  // Exclude test users by ID
   if (excludeUsers.length > 0) {
-    const exclusionConditions = excludeUsers.map((name) => {
-      params.push(`%${name.toLowerCase()}%`);
-      return `LOWER(u.name) NOT LIKE $${params.length}`;
-    });
-    if (exclusionConditions.length > 0) {
-      conditions.push(`(${exclusionConditions.join(" AND ")})`);
-    }
+    const ids = excludeUsers.join(", ");
+    conditions.push(`u.user_id NOT IN (${ids})`);
   }
 
   const query = `
@@ -283,15 +305,10 @@ export async function getConversionMetrics(
     conditions.push(`u.created_at <= $${params.length}`);
   }
 
-  // Exclude test users
+  // Exclude test users by ID
   if (excludeUsers.length > 0) {
-    const exclusionConditions = excludeUsers.map((name) => {
-      params.push(`%${name.toLowerCase()}%`);
-      return `LOWER(u.name) NOT LIKE $${params.length}`;
-    });
-    if (exclusionConditions.length > 0) {
-      conditions.push(`(${exclusionConditions.join(" AND ")})`);
-    }
+    const ids = excludeUsers.join(", ");
+    conditions.push(`u.user_id NOT IN (${ids})`);
   }
 
   const whereClause =
@@ -351,6 +368,125 @@ export async function getConversionMetrics(
       },
       sources: [],
     };
+  }
+}
+
+// Get diagnostics data for API error logs
+export async function getDiagnosticsData(startDate, endDate, source = "All") {
+  const params = [];
+  const conditions = [];
+
+  if (startDate) {
+    params.push(startDate.toISOString());
+    conditions.push(`created_at >= $${params.length}`);
+  }
+
+  if (endDate) {
+    params.push(endDate.toISOString());
+    conditions.push(`created_at <= $${params.length}`);
+  }
+
+  // Source/Platform filter heuristics
+  if (source === "Chat") {
+    params.push("%chat%");
+    params.push("%conversation%");
+    conditions.push(
+      `(api_endpoint ILIKE $${params.length - 1} OR api_endpoint ILIKE $${params.length})`,
+    );
+  } else if (source === "Extension") {
+    params.push("%chat%");
+    params.push("%conversation%");
+    conditions.push(
+      `(api_endpoint NOT ILIKE $${params.length - 1} AND api_endpoint NOT ILIKE $${params.length})`,
+    );
+  }
+
+  const whereClause =
+    conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+
+  // Main query to get raw logs (limit for table)
+  const logsQuery = `
+    SELECT 
+      id,
+      error_id,
+      api_endpoint,
+      api_method,
+      error_message,
+      error_type,
+      user_id,
+      created_at
+    FROM api_error_logs
+    ${whereClause}
+    ORDER BY created_at DESC
+    LIMIT 200
+  `;
+
+  // Aggregation queries
+  const statsQuery = `
+    SELECT
+      COUNT(*) as total_errors,
+      COUNT(DISTINCT user_id) as affected_users,
+      COUNT(DISTINCT api_endpoint) as failing_endpoints,
+      COUNT(DISTINCT error_type) as error_types_count
+    FROM api_error_logs
+    ${whereClause}
+  `;
+
+  // Aggregation by Error Type
+  const typeDistributionQuery = `
+    SELECT error_type, COUNT(*) as count
+    FROM api_error_logs
+    ${whereClause}
+    GROUP BY error_type
+    ORDER BY count DESC
+    LIMIT 10
+  `;
+
+  // Aggregation by Endpoint
+  const endpointDistributionQuery = `
+    SELECT api_endpoint, COUNT(*) as count
+    FROM api_error_logs
+    ${whereClause}
+    GROUP BY api_endpoint
+    ORDER BY count DESC
+    LIMIT 10
+  `;
+
+  // Aggregation over time (Daily)
+  const timeSeriesQuery = `
+    SELECT DATE(created_at) as date, COUNT(*) as count
+    FROM api_error_logs
+    ${whereClause}
+    GROUP BY DATE(created_at)
+    ORDER BY date ASC
+  `;
+
+  try {
+    const [logs, stats, types, endpoints, timeline] = await Promise.all([
+      executeQuery(logsQuery, params),
+      executeQuery(statsQuery, params),
+      executeQuery(typeDistributionQuery, params),
+      executeQuery(endpointDistributionQuery, params),
+      executeQuery(timeSeriesQuery, params),
+    ]);
+
+    return {
+      logs,
+      stats: stats[0] || {
+        total_errors: 0,
+        affected_users: 0,
+        failing_endpoints: 0,
+        error_types_count: 0,
+      },
+      distributions: {
+        types,
+        endpoints,
+        timeline,
+      },
+    };
+  } catch (error) {
+    console.error("Failed to fetch diagnostics data:", error);
+    throw error;
   }
 }
 

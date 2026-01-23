@@ -180,14 +180,6 @@ export default function AttritionPage() {
         </h2>
         <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           <MetricCard
-            title="Attrition Rate"
-            value={`${churnRate.toFixed(1)}%`}
-            subtitle="Overall Churn"
-            icon={Users}
-            color={COLORS.danger}
-            tooltip="% of users inactive for > 30 days"
-          />
-          <MetricCard
             title="Regrettable Churn"
             value={regrettableChurn}
             subtitle="Power Users Lost"

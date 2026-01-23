@@ -8,7 +8,17 @@ import {
   PIE_COLORS,
 } from "@/components/ui/metric-card";
 import { FilterBar } from "@/components/ui/filter-bar";
-import { Activity, Zap, Crown, Sparkles } from "lucide-react";
+import { Activity, Zap, Crown, Sparkles, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Tooltip,
   TooltipContent,
@@ -34,6 +44,7 @@ export default function EngagementPage() {
   const [dateFilter, setDateFilter] = useState("Last 7 Days");
   const [sourceFilter, setSourceFilter] = useState("All");
   const [customDateRange, setCustomDateRange] = useState();
+  const [searchQuery, setSearchQuery] = useState("");
   const { data, isLoading } = useAnalyticsData(
     dateFilter,
     sourceFilter,
@@ -62,7 +73,7 @@ export default function EngagementPage() {
 
   const growth = data?.growth;
   const metrics = data?.metrics;
-  const distributions = data?.distributions;
+
   const insights = data?.insights;
 
   const dauMauRatio =
@@ -130,74 +141,6 @@ export default function EngagementPage() {
             color={COLORS.pink}
             tooltip="Percentage of prompts that users chose to refine"
           />
-        </div>
-      </section>
-
-      {/* Charts */}
-      <section>
-        <h2 className="text-lg md:text-xl font-bold mb-4 pb-2 border-b-2">
-          Usage Patterns
-        </h2>
-        <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2">
-          <ChartCard
-            title="Top Intents"
-            tooltip="What users are trying to accomplish"
-          >
-            <ChartContainer
-              config={chartConfig}
-              className="h-[200px] sm:h-[220px] md:h-[250px] w-full"
-            >
-              <BarChart
-                data={(distributions?.topIntents || []).slice(0, 8)}
-                layout="vertical"
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis type="number" />
-                <YAxis
-                  dataKey="name"
-                  type="category"
-                  width={100}
-                  tick={{ fontSize: 11 }}
-                />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar
-                  dataKey="count"
-                  fill={COLORS.warning}
-                  radius={[0, 4, 4, 0]}
-                />
-              </BarChart>
-            </ChartContainer>
-          </ChartCard>
-
-          <ChartCard
-            title="Domain Distribution"
-            tooltip="Content domains being enhanced"
-          >
-            <ChartContainer
-              config={chartConfig}
-              className="h-[200px] sm:h-[220px] md:h-[250px] w-full"
-            >
-              <BarChart
-                data={(distributions?.topDomains || []).slice(0, 8)}
-                layout="vertical"
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis type="number" />
-                <YAxis
-                  dataKey="name"
-                  type="category"
-                  width={100}
-                  tick={{ fontSize: 11 }}
-                />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar
-                  dataKey="count"
-                  fill={COLORS.secondary}
-                  radius={[0, 4, 4, 0]}
-                />
-              </BarChart>
-            </ChartContainer>
-          </ChartCard>
         </div>
       </section>
 
@@ -317,63 +260,91 @@ export default function EngagementPage() {
 
       {/* Top Users */}
       <section>
-        <h2 className="text-lg md:text-xl font-bold mb-4 pb-2 border-b-2">
-          Leaderboard
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg md:text-xl font-bold">Leaderboard</h2>
+          <div className="relative w-full max-w-sm">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search users..."
+              className="pl-8 h-9"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+        </div>
         <div className="bg-card border rounded-xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <div className="min-w-[800px]">
-              <div className="p-4 bg-muted/30 border-b font-medium text-sm grid grid-cols-12 gap-2 md:gap-4 text-muted-foreground">
-                <div className="col-span-1 text-center">#</div>
-                <div className="col-span-2">User</div>
-                <div className="col-span-3">Email</div>
-                <div className="col-span-2 text-center">Active</div>
-                <div className="col-span-1 text-right">Prompts</div>
-                <div className="col-span-1 text-right">Exp.</div>
-                <div className="col-span-1 text-right">Time</div>
-                <div className="col-span-1 text-right">Plan</div>
-              </div>
-              <div className="divide-y">
+          <ScrollArea className="h-[400px]">
+            <Table>
+              <TableHeader className="bg-muted/50 sticky top-0 z-10">
+                <TableRow>
+                  <TableHead className="w-[50px] text-center">#</TableHead>
+                  <TableHead className="w-[200px]">User</TableHead>
+                  <TableHead className="w-[200px]">Email</TableHead>
+                  <TableHead className="text-center w-[120px]">
+                    Last Active
+                  </TableHead>
+                  <TableHead className="text-right w-[100px]">
+                    Prompts
+                  </TableHead>
+                  <TableHead className="text-right w-[100px]">Exp.</TableHead>
+                  <TableHead className="text-right w-[100px]">Time</TableHead>
+                  <TableHead className="text-right w-[100px] pr-6">
+                    Plan
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {(insights?.topPowerUsers || [])
-                  .slice(0, 5)
+                  .filter((user) => {
+                    if (!searchQuery) return true;
+                    const query = searchQuery.toLowerCase();
+                    return (
+                      (user.name || "").toLowerCase().includes(query) ||
+                      (user.email || "").toLowerCase().includes(query) ||
+                      (user.userId || "").toLowerCase().includes(query)
+                    );
+                  })
                   .map((user, index) => (
-                    <div
+                    <TableRow
                       key={user.userId}
-                      className="p-4 grid grid-cols-12 gap-2 md:gap-4 items-center text-sm hover:bg-muted/5"
+                      className="hover:bg-muted/50 transition-colors"
                     >
-                      <div className="col-span-1 font-bold text-muted-foreground text-center">
+                      <TableCell className="text-center font-bold text-muted-foreground">
                         {index + 1}
-                      </div>
-                      <div className="col-span-2">
+                      </TableCell>
+                      <TableCell className="font-medium">
                         <div
-                          className="font-medium truncate"
+                          className="truncate w-[180px]"
                           title={user.name || "Unknown User"}
                         >
                           {user.name || "Unknown User"}
                         </div>
-                        <div className="text-xs text-muted-foreground truncate">
+                        <div className="text-xs text-muted-foreground truncate w-[180px]">
                           #{user.userId}
                         </div>
-                      </div>
-                      <div
-                        className="col-span-3 text-muted-foreground truncate"
-                        title={user.email || "-"}
-                      >
-                        {user.email || "-"}
-                      </div>
-                      <div className="col-span-2 text-muted-foreground text-xs text-center">
+                      </TableCell>
+                      <TableCell>
+                        <div
+                          className="truncate w-[180px] text-muted-foreground"
+                          title={user.email || "-"}
+                        >
+                          {user.email || "-"}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center text-muted-foreground text-xs">
                         {new Date(user.lastActive).toLocaleDateString()}
-                      </div>
-                      <div className="col-span-1 text-right font-medium">
+                      </TableCell>
+                      <TableCell className="text-right font-medium">
                         {user.promptCount}
-                      </div>
-                      <div className="col-span-1 text-right text-muted-foreground">
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground">
                         {user.avgEnhancementScore.toFixed(1)}x
-                      </div>
-                      <div className="col-span-1 text-right font-medium text-green-600">
+                      </TableCell>
+                      <TableCell className="text-right font-medium text-green-600">
                         {(user.timeSavedHours || 0).toFixed(1)}h
-                      </div>
-                      <div className="col-span-1 text-right">
+                      </TableCell>
+                      <TableCell className="text-right pr-6">
                         <span
                           className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
                             ["paid", "pro", "premium"].some((k) =>
@@ -388,15 +359,15 @@ export default function EngagementPage() {
                           }`}
                         >
                           {(user.status || "").toLowerCase().includes("trial")
-                            ? "Free Trial"
+                            ? "Trial"
                             : user.status || "Free"}
                         </span>
-                      </div>
-                    </div>
+                      </TableCell>
+                    </TableRow>
                   ))}
-              </div>
-            </div>
-          </div>
+              </TableBody>
+            </Table>
+          </ScrollArea>
         </div>
       </section>
     </div>

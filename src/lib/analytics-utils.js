@@ -5,7 +5,7 @@ function getDisplayDate(dateStr) {
   return new Date(date.getTime() + 5.5 * 60 * 60 * 1000);
 }
 
-export function processData(data, initialPaidUserIds = []) {
+export function processData(data, initialPaidUserIds = [], allPaidUsers = []) {
   // Remove duplicates
   const seen = new Set();
   const unique = data.filter((item) => {
@@ -86,24 +86,24 @@ export function processData(data, initialPaidUserIds = []) {
     count,
   }));
 
-  // Daily active users and paid users
+  // Daily active users and active paid users
   const dailyActiveUsers = {};
-  const dailyPaidUsersSet = {};
+  const dailyActivePaidUsersSet = {};
 
-  // Helper to check if user is paid
+  // Helper to check if user is paid (exact match for 'pro' status)
   const isPaidUser = (status) => {
-    const s = (status || "").toLowerCase();
-    return s.includes("paid") || s.includes("pro") || s.includes("premium");
+    return (status || "free").toLowerCase() === "pro";
   };
 
   unique.forEach((d) => {
     const displayDate = getDisplayDate(d.prompt_created_at);
     const date = displayDate.toISOString().split("T")[0];
     if (!dailyActiveUsers[date]) dailyActiveUsers[date] = new Set();
-    if (!dailyPaidUsersSet[date]) dailyPaidUsersSet[date] = new Set();
+    if (!dailyActivePaidUsersSet[date])
+      dailyActivePaidUsersSet[date] = new Set();
     dailyActiveUsers[date].add(d.user_id);
     if (isPaidUser(d.user_status)) {
-      dailyPaidUsersSet[date].add(d.user_id);
+      dailyActivePaidUsersSet[date].add(d.user_id);
     }
   });
 
@@ -118,21 +118,36 @@ export function processData(data, initialPaidUserIds = []) {
     a[0].localeCompare(b[0]),
   );
 
-  // Calculate cumulative paid users
-  const cumulativePaidUsers = new Set(initialPaidUserIds);
+  // Build array of all paid users with their creation dates
+  const allPaidUsersList = allPaidUsers.map((user) => ({
+    userId: user.user_id,
+    createdDate: new Date(user.user_created_date).toISOString().split("T")[0],
+  }));
+
+  // Calculate cumulative totals for both metrics
+  const cumulativeActivePaidUsers = new Set(initialPaidUserIds);
+
   const dailyActivityWithCumulative = dailyActivity.map(([date, count]) => {
-    // Add all paid users from this day to the cumulative set
-    if (dailyPaidUsersSet[date]) {
-      dailyPaidUsersSet[date].forEach((userId) =>
-        cumulativePaidUsers.add(userId),
+    // Add active paid users from this day (for active line)
+    if (dailyActivePaidUsersSet[date]) {
+      dailyActivePaidUsersSet[date].forEach((userId) =>
+        cumulativeActivePaidUsers.add(userId),
       );
     }
+
+    // Count ALL paid users created on or before this date (for total line)
+    const totalPaidUsersUpToDate = allPaidUsersList.filter(
+      (u) => u.createdDate <= date,
+    ).length;
 
     return {
       date,
       prompts: count,
       users: dailyActiveUsers[date] ? dailyActiveUsers[date].size : 0,
-      paidUsers: cumulativePaidUsers.size,
+      activePaidUsers: cumulativeActivePaidUsers.size,
+      totalPaidUsers: totalPaidUsersUpToDate,
+      // Keep paidUsers for backward compatibility (use total)
+      paidUsers: totalPaidUsersUpToDate,
     };
   });
 
@@ -206,13 +221,28 @@ export function processData(data, initialPaidUserIds = []) {
   unique.forEach((d) => {
     userPromptCounts[d.user_id] = (userPromptCounts[d.user_id] || 0) + 1;
   });
-  const segmentCounts = { "One-time": 0, Casual: 0, Regular: 0, Power: 0 };
-  Object.values(userPromptCounts).forEach((count) => {
-    if (count === 1) segmentCounts["One-time"]++;
-    else if (count <= 5) segmentCounts["Casual"]++;
-    else if (count <= 20) segmentCounts["Regular"]++;
-    else segmentCounts["Power"]++;
+
+  const segmentCounts = { Free: 0, Freetrial: 0, Pro: 0 };
+  const processedUsers = new Set();
+
+  unique.forEach((d) => {
+    if (processedUsers.has(d.user_id)) return;
+    processedUsers.add(d.user_id);
+
+    const status = (d.user_status || "").toLowerCase();
+    if (
+      status.includes("paid") ||
+      status.includes("pro") ||
+      status.includes("premium")
+    ) {
+      segmentCounts["Pro"]++;
+    } else if (status.includes("trial")) {
+      segmentCounts["Freetrial"]++;
+    } else {
+      segmentCounts["Free"]++;
+    }
   });
+
   const userSegments = Object.entries(segmentCounts).map(([name, count]) => ({
     name,
     count,
@@ -353,7 +383,6 @@ export function processData(data, initialPaidUserIds = []) {
 
   const topPowerUsers = Object.entries(userStats)
     .sort((a, b) => b[1].count - a[1].count)
-    .slice(0, 5)
     .map(([userId, stats]) => ({
       userId,
       name: stats.name,
@@ -513,7 +542,13 @@ export function processData(data, initialPaidUserIds = []) {
         d.llm_used && d.llm_used.toLowerCase().includes("velocity")
           ? "Chat"
           : "Ext",
-      plan: isPaidUser(d.user_status) ? "Paid" : "Free",
+      plan: (() => {
+        const s = (d.user_status || "").toLowerCase();
+        if (s.includes("paid") || s.includes("pro") || s.includes("premium"))
+          return "Pro";
+        if (s.includes("trial")) return "Freetrial";
+        return "Free";
+      })(),
       totalPrompts: userPromptCounts[d.user_id] || 1,
       createdAt: d.prompt_created_at,
     })),

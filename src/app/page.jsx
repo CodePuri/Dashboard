@@ -249,14 +249,14 @@ export default function OverviewPage() {
         {/* Paid Users Growing Chart */}
         <ChartCard
           title="Are paid users growing?"
-          tooltip="Daily paid user count trend"
+          tooltip="Total paid users (solid) vs Active paid users in period (dashed)"
         >
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={dailyTrend}>
                 <defs>
                   <linearGradient
-                    id="colorPaidUsersOverview"
+                    id="colorTotalPaidUsers"
                     x1="0"
                     y1="0"
                     x2="0"
@@ -270,6 +270,24 @@ export default function OverviewPage() {
                     <stop
                       offset="95%"
                       stopColor={COLORS.success}
+                      stopOpacity={0}
+                    />
+                  </linearGradient>
+                  <linearGradient
+                    id="colorActivePaidUsers"
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop
+                      offset="5%"
+                      stopColor={COLORS.info}
+                      stopOpacity={0.2}
+                    />
+                    <stop
+                      offset="95%"
+                      stopColor={COLORS.info}
                       stopOpacity={0}
                     />
                   </linearGradient>
@@ -301,15 +319,41 @@ export default function OverviewPage() {
                 />
                 <Area
                   type="monotone"
-                  dataKey="paidUsers"
-                  name="Paid Users"
+                  dataKey="totalPaidUsers"
+                  name="Total Paid Users"
                   stroke={COLORS.success}
                   strokeWidth={3}
                   fillOpacity={1}
-                  fill="url(#colorPaidUsersOverview)"
+                  fill="url(#colorTotalPaidUsers)"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="activePaidUsers"
+                  name="Active Paid Users"
+                  stroke={COLORS.info}
+                  strokeWidth={2}
+                  strokeDasharray="5 5"
+                  fillOpacity={1}
+                  fill="url(#colorActivePaidUsers)"
                 />
               </AreaChart>
             </ResponsiveContainer>
+          </div>
+          <div className="flex justify-center gap-6 mt-2 text-xs text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <div
+                className="w-4 h-0.5"
+                style={{ backgroundColor: COLORS.success }}
+              ></div>
+              <span>Total Paid Users</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div
+                className="w-4 h-0.5 border-dashed border-t-2"
+                style={{ borderColor: COLORS.info }}
+              ></div>
+              <span>Active Paid Users</span>
+            </div>
           </div>
         </ChartCard>
       </div>
@@ -344,6 +388,9 @@ export default function OverviewPage() {
                   </TableHead>
                   <TableHead className="whitespace-nowrap font-bold text-foreground">
                     TOTAL PROMPTS
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap font-bold text-foreground">
+                    LAST PROMPT AT
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -381,12 +428,17 @@ export default function OverviewPage() {
                       <TableCell className="text-center font-medium py-3">
                         {row.totalPrompts}
                       </TableCell>
+                      <TableCell className="whitespace-nowrap py-3 text-xs text-muted-foreground">
+                        {row.createdAt
+                          ? format(new Date(row.createdAt), "MMM d, HH:mm")
+                          : "—"}
+                      </TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
                     <TableCell
-                      colSpan={7}
+                      colSpan={8}
                       className="h-24 text-center text-muted-foreground"
                     >
                       No prompts found for this period.
