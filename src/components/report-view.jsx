@@ -104,25 +104,26 @@ export function ReportView({ data }) {
             <h3 className="text-lg font-semibold mb-4">LLM Usage</h3>
             <div className="h-64 border rounded-lg p-4">
               <ChartContainer config={{}} className="h-full w-full">
-                <BarChart data={data.distributions.llm}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" fontSize={10} />
-                  <YAxis fontSize={12} />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar
-                    dataKey="count"
-                    fill="#8884d8"
-                    label={{ position: "top" }}
-                  >
-                    {data.distributions.llm.map((_, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={COLORS[index % COLORS.length]}
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={data.distributions.llm}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" fontSize={10} />
+                    <YAxis fontSize={12} />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Bar
+                      dataKey="count"
+                      fill="#8884d8"
+                      label={{ position: "top" }}
+                    >
+                      {data.distributions.llm.map((_, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={COLORS[index % COLORS.length]}
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
             </div>
           </section>
 
@@ -130,24 +131,25 @@ export function ReportView({ data }) {
             <h3 className="text-lg font-semibold mb-4">Mode Usage</h3>
             <div className="h-64 border rounded-lg p-4">
               <ChartContainer config={{}} className="h-full w-full">
-                <BarChart data={data.distributions.mode}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" fontSize={12} />
-                  <YAxis fontSize={12} />
-                  <Bar
-                    dataKey="count"
-                    fill="#8884d8"
-                    label={{ position: "top" }}
-                  >
-                    {data.distributions.mode.map((_, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={COLORS[index % COLORS.length]}
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={data.distributions.mode}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" fontSize={12} />
+                    <YAxis fontSize={12} />
+                    <Bar
+                      dataKey="count"
+                      fill="#8884d8"
+                      label={{ position: "top" }}
+                    >
+                      {data.distributions.mode.map((_, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={COLORS[index % COLORS.length]}
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
             </div>
           </section>
         </div>
