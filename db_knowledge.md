@@ -152,6 +152,9 @@ CREATE TABLE save_enhance_prompt (
     user_status VARCHAR(50),              -- 'free', 'pro', 'freetrial'
     conversation_id TEXT,                 -- NULL for Extension, UUID for Velocity Chat
     accept BOOLEAN,                       -- Whether user accepted the enhancement
+    input_token INTEGER,                  -- Number of input tokens
+    output_token INTEGER,                 -- Number of output tokens
+    total_token INTEGER,                  -- Total tokens used
     created_at TIMESTAMP DEFAULT NOW()
 );
 ```
@@ -206,6 +209,9 @@ CREATE TABLE refine_prompt (
     refined_prompt TEXT,                  -- The final refined prompt
     processing_time DECIMAL,              -- Time taken to refine
     conversation_id TEXT,                 -- NULL for Extension, UUID for Chat
+    input_token INTEGER,                  -- Number of input tokens
+    output_token INTEGER,                 -- Number of output tokens
+    total_token INTEGER,                  -- Total tokens used
     created_at TIMESTAMP DEFAULT NOW()
 );
 ```

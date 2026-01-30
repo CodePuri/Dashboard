@@ -55,58 +55,8 @@ function getDateRange(filter) {
   }
 }
 
-const emptyData = {
-  logs: [],
-  stats: {
-    total_errors: 0,
-    affected_users: 0,
-    failing_endpoints: 0,
-    error_types_count: 0,
-  },
-  distributions: {
-    types: [],
-    endpoints: [],
-    timeline: [],
-  },
-};
-
-// Helper to synthesize segmentation data (duplicated to avoid dependency)
-const withSegmentation = (item, countKey = "count") => {
-  const count = item[countKey] || 0;
-  // Deterministic pseudo-random split
-  const factor = (count % 10) / 10;
-
-  let free, trial, pro;
-
-  if (count === 0) {
-    free = 0;
-    trial = 0;
-    pro = 0;
-  } else {
-    // Roughly 60% Free, 30% Trial, 10% Pro
-    const freeRatio = 0.6 + (factor * 0.1 - 0.05);
-    const trialRatio = 0.3 + (factor * 0.1 - 0.05);
-
-    free = Math.floor(count * freeRatio);
-    trial = Math.floor(count * trialRatio);
-    pro = count - free - trial;
-
-    if (pro < 0) {
-      pro = 0;
-      trial = count - free;
-    }
-  }
-
-  return {
-    ...item,
-    Free: free,
-    Freetrial: trial,
-    Pro: pro,
-  };
-};
-
-export function useDiagnosticsData(
-  dateFilter = "Last 7 Days",
+export function useUsageData(
+  dateFilter = "Last 30 Days",
   sourceFilter = "All",
   customDateRange = undefined,
 ) {
@@ -116,8 +66,6 @@ export function useDiagnosticsData(
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
-    setError(null);
-
     try {
       let startDate, endDate;
 
@@ -127,7 +75,6 @@ export function useDiagnosticsData(
         customDateRange?.to
       ) {
         startDate = customDateRange.from;
-        // set end date to end of day if it's the same day, or just use the provided date
         endDate = new Date(customDateRange.to);
         endDate.setHours(23, 59, 59, 999);
       } else {
@@ -143,31 +90,12 @@ export function useDiagnosticsData(
         params.set("source", sourceFilter);
       }
 
-      const res = await fetch(`/api/diagnostics?${params.toString()}`);
-      if (!res.ok) {
-        throw new Error(`Failed to fetch diagnostics: ${res.status}`);
-      }
-
+      const res = await fetch(`/api/usage?${params.toString()}`);
+      if (!res.ok) throw new Error("Failed to fetch usage data");
       const json = await res.json();
-      if (json.success && json.data) {
-        const rawData = json.data;
-        const enrichedData = {
-          ...rawData,
-          distributions: {
-            ...rawData.distributions,
-            endpoints: (rawData.distributions?.endpoints || []).map((item) =>
-              withSegmentation(item, "count"),
-            ),
-          },
-        };
-        setData(enrichedData);
-      } else {
-        setData(emptyData);
-      }
+      setData(json.data);
     } catch (err) {
-      console.error("Diagnostics fetch error:", err);
-      setError(err instanceof Error ? err.message : "Unknown error");
-      setData(emptyData);
+      setError(err.message);
     } finally {
       setIsLoading(false);
     }

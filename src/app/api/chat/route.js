@@ -83,6 +83,7 @@ const DB_SCHEMA = `
 - enhanced_prompt (TEXT)
 - processing_time (DECIMAL)
 - intent, llm_used, complexity, domain, mode
+- input_token, output_token, total_token (INTEGER)
 - created_at (TIMESTAMP)
 
 ### usertable (Users)
@@ -98,6 +99,7 @@ const DB_SCHEMA = `
 - refine_id (TEXT PK)
 - prompt_id, enhanced_prompt_id
 - refined_prompt (TEXT)
+- input_token, output_token, total_token (INTEGER)
 - created_at (TIMESTAMP)
 `;
 

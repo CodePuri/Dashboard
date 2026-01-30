@@ -4,6 +4,9 @@ import {
   getConversionMetrics,
   getPriorPaidUsers,
   getTotalPaidUsersByDate,
+  getInstallationMetrics,
+  getDailyInstallationMetrics,
+  getActiveUsersBreakdown,
 } from "@/lib/db";
 
 // Test users to exclude from analytics
@@ -40,20 +43,66 @@ export async function GET(request) {
 
     console.log("Fetching analytics data...", { startDate, endDate, source });
 
-    const [data, conversionMetrics, priorPaidUsers, allPaidUsers] =
-      await Promise.all([
-        getAnalyticsData(startDate, endDate, source, TEST_USER_IDS),
-        getConversionMetrics(startDate, endDate, TEST_USER_IDS),
-        startDate
-          ? getPriorPaidUsers(startDate, source, TEST_USER_IDS)
-          : Promise.resolve([]),
-        getTotalPaidUsersByDate(startDate, endDate, TEST_USER_IDS),
-      ]);
+    // Calculate previous period for trend analysis
+    let prevStartDate = null;
+    let prevEndDate = null;
+
+    if (startDate && endDate) {
+      const durationMs = endDate.getTime() - startDate.getTime();
+      prevEndDate = new Date(startDate.getTime() - 1); // 1ms before current start
+      prevStartDate = new Date(startDate.getTime() - durationMs - 1);
+    }
+
+    const [
+      data,
+      conversionMetrics,
+      priorPaidUsers,
+      allPaidUsers,
+      installationMetrics,
+      dailyInstallationMetrics,
+      prevData,
+      activeBreakdownRaw,
+    ] = await Promise.all([
+      getAnalyticsData(startDate, endDate, source, TEST_USER_IDS),
+      getConversionMetrics(startDate, endDate, source, TEST_USER_IDS),
+      startDate
+        ? getPriorPaidUsers(startDate, source, TEST_USER_IDS)
+        : Promise.resolve([]),
+      getTotalPaidUsersByDate(startDate, endDate, TEST_USER_IDS),
+      getInstallationMetrics(startDate, endDate, TEST_USER_IDS),
+      getDailyInstallationMetrics(startDate, endDate, TEST_USER_IDS),
+      prevStartDate && prevEndDate
+        ? getAnalyticsData(prevStartDate, prevEndDate, source, TEST_USER_IDS)
+        : Promise.resolve([]),
+      getActiveUsersBreakdown(startDate, endDate, source, TEST_USER_IDS),
+    ]);
 
     console.log(
-      `Fetched ${data.length} records, Onboarding: ${conversionMetrics.onboarding.completedOnboarding}, Prior Paid Users: ${priorPaidUsers.length}, Total Paid Users: ${allPaidUsers.length}`,
+      `Fetched ${data.length} records, Previous: ${prevData.length}, Onboarding: ${conversionMetrics.onboarding.completedOnboarding}`,
     );
-    const processed = processData(data, priorPaidUsers, allPaidUsers);
+
+    // Process Active Breakdown
+    // Transform daily breakdown into chart data
+    const activeUsersChartData = (activeBreakdownRaw || []).map((row) => ({
+      date: row.date,
+      free: parseInt(row.free_users || 0),
+      trial: parseInt(row.trial_users || 0),
+      pro: parseInt(row.pro_users || 0),
+      freePower: parseInt(row.free_power || 0),
+      trialPower: parseInt(row.trial_power || 0),
+      proPower: parseInt(row.pro_power || 0),
+      total: parseInt(row.total_users || 0),
+    }));
+
+    const processed = processData(
+      data,
+      priorPaidUsers, // Renamed from initialPaidUsers to priorPaidUsers to match existing variable
+      allPaidUsers,
+      startDate,
+      endDate,
+      installationMetrics,
+      prevData,
+    );
 
     // Merge DB-based Onboarding Metrics (User requested DB logic for onboarding)
     processed.conversion.activationRate =
@@ -63,6 +112,12 @@ export async function GET(request) {
 
     // Add Signup Sources to distributions
     processed.distributions.signupSources = conversionMetrics.sources;
+
+    // Add daily installation metrics for visualizations
+    processed.dailyInstallationMetrics = dailyInstallationMetrics;
+
+    // Add active users breakdown for the chart
+    processed.activeUsersChartData = activeUsersChartData;
 
     return NextResponse.json({
       success: true,
@@ -99,6 +154,7 @@ export async function GET(request) {
         topDomains: [],
         mode: [],
         llm: [],
+        signupSources: [],
       },
       timeAnalysis: {
         dailyActivity: [],

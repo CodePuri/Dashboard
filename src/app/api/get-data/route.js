@@ -5,140 +5,21 @@ const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
 // user_id = 329 is excluded from all queries as per user request.
 
-// Schema definition for the LLM
-const DB_SCHEMA = `
-# Database Schema
+import { promises as fs } from "fs";
+import path from "path";
 
-## 📝 Detailed Table Schemas
-
-### 1. \`usertable\` - User Accounts
-\`\`\`sql
-CREATE TABLE usertable (
-    user_id SERIAL PRIMARY KEY,
-    name VARCHAR(255),
-    email VARCHAR(255) UNIQUE NOT NULL,
-    tokens INTEGER DEFAULT 0,
-    created_at TIMESTAMP DEFAULT NOW()
-);
-\`\`\`
-
-### 2. \`userstatus\` - User Status/Subscription
-\`\`\`sql
-CREATE TABLE userstatus (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER UNIQUE NOT NULL,
-    status VARCHAR(50),           -- 'free', 'pro', 'freetrial', 'expired'
-    created_at TIMESTAMP DEFAULT NOW()
-);
-\`\`\`
-
-### 3. \`user_prompts\` - Original User Prompts ⭐
-\`\`\`sql
-CREATE TABLE user_prompts (
-    prompt_id TEXT PRIMARY KEY,   -- UUID as text
-    user_id INTEGER NOT NULL,     -- References usertable.user_id
-    user_prompt TEXT,             -- The original prompt text
-    conversation_id TEXT,         -- NULL for Extension, UUID for Velocity Chat
-    created_at TIMESTAMP DEFAULT NOW()
-);
-\`\`\`
-
-### 4. \`save_enhance_prompt\` - Enhanced Prompts ⭐
-\`\`\`sql
-CREATE TABLE save_enhance_prompt (
-    enhanced_prompt_id TEXT PRIMARY KEY,  -- UUID as text
-    prompt_id TEXT NOT NULL,              -- References user_prompts.prompt_id
-    user_id INTEGER,
-    enhanced_prompt TEXT,
-    processing_time DECIMAL,              -- Time taken (seconds/ms check data)
-    intent VARCHAR(255),
-    llm_used VARCHAR(100),
-    complexity VARCHAR(50),               -- 'low', 'medium', 'high'
-    domain VARCHAR(255),
-    mode VARCHAR(100),
-    user_status VARCHAR(50),
-    conversation_id TEXT,
-    created_at TIMESTAMP DEFAULT NOW()
-);
-\`\`\`
-
-### 5. \`refine_prompt\` - Refined Prompts
-\`\`\`sql
-CREATE TABLE refine_prompt (
-    refine_id TEXT PRIMARY KEY,
-    prompt_id TEXT,
-    enhanced_prompt_id TEXT,
-    user_id INTEGER,
-    refined_prompt TEXT,
-    created_at TIMESTAMP DEFAULT NOW()
-);
-\`\`\`
-
-### 6. \`conversations\` - Velocity Chat
-\`\`\`sql
-CREATE TABLE conversations (
-    id SERIAL PRIMARY KEY,
-    conversation_id TEXT UNIQUE,
-    user_id INTEGER,
-    title VARCHAR(255),
-    created_at TIMESTAMP DEFAULT NOW()
-);
-\`\`\`
-
-### 7. \`conversation_contexts\` - Extension Synced Contexts
-\`\`\`sql
-CREATE TABLE conversation_contexts (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL,
-    session_id VARCHAR(255) NOT NULL,
-    platform VARCHAR(100),                -- 'chatgpt', 'claude', 'gemini', 'mistral'
-    messages JSONB,                       -- Array of {role, content} messages
-    url TEXT,
-    summary TEXT,
-    created_at TIMESTAMP DEFAULT NOW()
-);
-\`\`\`
-
-### 8. \`processed_contexts\` - Embeddings
-\`\`\`sql
-CREATE TABLE processed_contexts (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL,
-    session_id VARCHAR(255) NOT NULL,
-    essence TEXT,
-    intent VARCHAR(255),
-    domains TEXT[],
-    created_at TIMESTAMP DEFAULT NOW()
-);
-\`\`\`
-
-### 9. \`essence_usage_tracking\` - Usage Analytics
-\`\`\`sql
-CREATE TABLE essence_usage_tracking (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL,
-    date DATE NOT NULL DEFAULT CURRENT_DATE,
-    essence_creations INTEGER DEFAULT 0,
-    api_calls INTEGER DEFAULT 0,
-    cost_estimate DECIMAL(10, 4) DEFAULT 0,
-    created_at TIMESTAMP DEFAULT NOW()
-);
-\`\`\`
-
-### 11. \`api_error_logs\` - API Error Tracking
-\`\`\`sql
-CREATE TABLE api_error_logs (
-    id SERIAL PRIMARY KEY,
-    error_id VARCHAR(255),
-    api_endpoint VARCHAR(500),
-    api_method VARCHAR(10),
-    error_message TEXT,
-    error_type VARCHAR(100),
-    user_id INTEGER,
-    created_at TIMESTAMP DEFAULT NOW()
-);
-\`\`\`
-`;
+async function getDatabaseSchema() {
+  try {
+    const schemaPath = path.join(process.cwd(), "DATABASE_SCHEMA.md");
+    const schema = await fs.readFile(schemaPath, "utf8");
+    return schema;
+  } catch (error) {
+    console.error("Failed to read DATABASE_SCHEMA.md:", error);
+    // Fallback or re-throw depending on severity.
+    // Since this is critical for the AI to know the schema, we should probably return a minimal fallback or throw.
+    throw new Error("Could not load database schema.");
+  }
+}
 
 export async function POST(req) {
   try {
@@ -164,10 +45,11 @@ export async function POST(req) {
         );
       }
 
+      const dbSchema = await getDatabaseSchema();
       const systemPrompt = `You are a SQL Expert for the Dashboard.
       
       DATABASE KNOWLEDGE BASE (SCHEMA):
-      ${DB_SCHEMA}
+      ${dbSchema}
 
       INSTRUCTIONS:
       1. Given a user request, generate a valid PostgreSQL SELECT query.

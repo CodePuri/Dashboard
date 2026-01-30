@@ -7,7 +7,6 @@ import {
   Gauge,
   Heart,
   Target,
-  TrendingUp,
   UserMinus,
   UserPlus,
   Users,
@@ -16,10 +15,11 @@ import {
   Activity as ActivityIcon, // Alias to avoid conflict with 'Activity' component if needed, but 'Activity' is already imported.
   // Wait, Activity is already imported on line 5.
   // Let's check imports. 'Activity' is imported from lucide-react.
-  // I will just add CreditCard and AlertTriangle.
   CreditCard,
   AlertTriangle,
   MessageSquare,
+  Eye,
+  Star,
 } from "lucide-react";
 
 import {
@@ -46,14 +46,19 @@ const analyticsItems = [
     icon: BarChart3,
   },
   {
-    title: "Value / ROI",
-    url: "/roi",
-    icon: TrendingUp,
+    title: "Reach",
+    url: "/reach",
+    icon: Eye,
   },
   {
     title: "Activity",
     url: "/activity",
     icon: Zap,
+  },
+  {
+    title: "Usage",
+    url: "/usage",
+    icon: Gauge,
   },
   {
     title: "Acquisition",
@@ -114,9 +119,9 @@ export function AppSidebar({ ...props }) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <div className="flex items-center gap-2 px-4 py-2 transition-all group-data-[collapsible=icon]:!p-2">
+        <div className="flex items-center gap-2 px-4 py-2 transition-all group-data-[collapsible=icon]:!p-0">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <BarChart3 className="size-4" />
+            <Star className="size-4" />
           </div>
           <span className="font-bold text-lg group-data-[collapsible=icon]:hidden">
             Velocity

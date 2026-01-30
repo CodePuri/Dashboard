@@ -6,25 +6,31 @@ import {
   ChartCard,
   COLORS,
   PIE_COLORS,
+  SparklineV2,
+  DetailedChartV2,
 } from "@/components/ui/metric-card";
 import { FilterBar } from "@/components/ui/filter-bar";
-import { UserPlus, Users, TrendingUp, PieChart } from "lucide-react";
+import { UserPlus, Users, TrendingUp, PieChart, Moon } from "lucide-react";
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import {
+  ComposedChart,
+  Bar,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
   PieChart as RechartsPie,
   Pie,
   Cell,
   AreaChart,
   Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
 } from "recharts";
 import { useAnalyticsData } from "@/hooks/use-analytics-data";
+import { useDailyHabitData } from "@/hooks/use-daily-habit-data";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 
@@ -44,8 +50,13 @@ export default function AcquisitionPage() {
     sourceFilter,
     customDateRange,
   );
+  const { data: dailyHabitData, isLoading: isDailyHabitLoading } = useDailyHabitData(
+    dateFilter,
+    sourceFilter,
+    customDateRange,
+  );
 
-  if (isLoading) {
+  if (isLoading || isDailyHabitLoading) {
     return (
       <div className="space-y-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -53,7 +64,7 @@ export default function AcquisitionPage() {
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
               Acquisition
             </h1>
-            <p className="text-muted-foreground">Loading...</p>
+            <p className="text-muted-foreground">Loading daily habit data...</p>
           </div>
         </div>
         <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
@@ -68,7 +79,28 @@ export default function AcquisitionPage() {
   const growth = data?.growth;
   const insights = data?.insights;
   const timeAnalysis = data?.timeAnalysis;
+  const dailyActivity = timeAnalysis?.dailyActivity || [];
   const userSegments = insights?.userSegments || [];
+  const activeUsersChartData = data?.activeUsersChartData || [];
+  
+  // Daily Habit data
+  const dailyHabitUsers = dailyHabitData?.finalDailyHabitUsers || dailyHabitData?.dailyHabitUsers || 0;
+  const dormantHabitUsers = dailyHabitData?.dormantHabitUsers || 0;
+  const dailyHabitSegments = dailyHabitData?.dailyHabitSegments || { free: 0, trial: 0, pro: 0 };
+  const dailyHabitTrendData = dailyHabitData?.dailyTrend || [];
+  const dormantHabitTrendData = dailyHabitData?.dormantTrend || [];
+  
+  // Debug logging
+  console.log('Daily Habit Data:', {
+    dailyHabitUsers,
+    dormantHabitUsers,
+    dailyTrendLength: dailyHabitTrendData.length,
+    dormantTrendLength: dormantHabitTrendData.length,
+    hasDailyTrend: dailyHabitTrendData.length > 0,
+    hasDormantTrend: dormantHabitTrendData.length > 0,
+    p90Threshold: dailyHabitData?.p90Threshold,
+    medianPrompts: dailyHabitData?.medianPrompts
+  });
 
   return (
     <div className="space-y-6 md:space-y-8">
@@ -97,30 +129,297 @@ export default function AcquisitionPage() {
         <h2 className="text-lg md:text-xl font-bold mb-4 pb-2 border-b-2">
           User Growth
         </h2>
-        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-          <MetricCard
-            title="Active Users"
-            value={(growth?.activeUsers || 0).toLocaleString()}
-            subtitle="In period"
-            icon={Users}
-            color={COLORS.primary}
-            tooltip="Total unique users who submitted prompts in the selected period"
-          />
+        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           <MetricCard
             title="Daily Habit"
-            value={(growth?.dailyHabitUsers || 0).toLocaleString()}
-            subtitle="Active 5+ days"
+            value={dailyHabitUsers.toLocaleString()}
+            subtitle="Forming habits"
             icon={UserPlus}
             color={COLORS.success}
-            tooltip="Users who were active on 5 or more distinct days"
+            tooltip={`Users with above-median prompts, in top 10% of distinct active days (P90=${dailyHabitData?.p90Threshold || 0}), and active in last 7 days. Median prompts: ${dailyHabitData?.medianPrompts || 0}`}
+            chart={
+              dailyHabitTrendData.length > 0 ? (
+                <div className="h-12 w-full">
+                  <ChartContainer
+                    config={{
+                      free: { label: "Free", color: COLORS.success },
+                      trial: { label: "Trial", color: "hsl(160, 70%, 45%)" },
+                      pro: { label: "Pro", color: "hsl(38, 95%, 55%)" },
+                      total: { label: "Total", color: "hsl(280, 65%, 60%)" },
+                    }}
+                    className="h-full w-full"
+                  >
+                    <ComposedChart
+                      data={dailyHabitTrendData}
+                      margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+                      barGap={0}
+                      barCategoryGap="10%"
+                    >
+                      <Bar
+                        dataKey="free"
+                        stackId="users"
+                        fill={COLORS.success}
+                        radius={[0, 0, 0, 0]}
+                      />
+                      <Bar
+                        dataKey="trial"
+                        stackId="users"
+                        fill="hsl(160, 70%, 45%)"
+                        radius={[0, 0, 0, 0]}
+                      />
+                      <Bar
+                        dataKey="pro"
+                        stackId="users"
+                        fill="hsl(38, 95%, 55%)"
+                        radius={[2, 2, 0, 0]}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="total"
+                        stroke="hsl(280, 65%, 60%)"
+                        strokeWidth={1.5}
+                        dot={false}
+                      />
+                    </ComposedChart>
+                  </ChartContainer>
+                </div>
+              ) : null
+            }
+            detailedChart={
+              dailyHabitTrendData.length > 0 ? (
+                <div className="h-[200px] w-full">
+                  <ChartContainer
+                    config={{
+                      free: { label: "Free", color: COLORS.success },
+                      trial: { label: "Trial", color: "hsl(160, 70%, 45%)" },
+                      pro: { label: "Pro", color: "hsl(38, 95%, 55%)" },
+                      total: { label: "Total", color: "hsl(280, 65%, 60%)" },
+                    }}
+                    className="h-full w-full"
+                  >
+                    <ComposedChart
+                      data={dailyHabitTrendData}
+                      margin={{ top: 20, right: 30, left: 10, bottom: 20 }}
+                      barGap={0}
+                      barCategoryGap="15%"
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        vertical={false}
+                        stroke="currentColor"
+                        className="text-muted-foreground/10"
+                      />
+                      <XAxis
+                        dataKey="date"
+                        hide={false}
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 9, fill: "#94a3b8" }}
+                        minTickGap={30}
+                        tickFormatter={(value) =>
+                          new Date(value).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                          })
+                        }
+                      />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                        width={40}
+                      />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Bar
+                        dataKey="free"
+                        stackId="users"
+                        fill={COLORS.success}
+                        radius={[0, 0, 0, 0]}
+                      />
+                      <Bar
+                        dataKey="trial"
+                        stackId="users"
+                        fill="hsl(160, 70%, 45%)"
+                        radius={[0, 0, 0, 0]}
+                      />
+                      <Bar
+                        dataKey="pro"
+                        stackId="users"
+                        fill="hsl(38, 95%, 55%)"
+                        radius={[4, 4, 0, 0]}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="total"
+                        stroke="hsl(280, 65%, 60%)"
+                        strokeWidth={2}
+                        dot={true}
+                        activeDot={{ r: 5, fill: "hsl(280, 65%, 60%)" }}
+                      />
+                    </ComposedChart>
+                  </ChartContainer>
+                </div>
+              ) : null
+            }
+          />
+          <MetricCard
+            title="Dormant"
+            value={dormantHabitUsers.toLocaleString()}
+            subtitle="Paused Power"
+            icon={Moon}
+            color={COLORS.secondary}
+            tooltip={`Users with above-median prompts, in top 10% of distinct active days (P90=${dailyHabitData?.p90Threshold || 0}), but NOT active in last 7 days. Median prompts: ${dailyHabitData?.medianPrompts || 0}`}
+            chart={
+              dormantHabitTrendData.length > 0 ? (
+                <div className="h-12 w-full">
+                  <ChartContainer
+                    config={{
+                      free: { label: "Free", color: COLORS.secondary },
+                      trial: { label: "Trial", color: "hsl(260, 50%, 60%)" },
+                      pro: { label: "Pro", color: "hsl(300, 60%, 65%)" },
+                      total: { label: "Total", color: "hsl(220, 70%, 55%)" },
+                    }}
+                    className="h-full w-full"
+                  >
+                    <ComposedChart
+                      data={dormantHabitTrendData}
+                      margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+                      barGap={0}
+                      barCategoryGap="10%"
+                    >
+                      <Bar
+                        dataKey="free"
+                        stackId="users"
+                        fill={COLORS.secondary}
+                        radius={[0, 0, 0, 0]}
+                      />
+                      <Bar
+                        dataKey="trial"
+                        stackId="users"
+                        fill="hsl(260, 50%, 60%)"
+                        radius={[0, 0, 0, 0]}
+                      />
+                      <Bar
+                        dataKey="pro"
+                        stackId="users"
+                        fill="hsl(300, 60%, 65%)"
+                        radius={[2, 2, 0, 0]}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="total"
+                        stroke="hsl(220, 70%, 55%)"
+                        strokeWidth={1.5}
+                        dot={false}
+                      />
+                    </ComposedChart>
+                  </ChartContainer>
+                </div>
+              ) : null
+            }
+            detailedChart={
+              dormantHabitTrendData.length > 0 ? (
+                <div className="h-[200px] w-full">
+                  <ChartContainer
+                    config={{
+                      free: { label: "Free", color: COLORS.secondary },
+                      trial: { label: "Trial", color: "hsl(260, 50%, 60%)" },
+                      pro: { label: "Pro", color: "hsl(300, 60%, 65%)" },
+                      total: { label: "Total", color: "hsl(220, 70%, 55%)" },
+                    }}
+                    className="h-full w-full"
+                  >
+                    <ComposedChart
+                      data={dormantHabitTrendData}
+                      margin={{ top: 20, right: 30, left: 10, bottom: 20 }}
+                      barGap={0}
+                      barCategoryGap="15%"
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        vertical={false}
+                        stroke="currentColor"
+                        className="text-muted-foreground/10"
+                      />
+                      <XAxis
+                        dataKey="date"
+                        hide={false}
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 9, fill: "#94a3b8" }}
+                        minTickGap={30}
+                        tickFormatter={(value) =>
+                          new Date(value).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                          })
+                        }
+                      />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                        width={40}
+                      />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Bar
+                        dataKey="free"
+                        stackId="users"
+                        fill={COLORS.secondary}
+                        radius={[0, 0, 0, 0]}
+                      />
+                      <Bar
+                        dataKey="trial"
+                        stackId="users"
+                        fill="hsl(260, 50%, 60%)"
+                        radius={[0, 0, 0, 0]}
+                      />
+                      <Bar
+                        dataKey="pro"
+                        stackId="users"
+                        fill="hsl(300, 60%, 65%)"
+                        radius={[4, 4, 0, 0]}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="total"
+                        stroke="hsl(220, 70%, 55%)"
+                        strokeWidth={2}
+                        dot={true}
+                        activeDot={{ r: 5, fill: "hsl(220, 70%, 55%)" }}
+                      />
+                    </ComposedChart>
+                  </ChartContainer>
+                </div>
+              ) : null
+            }
           />
           <MetricCard
             title="Power Rate"
             value={`${(growth?.powerUserRate || 0).toFixed(1)}%`}
-            subtitle="20+ prompts"
+            subtitle="5+ prompts"
             icon={TrendingUp}
             color={COLORS.warning}
-            tooltip="Percentage of users with 20+ prompts"
+            tooltip="Percentage of users with 5+ prompts"
+            chart={
+              dailyActivity.length > 0 ? (
+                <SparklineV2
+                  data={dailyActivity}
+                  dataKey="powerUsers"
+                  color={COLORS.warning}
+                />
+              ) : null
+            }
+            detailedChart={
+              dailyActivity.length > 0 ? (
+                <DetailedChartV2
+                  data={dailyActivity}
+                  dataKey="powerUsers"
+                  color={COLORS.warning}
+                  title="Daily Power User Trend"
+                />
+              ) : null
+            }
           />
           <MetricCard
             title="Retention"
@@ -129,6 +428,25 @@ export default function AcquisitionPage() {
             icon={PieChart}
             color={COLORS.info}
             tooltip="Percentage of users who returned"
+            chart={
+              dailyActivity.length > 0 ? (
+                <SparklineV2
+                  data={dailyActivity}
+                  dataKey="retentionRate"
+                  color={COLORS.info}
+                />
+              ) : null
+            }
+            detailedChart={
+              dailyActivity.length > 0 ? (
+                <DetailedChartV2
+                  data={dailyActivity}
+                  dataKey="retentionRate"
+                  color={COLORS.info}
+                  title="Daily Retention Rate (%)"
+                />
+              ) : null
+            }
           />
         </div>
       </section>

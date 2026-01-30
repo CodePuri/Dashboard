@@ -12,6 +12,7 @@ export function useAttritionData(
 
   useEffect(() => {
     async function fetchAttrition() {
+      setData(null); // Reset to prevent Ghost Values
       setIsLoading(true);
       try {
         let startDate, endDate;
@@ -51,7 +52,11 @@ export function useAttritionData(
         const res = await fetch(`/api/attrition?${params}`);
         const json = await res.json();
         if (json.success) {
-          setData(json.data);
+          setData({
+            list: json.data,
+            dailyActivity: json.dailyActivity, // Added
+            metrics: json.metrics,
+          });
         }
       } catch (err) {
         console.error(err);

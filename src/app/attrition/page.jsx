@@ -8,6 +8,8 @@ import {
   ChartCard,
   COLORS,
   PIE_COLORS,
+  SparklineV2,
+  DetailedChartV2,
 } from "@/components/ui/metric-card";
 import { Users, AlertCircle, Clock, Anchor } from "lucide-react";
 import {
@@ -16,11 +18,11 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
   ResponsiveContainer,
   LineChart,
   Line,
   Treemap,
+  Tooltip,
 } from "recharts";
 import {
   ChartContainer,
@@ -107,8 +109,9 @@ export default function AttritionPage() {
   }
 
   // Calculate Metrics
-  const totalUsers = data.length;
-  const churnedUsers = data.filter((u) => u.isChurned);
+  const userList = data?.list || [];
+  const totalUsers = userList.length;
+  const churnedUsers = userList.filter((u) => u.isChurned);
   const churnCount = churnedUsers.length;
   const churnRate = totalUsers > 0 ? (churnCount / totalUsers) * 100 : 0;
 
@@ -132,7 +135,7 @@ export default function AttritionPage() {
   // Chart Data Preparation
 
   // 1. Whale Scatter Plot
-  const scatterData = data.map((u) => ({
+  const scatterData = userList.map((u) => ({
     x: Math.round(u.lifespanDays), // Days Active
     y: u.promptCount, // Lifetime Prompts
     z: 1, // Size
@@ -144,9 +147,10 @@ export default function AttritionPage() {
   const maxDay = 90;
   const survivalData = [];
   for (let i = 0; i <= maxDay; i += 7) {
-    const survivors = data.filter((u) => u.lifespanDays >= i).length;
+    const survivors = userList.filter((u) => u.lifespanDays >= i).length;
     survivalData.push({
       day: i,
+      date: `Day ${i}`,
       survival: totalUsers > 0 ? (survivors / totalUsers) * 100 : 0,
     });
   }
@@ -186,6 +190,25 @@ export default function AttritionPage() {
             icon={Anchor}
             color={COLORS.warning}
             tooltip={`Users with >${powerUserThreshold} prompts who churned`}
+            chart={
+              data.dailyActivity?.length > 0 ? (
+                <SparklineV2
+                  data={data.dailyActivity}
+                  dataKey="regrettableChurn"
+                  color={COLORS.warning}
+                />
+              ) : null
+            }
+            detailedChart={
+              data.dailyActivity?.length > 0 ? (
+                <DetailedChartV2
+                  data={data.dailyActivity}
+                  dataKey="regrettableChurn"
+                  color={COLORS.warning}
+                  title="Daily Regrettable Churn Count"
+                />
+              ) : null
+            }
           />
           <MetricCard
             title="User Lifespan"
@@ -194,6 +217,25 @@ export default function AttritionPage() {
             icon={Clock}
             color={COLORS.info}
             tooltip="Average days between first and last prompt for churned users"
+            chart={
+              data.dailyActivity?.length > 0 ? (
+                <SparklineV2
+                  data={data.dailyActivity}
+                  dataKey="avgLifespan"
+                  color={COLORS.info}
+                />
+              ) : null
+            }
+            detailedChart={
+              data.dailyActivity?.length > 0 ? (
+                <DetailedChartV2
+                  data={data.dailyActivity}
+                  dataKey="avgLifespan"
+                  color={COLORS.info}
+                  title="Daily Avg Lifespan of Churned Users"
+                />
+              ) : null
+            }
           />
           <MetricCard
             title="Exit Trigger"
@@ -202,6 +244,25 @@ export default function AttritionPage() {
             icon={AlertCircle}
             color={COLORS.secondary}
             tooltip="% of churned users whose last prompt failed"
+            chart={
+              data.dailyActivity?.length > 0 ? (
+                <SparklineV2
+                  data={data.dailyActivity}
+                  dataKey="exitTriggerRate"
+                  color={COLORS.secondary}
+                />
+              ) : null
+            }
+            detailedChart={
+              data.dailyActivity?.length > 0 ? (
+                <DetailedChartV2
+                  data={data.dailyActivity}
+                  dataKey="exitTriggerRate"
+                  color={COLORS.secondary}
+                  title="Daily Exit Trigger Rate (%)"
+                />
+              ) : null
+            }
           />
         </div>
       </section>
@@ -232,11 +293,13 @@ export default function AttritionPage() {
                     if (active && payload && payload.length) {
                       const d = payload[0].payload;
                       return (
-                        <div className="bg-popover p-2 border rounded shadow-sm text-sm">
-                          <p className="font-bold">{d.status}</p>
-                          <p>User: {String(d.userId || "").slice(0, 8)}...</p>
-                          <p>Active: {d.x} days</p>
-                          <p>Prompts: {d.y}</p>
+                        <div className="bg-black/90 border border-white/10 rounded-xl p-3 shadow-2xl backdrop-blur-xl text-xs text-white">
+                          <p className="font-bold mb-1">{d.status}</p>
+                          <div className="grid gap-1 opacity-90">
+                            <p>User: {String(d.userId || "").slice(0, 8)}...</p>
+                            <p>Active: {d.x} days</p>
+                            <p>Prompts: {d.y}</p>
+                          </div>
                         </div>
                       );
                     }

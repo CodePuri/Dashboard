@@ -6,6 +6,8 @@ import {
   ChartCard,
   COLORS,
   PIE_COLORS,
+  SparklineV2,
+  DetailedChartV2,
 } from "@/components/ui/metric-card";
 import { FilterBar } from "@/components/ui/filter-bar";
 import {
@@ -30,6 +32,24 @@ const chartConfig = {
     label: "Count",
     color: COLORS.secondary,
   },
+  Free: {
+    label: "Free",
+    color: "#fcd34d", // Amber 300
+  },
+  Freetrial: {
+    label: "Free Trial",
+    color: "#fb923c", // Orange 400
+  },
+  Pro: {
+    label: "Pro",
+    color: "#f87171", // Red 400
+  },
+};
+
+const SEGMENT_COLORS = {
+  Free: "#fcd34d", // Amber
+  Freetrial: "#fb923c", // Orange
+  Pro: "#f87171", // Red
 };
 
 export default function ConversionPage() {
@@ -64,6 +84,8 @@ export default function ConversionPage() {
 
   const metrics = data?.metrics;
   const distributions = data?.distributions;
+  const dailyActivity = data?.timeAnalysis?.dailyActivity || [];
+  const dailyInstallationMetrics = data?.dailyInstallationMetrics || [];
   const enhancementRate = metrics?.enhancementRate || 0;
   const refineRate = metrics?.refineRate || 0;
 
@@ -113,7 +135,26 @@ export default function ConversionPage() {
             subtitle="Success rate"
             icon={Target}
             color={COLORS.success}
-            tooltip="Percentage of prompts successfully enhanced"
+            tooltip="Enhancement Success Rate (%). Calculated as (Total Enhanced Prompts / Total Prompts Submitted) * 100."
+            chart={
+              dailyActivity.length > 0 ? (
+                <SparklineV2
+                  data={dailyActivity}
+                  dataKey="enhancementRate"
+                  color={COLORS.success}
+                />
+              ) : null
+            }
+            detailedChart={
+              dailyActivity.length > 0 ? (
+                <DetailedChartV2
+                  data={dailyActivity}
+                  dataKey="enhancementRate"
+                  color={COLORS.success}
+                  title="Daily Enhancement Success Rate (%)"
+                />
+              ) : null
+            }
           />
           <MetricCard
             title="Refine Rate"
@@ -121,7 +162,26 @@ export default function ConversionPage() {
             subtitle="Enhanced → Refined"
             icon={TrendingUp}
             color={COLORS.info}
-            tooltip="Percentage of enhanced prompts refined by users"
+            tooltip="Refinement Rate (%). Calculated as (Count of Refined Prompts / Total Enhanced Prompts) * 100."
+            chart={
+              dailyActivity.length > 0 ? (
+                <SparklineV2
+                  data={dailyActivity}
+                  dataKey="refineRate"
+                  color={COLORS.info}
+                />
+              ) : null
+            }
+            detailedChart={
+              dailyActivity.length > 0 ? (
+                <DetailedChartV2
+                  data={dailyActivity}
+                  dataKey="refineRate"
+                  color={COLORS.info}
+                  title="Daily Refinement Rate (%)"
+                />
+              ) : null
+            }
           />
           <MetricCard
             title="Total Enhanced"
@@ -129,7 +189,26 @@ export default function ConversionPage() {
             subtitle="Completed"
             icon={CheckCircle}
             color={COLORS.primary}
-            tooltip="Total successfully enhanced prompts"
+            tooltip="Total Enhanced Prompts (Count). The total number of prompts where enhanced_prompt is not null."
+            chart={
+              dailyActivity.length > 0 ? (
+                <SparklineV2
+                  data={dailyActivity}
+                  dataKey="prompts"
+                  color={COLORS.primary}
+                />
+              ) : null
+            }
+            detailedChart={
+              dailyActivity.length > 0 ? (
+                <DetailedChartV2
+                  data={dailyActivity}
+                  dataKey="prompts"
+                  color={COLORS.primary}
+                  title="Daily Prompt Volume (Completed)"
+                />
+              ) : null
+            }
           />
           <MetricCard
             title="Failure Rate"
@@ -137,7 +216,26 @@ export default function ConversionPage() {
             subtitle="Did not complete"
             icon={AlertCircle}
             color={COLORS.danger}
-            tooltip="Percentage of prompts that failed to enhance"
+            tooltip="Failure Rate (%). Calculated as (Failed Enhancements / Total Prompts) * 100."
+            chart={
+              dailyActivity.length > 0 ? (
+                <SparklineV2
+                  data={dailyActivity}
+                  dataKey="prompts"
+                  color={COLORS.danger}
+                />
+              ) : null
+            }
+            detailedChart={
+              dailyActivity.length > 0 ? (
+                <DetailedChartV2
+                  data={dailyActivity}
+                  dataKey="prompts"
+                  color={COLORS.danger}
+                  title="Daily Failure Volume Trend"
+                />
+              ) : null
+            }
           />
         </div>
       </section>
@@ -156,7 +254,26 @@ export default function ConversionPage() {
               subtitle={`${data?.conversion?.activatedUsers || 0} users completed`}
               icon={CheckCircle}
               color={COLORS.success}
-              tooltip="Users who completed the onboarding setup flow"
+              tooltip="Activation Rate (%). Percentage of signups found in the onboarding_data table."
+              chart={
+                dailyInstallationMetrics.length > 0 ? (
+                  <SparklineV2
+                    data={dailyInstallationMetrics}
+                    dataKey="signups"
+                    color={COLORS.success}
+                  />
+                ) : null
+              }
+              detailedChart={
+                dailyInstallationMetrics.length > 0 ? (
+                  <DetailedChartV2
+                    data={dailyInstallationMetrics}
+                    dataKey="signups"
+                    color={COLORS.success}
+                    title="Daily Signups"
+                  />
+                ) : null
+              }
             />
             <MetricCard
               title="Upgrade Candidates"
@@ -166,14 +283,33 @@ export default function ConversionPage() {
               subtitle="High Value Free Users"
               icon={TrendingUp}
               color={COLORS.warning}
-              tooltip="Free tier users with > 20 prompts (Power Users)"
+              tooltip="Upgrade Candidates (Count). Free tier users who have submitted more than 20 prompts (Power Users)."
+              chart={
+                dailyActivity.length > 0 ? (
+                  <SparklineV2
+                    data={dailyActivity}
+                    dataKey="powerUsers"
+                    color={COLORS.warning}
+                  />
+                ) : null
+              }
+              detailedChart={
+                dailyActivity.length > 0 ? (
+                  <DetailedChartV2
+                    data={dailyActivity}
+                    dataKey="powerUsers"
+                    color={COLORS.warning}
+                    title="Daily Upgrade Candidate Trend"
+                  />
+                ) : null
+              }
             />
           </div>
 
           <div className="lg:col-span-2">
             <ChartCard
               title="Signup Sources"
-              tooltip="User acquisition channels"
+              tooltip="Acquisition Channels. Breakdown of new users by the source field in onboarding_data."
             >
               <ChartContainer
                 config={chartConfig}
@@ -199,8 +335,23 @@ export default function ConversionPage() {
                   />
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Bar
-                    dataKey="count"
-                    fill={COLORS.primary}
+                    dataKey="Free"
+                    stackId="a"
+                    fill={SEGMENT_COLORS.Free}
+                    radius={[0, 0, 0, 0]}
+                    barSize={24}
+                  />
+                  <Bar
+                    dataKey="Freetrial"
+                    stackId="a"
+                    fill={SEGMENT_COLORS.Freetrial}
+                    radius={[0, 0, 0, 0]}
+                    barSize={24}
+                  />
+                  <Bar
+                    dataKey="Pro"
+                    stackId="a"
+                    fill={SEGMENT_COLORS.Pro}
                     radius={[0, 4, 4, 0]}
                     barSize={24}
                   />

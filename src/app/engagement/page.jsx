@@ -6,6 +6,8 @@ import {
   ChartCard,
   COLORS,
   PIE_COLORS,
+  SparklineV2,
+  DetailedChartV2,
 } from "@/components/ui/metric-card";
 import { FilterBar } from "@/components/ui/filter-bar";
 import { Activity, Zap, Crown, Sparkles, Search } from "lucide-react";
@@ -73,6 +75,7 @@ export default function EngagementPage() {
 
   const growth = data?.growth;
   const metrics = data?.metrics;
+  const dailyActivity = data?.timeAnalysis?.dailyActivity || [];
 
   const insights = data?.insights;
 
@@ -111,11 +114,30 @@ export default function EngagementPage() {
         <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           <MetricCard
             title="Stickiness"
-            value={`${dauMauRatio}%`}
-            subtitle="Habit / Active"
+            value={`${(metrics?.stickiness || 0).toFixed(1)}%`}
+            subtitle="DAU / MAU"
             icon={Activity}
             color={COLORS.primary}
-            tooltip="Ratio of daily habit users to total active users"
+            tooltip="Ratio of daily active users to monthly active users"
+            chart={
+              dailyActivity.length > 0 ? (
+                <SparklineV2
+                  data={dailyActivity}
+                  dataKey="users"
+                  color={COLORS.primary}
+                />
+              ) : null
+            }
+            detailedChart={
+              dailyActivity.length > 0 ? (
+                <DetailedChartV2
+                  data={dailyActivity}
+                  dataKey="users"
+                  color={COLORS.primary}
+                  title="Daily Active Users"
+                />
+              ) : null
+            }
           />
           <MetricCard
             title="Peak Daily Usage"
@@ -124,6 +146,25 @@ export default function EngagementPage() {
             icon={Zap}
             color={COLORS.success}
             tooltip="Average of users' maximum daily prompt count (Peak Usage)"
+            chart={
+              dailyActivity.length > 0 ? (
+                <SparklineV2
+                  data={dailyActivity}
+                  dataKey="peakUsage"
+                  color={COLORS.success}
+                />
+              ) : null
+            }
+            detailedChart={
+              dailyActivity.length > 0 ? (
+                <DetailedChartV2
+                  data={dailyActivity}
+                  dataKey="peakUsage"
+                  color={COLORS.success}
+                  title="Daily Peak Usage Trend"
+                />
+              ) : null
+            }
           />
           <MetricCard
             title="Power Users"
@@ -131,15 +172,53 @@ export default function EngagementPage() {
             subtitle="Top segment"
             icon={Crown}
             color={COLORS.warning}
-            tooltip="Percentage of users with 20+ prompts"
+            tooltip="Percentage of users with 5+ prompts"
+            chart={
+              dailyActivity.length > 0 ? (
+                <SparklineV2
+                  data={dailyActivity}
+                  dataKey="powerUsers"
+                  color={COLORS.warning}
+                />
+              ) : null
+            }
+            detailedChart={
+              dailyActivity.length > 0 ? (
+                <DetailedChartV2
+                  data={dailyActivity}
+                  dataKey="powerUsers"
+                  color={COLORS.warning}
+                  title="Daily Power User Count"
+                />
+              ) : null
+            }
           />
           <MetricCard
             title="Refine Rate"
-            value={`${(metrics?.refineRate || 0).toFixed(1)}%`}
-            subtitle="Refined"
+            value={`${metrics?.refinedCount || 0}`}
+            subtitle={`out of ${metrics?.total || 0} prompts`}
             icon={Sparkles}
             color={COLORS.pink}
-            tooltip="Percentage of prompts that users chose to refine"
+            tooltip="Proportion of prompts that were refined"
+            chart={
+              dailyActivity.length > 0 ? (
+                <SparklineV2
+                  data={dailyActivity}
+                  dataKey="refineRate"
+                  color={COLORS.pink}
+                />
+              ) : null
+            }
+            detailedChart={
+              dailyActivity.length > 0 ? (
+                <DetailedChartV2
+                  data={dailyActivity}
+                  dataKey="refineRate"
+                  color={COLORS.pink}
+                  title="Daily Refinement Rate (%)"
+                />
+              ) : null
+            }
           />
         </div>
       </section>

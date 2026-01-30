@@ -7,10 +7,14 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
   ResponsiveContainer,
   Cell,
 } from "recharts";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
 import { format } from "date-fns";
 
 const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff8042", "#0088FE"];
@@ -99,12 +103,12 @@ export function ReportView({ data }) {
           <section className="break-inside-avoid">
             <h3 className="text-lg font-semibold mb-4">LLM Usage</h3>
             <div className="h-64 border rounded-lg p-4">
-              <ResponsiveContainer width="100%" height="100%">
+              <ChartContainer config={{}} className="h-full w-full">
                 <BarChart data={data.distributions.llm}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" fontSize={10} />
                   <YAxis fontSize={12} />
-                  <Tooltip />
+                  <ChartTooltip content={<ChartTooltipContent />} />
                   <Bar
                     dataKey="count"
                     fill="#8884d8"
@@ -125,7 +129,7 @@ export function ReportView({ data }) {
           <section className="break-inside-avoid">
             <h3 className="text-lg font-semibold mb-4">Mode Usage</h3>
             <div className="h-64 border rounded-lg p-4">
-              <ResponsiveContainer width="100%" height="100%">
+              <ChartContainer config={{}} className="h-full w-full">
                 <BarChart data={data.distributions.mode}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" fontSize={12} />
