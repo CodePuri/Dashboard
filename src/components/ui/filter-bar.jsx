@@ -78,7 +78,10 @@ export function FilterBar({
   const getDisplayLabel = () => {
     if (dateFilter === "Custom" && customDateRange?.from) {
       if (customDateRange.to) {
-        return `${format(customDateRange.from, "LLL dd")} - ${format(customDateRange.to, "LLL dd")}`;
+        return `${format(customDateRange.from, "LLL dd")} - ${format(
+          customDateRange.to,
+          "LLL dd"
+        )}`;
       }
       return format(customDateRange.from, "LLL dd, y");
     }
@@ -94,7 +97,7 @@ export function FilterBar({
             variant="outline"
             className={cn(
               "w-full sm:w-[240px] justify-start text-left font-normal",
-              !dateFilter && "text-muted-foreground",
+              !dateFilter && "text-muted-foreground"
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
@@ -154,14 +157,14 @@ export function FilterBar({
       </Popover>
 
       {/* Source/Platform Filter */}
-      <div className="bg-muted/50 p-1 rounded-lg border border-border/50">
+      <div className="bg-muted/50 p-1 rounded-lg border border-border/50 w-full sm:w-auto">
         <ToggleGroup
           type="single"
           value={sourceFilter}
           onValueChange={(value) => {
             if (value) onSourceFilterChange(value);
           }}
-          className="gap-1"
+          className="gap-1 flex flex-wrap"
         >
           <ToggleGroupItem
             value="All"

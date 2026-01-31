@@ -15,12 +15,14 @@ export function LayoutClient({ children }) {
     <PanelProvider>
       <SidebarProvider>
         <AppSidebar />
-        <SidebarInset>
-          <header className="flex h-14 shrink-0 items-center gap-2 px-4">
+        <SidebarInset className="min-w-0">
+          <header className="flex h-12 sm:h-14 shrink-0 items-center gap-2 px-3 sm:px-4 safe-area-inset">
             <SidebarTrigger className="md:hidden" />
-            <div className="flex-1" />
+            <div className="flex-1 min-w-0" />
           </header>
-          <main className="flex-1 overflow-auto p-4 md:p-6">{children}</main>
+          <main className="flex-1 overflow-auto overflow-x-hidden p-3 sm:p-4 md:p-6 min-w-0">
+            {children}
+          </main>
         </SidebarInset>
         <ChatPanel />
       </SidebarProvider>

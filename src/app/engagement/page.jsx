@@ -9,6 +9,11 @@ import {
   SparklineV2,
   DetailedChartV2,
 } from "@/components/ui/metric-card";
+import {
+  ActiveUsersChart,
+  PowerUserBar,
+} from "@/components/ui/active-users-chart";
+import { PeakUsageChart } from "@/components/ui/peak-usage-chart";
 import { FilterBar } from "@/components/ui/filter-bar";
 import { Activity, Zap, Crown, Sparkles, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -31,7 +36,15 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  ComposedChart,
+  Line,
+} from "recharts";
 import { useAnalyticsData } from "@/hooks/use-analytics-data";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -75,7 +88,23 @@ export default function EngagementPage() {
 
   const growth = data?.growth;
   const metrics = data?.metrics;
+
   const dailyActivity = data?.timeAnalysis?.dailyActivity || [];
+
+  const activeUsersChartData = (data?.activeUsersChartData || []).map((d) => ({
+    ...d,
+    freePower: (d.freePower5 || 0) + (d.freePowerGt5 || 0),
+    trialPower: (d.trialPower5 || 0) + (d.trialPowerGt5 || 0),
+    proPower: (d.proPower5 || 0) + (d.proPowerGt5 || 0),
+  }));
+
+  const powerUsersChartData = activeUsersChartData.map((d) => ({
+    ...d,
+    free: d.freePower,
+    trial: d.trialPower,
+    pro: d.proPower,
+    total: d.freePower + d.trialPower + d.proPower,
+  }));
 
   const insights = data?.insights;
 
@@ -118,25 +147,15 @@ export default function EngagementPage() {
             subtitle="DAU / MAU"
             icon={Activity}
             color={COLORS.primary}
-            tooltip="Ratio of daily active users to monthly active users"
+            tooltip="Stickiness (%). Ratio of Daily Active Users (DAU) to Monthly Active Users (MAU). Calculated as (DAU / MAU) * 100."
             chart={
-              dailyActivity.length > 0 ? (
-                <SparklineV2
-                  data={dailyActivity}
-                  dataKey="users"
-                  color={COLORS.primary}
-                />
-              ) : null
+              <ActiveUsersChart data={activeUsersChartData} variant="mini" />
             }
             detailedChart={
-              dailyActivity.length > 0 ? (
-                <DetailedChartV2
-                  data={dailyActivity}
-                  dataKey="users"
-                  color={COLORS.primary}
-                  title="Daily Active Users"
-                />
-              ) : null
+              <ActiveUsersChart
+                data={activeUsersChartData}
+                variant="detailed"
+              />
             }
           />
           <MetricCard
@@ -145,51 +164,179 @@ export default function EngagementPage() {
             subtitle="Avg Max Prompts"
             icon={Zap}
             color={COLORS.success}
-            tooltip="Average of users' maximum daily prompt count (Peak Usage)"
+            tooltip="Peak Daily Usage (Avg Max Prompts). Average of each user's maximum daily prompt count. Calculated as Sum(Max Prompts per User) / Total Active Users."
             chart={
-              dailyActivity.length > 0 ? (
-                <SparklineV2
-                  data={dailyActivity}
-                  dataKey="peakUsage"
-                  color={COLORS.success}
-                />
-              ) : null
+              <PeakUsageChart
+                data={dailyActivity}
+                variant="mini"
+                showTooltip={true}
+              />
             }
             detailedChart={
-              dailyActivity.length > 0 ? (
-                <DetailedChartV2
-                  data={dailyActivity}
-                  dataKey="peakUsage"
-                  color={COLORS.success}
-                  title="Daily Peak Usage Trend"
-                />
-              ) : null
+              <PeakUsageChart data={dailyActivity} variant="detailed" />
             }
           />
           <MetricCard
-            title="Power Users"
+            title="Power Rate"
             value={`${(growth?.powerUserRate || 0).toFixed(1)}%`}
-            subtitle="Top segment"
+            subtitle="5+ prompts"
             icon={Crown}
             color={COLORS.warning}
-            tooltip="Percentage of users with 5+ prompts"
+            tooltip="Power Rate (%). Percentage of active users who have sent 5 or more prompts. Calculated as (Power Users / Total Active Users) * 100."
             chart={
-              dailyActivity.length > 0 ? (
-                <SparklineV2
-                  data={dailyActivity}
-                  dataKey="powerUsers"
-                  color={COLORS.warning}
-                />
+              powerUsersChartData.length > 0 ? (
+                <div className="h-full w-full">
+                  <ChartContainer
+                    config={{
+                      free: { label: "Free", color: "#8b5cf6" },
+                      trial: { label: "Trial", color: "#d946ef" },
+                      pro: { label: "Pro", color: "#f43f5e" },
+                    }}
+                    className="h-full w-full"
+                  >
+                    <ComposedChart
+                      data={powerUsersChartData}
+                      margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+                      barGap={0}
+                      barCategoryGap="10%"
+                    >
+                      <XAxis
+                        dataKey="date"
+                        hide={false}
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 8, fill: "#94a3b8" }}
+                        minTickGap={30}
+                        interval="preserveStartEnd"
+                        tickFormatter={(value) =>
+                          new Date(value).toLocaleDateString("en-US", {
+                            month: "numeric",
+                            day: "numeric",
+                          })
+                        }
+                      />
+                      <Bar
+                        dataKey="free"
+                        stackId="users"
+                        fill="#8b5cf6"
+                        shape={
+                          <PowerUserBar
+                            patternId5="stripe-pr-5-mini"
+                            patternIdGt5="stripe-pr-gt5-mini"
+                          />
+                        }
+                        radius={[0, 0, 0, 0]}
+                      />
+                      <Bar
+                        dataKey="trial"
+                        stackId="users"
+                        fill="#d946ef"
+                        shape={
+                          <PowerUserBar
+                            patternId5="stripe-pr-5-mini"
+                            patternIdGt5="stripe-pr-gt5-mini"
+                          />
+                        }
+                        radius={[0, 0, 0, 0]}
+                      />
+                      <Bar
+                        dataKey="pro"
+                        stackId="users"
+                        fill="#f43f5e"
+                        shape={
+                          <PowerUserBar
+                            patternId5="stripe-pr-5-mini"
+                            patternIdGt5="stripe-pr-gt5-mini"
+                          />
+                        }
+                        radius={[2, 2, 0, 0]}
+                      />
+                    </ComposedChart>
+                  </ChartContainer>
+                </div>
               ) : null
             }
             detailedChart={
-              dailyActivity.length > 0 ? (
-                <DetailedChartV2
-                  data={dailyActivity}
-                  dataKey="powerUsers"
-                  color={COLORS.warning}
-                  title="Daily Power User Count"
-                />
+              powerUsersChartData.length > 0 ? (
+                <div className="h-[300px] w-full p-4">
+                  <ChartContainer
+                    config={{
+                      free: { label: "Free", color: "#8b5cf6" },
+                      trial: { label: "Trial", color: "#d946ef" },
+                      pro: { label: "Pro", color: "#f43f5e" },
+                    }}
+                    className="h-full w-full"
+                  >
+                    <ComposedChart
+                      data={powerUsersChartData}
+                      margin={{ top: 20, right: 30, left: 10, bottom: 20 }}
+                      barGap={0}
+                      barCategoryGap="15%"
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        vertical={false}
+                        className="text-muted-foreground/10"
+                      />
+                      <XAxis
+                        dataKey="date"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 9, fill: "#94a3b8" }}
+                        minTickGap={30}
+                        tickFormatter={(value) =>
+                          new Date(value).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                          })
+                        }
+                      />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                        width={40}
+                      />
+                      <ChartTooltip content={<PowerRateTooltip />} />
+                      <Bar
+                        dataKey="free"
+                        stackId="users"
+                        fill="#8b5cf6"
+                        shape={
+                          <PowerUserBar
+                            patternId5="stripe-pr-5-detailed"
+                            patternIdGt5="stripe-pr-gt5-detailed"
+                          />
+                        }
+                        radius={[0, 0, 0, 0]}
+                      />
+                      <Bar
+                        dataKey="trial"
+                        stackId="users"
+                        fill="#d946ef"
+                        shape={
+                          <PowerUserBar
+                            patternId5="stripe-pr-5-detailed"
+                            patternIdGt5="stripe-pr-gt5-detailed"
+                          />
+                        }
+                        radius={[0, 0, 0, 0]}
+                      />
+                      <Bar
+                        dataKey="pro"
+                        stackId="users"
+                        fill="#f43f5e"
+                        shape={
+                          <PowerUserBar
+                            patternId5="stripe-pr-5-detailed"
+                            patternIdGt5="stripe-pr-gt5-detailed"
+                          />
+                        }
+                        radius={[4, 4, 0, 0]}
+                      />
+                    </ComposedChart>
+                  </ChartContainer>
+                </div>
               ) : null
             }
           />
@@ -199,7 +346,7 @@ export default function EngagementPage() {
             subtitle={`out of ${metrics?.total || 0} prompts`}
             icon={Sparkles}
             color={COLORS.pink}
-            tooltip="Proportion of prompts that were refined"
+            tooltip="Refinement Rate (%). Proportion of prompts that were refined. Calculated as (Count of Refined Prompts / Total Enhanced Prompts) * 100."
             chart={
               dailyActivity.length > 0 ? (
                 <SparklineV2
@@ -211,12 +358,54 @@ export default function EngagementPage() {
             }
             detailedChart={
               dailyActivity.length > 0 ? (
-                <DetailedChartV2
-                  data={dailyActivity}
-                  dataKey="refineRate"
-                  color={COLORS.pink}
-                  title="Daily Refinement Rate (%)"
-                />
+                <div className="h-[300px] w-full p-4">
+                  <ChartContainer
+                    config={{
+                      refineRate: { label: "Refine Rate", color: COLORS.pink },
+                    }}
+                    className="h-full w-full"
+                  >
+                    <ComposedChart
+                      data={dailyActivity}
+                      margin={{ top: 20, right: 30, left: 10, bottom: 20 }}
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        vertical={false}
+                        className="text-muted-foreground/10"
+                      />
+                      <XAxis
+                        dataKey="date"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 9, fill: "#94a3b8" }}
+                        minTickGap={30}
+                        tickFormatter={(value) =>
+                          new Date(value).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                          })
+                        }
+                      />
+                      <YAxis
+                        unit="%"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                        width={40}
+                      />
+                      <ChartTooltip content={<RefineRateTooltip />} />
+                      <Line
+                        type="monotone"
+                        dataKey="refineRate"
+                        stroke={COLORS.pink}
+                        strokeWidth={2}
+                        dot={false}
+                        activeDot={{ r: 4, fill: COLORS.pink }}
+                      />
+                    </ComposedChart>
+                  </ChartContainer>
+                </div>
               ) : null
             }
           />
@@ -233,7 +422,7 @@ export default function EngagementPage() {
             {/* Chart 1: Value Captured */}
             <ChartCard
               title="Value Captured per User"
-              tooltip="Average estimated hours saved per user"
+              tooltip="Average Time Saved (Hours). Estimated economic value delivered per user. Calculated as Sum of (Extra Words / 40 wpm) * Complexity Multiplier. Multipliers: Low=1.0, Medium=1.2, High=1.4. Guardrails: Capped at 6 minutes per prompt. for each plan tier."
             >
               <ChartContainer
                 config={{
@@ -288,7 +477,7 @@ export default function EngagementPage() {
             {/* Chart 2: Total Volume by Plan */}
             <ChartCard
               title="Total Prompts per User"
-              tooltip="Volume: Avg total prompts per user (vs Peak Daily Usage)"
+              tooltip="Volume per User. Average total prompt volume per user. Calculated as (Total Prompts / Total Users) for each plan tier."
             >
               <ChartContainer
                 config={{
@@ -452,3 +641,108 @@ export default function EngagementPage() {
     </div>
   );
 }
+
+const TooltipRow = ({ color, label, value, subValue }) => (
+  <div className="flex justify-between items-center text-xs">
+    <div className="flex items-center gap-2">
+      <div className="w-2.5 h-2.5 rounded-sm" style={{ background: color }} />
+      <span>{label}</span>
+    </div>
+    <span className="font-mono font-semibold">
+      {value}
+      {subValue && (
+        <span className="text-muted-foreground ml-1">{subValue}</span>
+      )}
+    </span>
+  </div>
+);
+
+const PowerRateTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    const total = (data.free || 0) + (data.trial || 0) + (data.pro || 0);
+    const formatBreakdown = (p5, pGt5) => `(${p5} =5, ${pGt5} >5)`;
+
+    return (
+      <div className="rounded-lg border bg-background/95 p-3 shadow-xl backdrop-blur-md border-border/50 min-w-[180px]">
+        <div className="text-xs font-semibold text-foreground mb-2">
+          {new Date(label).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+          })}
+        </div>
+        <div className="space-y-1.5">
+          <TooltipRow
+            color="#8b5cf6"
+            label="Free"
+            value={data.free || 0}
+            subValue={formatBreakdown(
+              data.freePower5 || 0,
+              data.freePowerGt5 || 0,
+            )}
+          />
+          <TooltipRow
+            color="#d946ef"
+            label="Trial"
+            value={data.trial || 0}
+            subValue={formatBreakdown(
+              data.trialPower5 || 0,
+              data.trialPowerGt5 || 0,
+            )}
+          />
+          <TooltipRow
+            color="#f43f5e"
+            label="Pro"
+            value={data.pro || 0}
+            subValue={formatBreakdown(
+              data.proPower5 || 0,
+              data.proPowerGt5 || 0,
+            )}
+          />
+          <div className="border-t border-border/50 pt-1.5 mt-1.5 flex justify-between items-center text-xs">
+            <span className="font-medium">Total Power Users</span>
+            <span className="font-mono font-bold">{total}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
+const RefineRateTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    const refined = data.refinedCount || 0;
+    const total = data.prompts || 0;
+    const rate = data.refineRate || 0;
+
+    return (
+      <div className="rounded-lg border bg-background/95 p-3 shadow-xl backdrop-blur-md border-border/50 min-w-[160px]">
+        <div className="text-xs font-semibold text-foreground mb-2">
+          {new Date(label).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+          })}
+        </div>
+        <div className="space-y-1.5">
+          <div className="flex justify-between items-center text-xs">
+            <span className="text-muted-foreground">Refined</span>
+            <span className="font-mono font-semibold">{refined}</span>
+          </div>
+          <div className="flex justify-between items-center text-xs">
+            <span className="text-muted-foreground">Total Prompts</span>
+            <span className="font-mono font-semibold">{total}</span>
+          </div>
+          <div className="border-t border-border/50 pt-1.5 mt-1.5 flex justify-between items-center text-xs">
+            <span className="font-medium text-pink-500">Refinement Rate</span>
+            <span className="font-mono font-bold text-pink-500">
+              {rate.toFixed(1)}%
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};

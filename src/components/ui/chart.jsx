@@ -30,8 +30,8 @@ function ChartContainer({ id, className, children, config, ...props }) {
         data-slot="chart"
         data-chart={chartId}
         className={cn(
-          "[&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border/50 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-border [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-border [&_.recharts-radial-bar-background-sector]:fill-muted [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-muted [&_.recharts-reference-line_[stroke='#ccc']]:stroke-border flex aspect-video justify-center text-xs [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-hidden [&_.recharts-sector]:outline-hidden [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-surface]:outline-hidden",
-          className,
+          "min-w-0 [&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border/50 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-border [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-border [&_.recharts-radial-bar-background-sector]:fill-muted [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-muted [&_.recharts-reference-line_[stroke='#ccc']]:stroke-border flex aspect-video justify-center text-xs [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-hidden [&_.recharts-sector]:outline-hidden [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-surface]:outline-hidden",
+          className
         )}
         {...props}
       >
@@ -46,7 +46,7 @@ function ChartContainer({ id, className, children, config, ...props }) {
 
 const ChartStyle = ({ id, config }) => {
   const colorConfig = Object.entries(config).filter(
-    ([, config]) => config.theme || config.color,
+    ([, config]) => config.theme || config.color
   );
 
   if (!colorConfig.length) {
@@ -67,7 +67,7 @@ ${colorConfig
   })
   .join("\n")}
 }
-`,
+`
           )
           .join("\n"),
       }}
@@ -144,7 +144,7 @@ function ChartTooltipContent({
     <div
       className={cn(
         "grid min-w-[8rem] items-start gap-1.5 rounded-xl border border-border/50 bg-popover/95 px-3 py-2 text-xs shadow-xl backdrop-blur-xl text-popover-foreground",
-        className,
+        className
       )}
     >
       {!nestLabel ? tooltipLabel : null}
@@ -161,7 +161,7 @@ function ChartTooltipContent({
                 key={item.dataKey}
                 className={cn(
                   "[&>svg]:text-muted-foreground flex w-full flex-wrap items-stretch gap-2 [&>svg]:h-2.5 [&>svg]:w-2.5",
-                  indicator === "dot" && "items-center",
+                  indicator === "dot" && "items-center"
                 )}
               >
                 {formatter && item?.value !== undefined && item.name ? (
@@ -181,7 +181,7 @@ function ChartTooltipContent({
                               "w-0 border-[1.5px] border-dashed bg-transparent":
                                 indicator === "dashed",
                               "my-0.5": nestLabel && indicator === "dashed",
-                            },
+                            }
                           )}
                           style={{
                             "--color-bg": indicatorColor,
@@ -193,7 +193,7 @@ function ChartTooltipContent({
                     <div
                       className={cn(
                         "flex flex-1 justify-between leading-none gap-2",
-                        nestLabel ? "items-end" : "items-center",
+                        nestLabel ? "items-end" : "items-center"
                       )}
                     >
                       <div className="grid gap-1.5">
@@ -238,7 +238,7 @@ function ChartLegendContent({
       className={cn(
         "flex items-center justify-center gap-4",
         verticalAlign === "top" ? "pb-3" : "pt-3",
-        className,
+        className
       )}
     >
       {payload
@@ -251,7 +251,7 @@ function ChartLegendContent({
             <div
               key={item.value}
               className={cn(
-                "[&>svg]:text-muted-foreground flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3",
+                "[&>svg]:text-muted-foreground flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3"
               )}
             >
               {itemConfig?.icon && !hideIcon ? (

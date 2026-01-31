@@ -104,12 +104,12 @@ export default function OverviewPage() {
   const { data: analytics, isLoading: isAnalyticsLoading } = useAnalyticsData(
     dateFilter,
     sourceFilter,
-    customDateRange,
+    customDateRange
   );
   const { data: attrition, isLoading: isAttritionLoading } = useAttritionData(
     dateFilter,
     sourceFilter,
-    customDateRange, // Assuming useAttritionData also needs update
+    customDateRange // Assuming useAttritionData also needs update
   );
 
   const isLoading = isAnalyticsLoading || isAttritionLoading;
@@ -150,7 +150,7 @@ export default function OverviewPage() {
   const powerUserThreshold = 20;
   const churnedUsersList = attrition?.list?.filter((u) => u.isChurned) || [];
   const regrettableChurn = churnedUsersList.filter(
-    (u) => u.promptCount >= powerUserThreshold,
+    (u) => u.promptCount >= powerUserThreshold
   ).length;
 
   // Build event flag statements
@@ -296,9 +296,9 @@ export default function OverviewPage() {
             <Skeleton key={i} className="h-32 rounded-xl" />
           ))}
         </div>
-        <div className="h-[400px] w-full flex gap-4">
-          <Skeleton className="flex-1 h-full rounded-xl" />
-          <Skeleton className="flex-1 h-full rounded-xl" />
+        <div className="h-[300px] sm:h-[400px] w-full flex flex-col lg:flex-row gap-4">
+          <Skeleton className="flex-1 min-h-[200px] lg:min-h-0 h-full rounded-xl" />
+          <Skeleton className="flex-1 min-h-[200px] lg:min-h-0 h-full rounded-xl" />
         </div>
       </div>
     );
@@ -621,9 +621,9 @@ export default function OverviewPage() {
         title="Latest Prompts"
         tooltip="Real-time Prompt Stream. Displays the most recent prompts from save_enhance_prompt with intent and enhancement status."
       >
-        <div className="rounded-md border">
-          <ScrollArea className="h-[400px] rounded-md">
-            <Table>
+        <div className="rounded-md border overflow-hidden min-w-0 w-full">
+          <ScrollArea className="h-[300px] sm:h-[400px] rounded-md w-full">
+            <Table className="min-w-[800px]">
               <TableHeader className="bg-muted/50 sticky top-0 z-10">
                 <TableRow>
                   <TableHead className="whitespace-nowrap font-bold text-foreground">
@@ -766,15 +766,15 @@ export default function OverviewPage() {
         open={!!selectedPrompt}
         onOpenChange={(open) => !open && setSelectedPrompt(null)}
       >
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl max-h-[90dvh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>{selectedPrompt?.title}</DialogTitle>
             <DialogDescription>
               Full content of the selected prompt
             </DialogDescription>
           </DialogHeader>
-          <div className="relative mt-4">
-            <div className="rounded-md bg-muted p-4 font-mono text-sm whitespace-pre-wrap max-h-[60vh] overflow-y-auto">
+          <div className="relative mt-4 min-h-0 flex-1 overflow-hidden flex flex-col">
+            <div className="rounded-md bg-muted p-4 font-mono text-sm whitespace-pre-wrap max-h-[50dvh] overflow-y-auto">
               {selectedPrompt?.content}
             </div>
           </div>

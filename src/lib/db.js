@@ -843,9 +843,12 @@ export async function getActiveUsersBreakdown(
       SUM(CASE WHEN LOWER(plan) = 'free' THEN 1 ELSE 0 END) as free_users,
       SUM(CASE WHEN LOWER(plan) LIKE '%trial%' THEN 1 ELSE 0 END) as trial_users,
       SUM(CASE WHEN LOWER(plan) = 'pro' OR LOWER(plan) = 'paid' OR LOWER(plan) = 'premium' THEN 1 ELSE 0 END) as pro_users,
-      SUM(CASE WHEN LOWER(plan) = 'free' AND prompt_count >= 5 THEN 1 ELSE 0 END) as free_power,
-      SUM(CASE WHEN LOWER(plan) LIKE '%trial%' AND prompt_count >= 5 THEN 1 ELSE 0 END) as trial_power,
-      SUM(CASE WHEN (LOWER(plan) = 'pro' OR LOWER(plan) = 'paid' OR LOWER(plan) = 'premium') AND prompt_count >= 5 THEN 1 ELSE 0 END) as pro_power,
+      SUM(CASE WHEN LOWER(plan) = 'free' AND prompt_count = 5 THEN 1 ELSE 0 END) as free_power_5,
+      SUM(CASE WHEN LOWER(plan) = 'free' AND prompt_count > 5 THEN 1 ELSE 0 END) as free_power_gt_5,
+      SUM(CASE WHEN LOWER(plan) LIKE '%trial%' AND prompt_count = 5 THEN 1 ELSE 0 END) as trial_power_5,
+      SUM(CASE WHEN LOWER(plan) LIKE '%trial%' AND prompt_count > 5 THEN 1 ELSE 0 END) as trial_power_gt_5,
+      SUM(CASE WHEN (LOWER(plan) = 'pro' OR LOWER(plan) = 'paid' OR LOWER(plan) = 'premium') AND prompt_count = 5 THEN 1 ELSE 0 END) as pro_power_5,
+      SUM(CASE WHEN (LOWER(plan) = 'pro' OR LOWER(plan) = 'paid' OR LOWER(plan) = 'premium') AND prompt_count > 5 THEN 1 ELSE 0 END) as pro_power_gt_5,
       COUNT(*) as total_users
     FROM daily_user_prompts
     GROUP BY activity_date

@@ -28,21 +28,88 @@ const DEFAULT_COLORS = {
 };
 
 // Custom bar with texture pattern for power users
-const PowerUserBar = (props) => {
-  const { x, y, width, height, fill, payload, dataKey, patternId } = props;
+export const PowerUserBar = (props) => {
+  const {
+    x,
+    y,
+    width,
+    height,
+    fill,
+    payload,
+    dataKey,
+    patternId,
+    patternId5,
+    patternIdGt5,
+  } = props;
 
-  // Get power user count for this segment
-  const powerKey = `${dataKey}Power`;
-  const powerCount = payload?.[powerKey] || 0;
+  // Legacy mode (single texture)
+  if (patternId) {
+    const powerKey = `${dataKey}Power`;
+    const powerCount = payload?.[powerKey] || 0;
+    const totalCount = payload?.[dataKey] || 0;
+    const powerRatio = totalCount > 0 ? powerCount / totalCount : 0;
+    const powerHeight = height * powerRatio;
+
+    return (
+      <g>
+        <rect
+          x={x}
+          y={y}
+          width={width}
+          height={height}
+          fill={fill}
+          rx={2}
+          ry={2}
+        />
+        {powerHeight > 0 && (
+          <>
+            <defs>
+              <pattern
+                id={patternId}
+                patternUnits="userSpaceOnUse"
+                width="4"
+                height="4"
+                patternTransform="rotate(45)"
+              >
+                <line
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="4"
+                  stroke="rgba(255,255,255,0.4)"
+                  strokeWidth="2"
+                />
+              </pattern>
+            </defs>
+            <rect
+              x={x}
+              y={y + height - powerHeight}
+              width={width}
+              height={powerHeight}
+              fill={`url(#${patternId})`}
+              rx={2}
+              ry={2}
+            />
+          </>
+        )}
+      </g>
+    );
+  }
+
+  // Multi-texture mode
+  const power5Key = `${dataKey}Power5`;
+  const powerGt5Key = `${dataKey}PowerGt5`;
+
+  const count5 = payload?.[power5Key] || 0;
+  const countGt5 = payload?.[powerGt5Key] || 0;
   const totalCount = payload?.[dataKey] || 0;
 
-  // Calculate power user portion height
-  const powerRatio = totalCount > 0 ? powerCount / totalCount : 0;
-  const powerHeight = height * powerRatio;
+  const h5 = totalCount > 0 ? height * (count5 / totalCount) : 0;
+  const hGt5 = totalCount > 0 ? height * (countGt5 / totalCount) : 0;
 
   return (
     <g>
-      {/* Base bar (casual users) */}
+      {/* Base Bar */}
       <rect
         x={x}
         y={y}
@@ -52,33 +119,72 @@ const PowerUserBar = (props) => {
         rx={2}
         ry={2}
       />
-      {/* Power user overlay with diagonal stripes */}
-      {powerHeight > 0 && (
+
+      {/* Gt5 Overlay (Bottom) */}
+      {hGt5 > 0 && patternIdGt5 && (
         <>
           <defs>
+            {/* Dense Crosshatch for >5 */}
             <pattern
-              id={patternId}
+              id={patternIdGt5}
               patternUnits="userSpaceOnUse"
               width="4"
               height="4"
               patternTransform="rotate(45)"
             >
+              <path
+                d="M0 0h4v4h-4z"
+                fill="none"
+                stroke="rgba(255,255,255,0.5)"
+                strokeWidth="1"
+              />
+              <path
+                d="M0 4L4 0"
+                stroke="rgba(255,255,255,0.5)"
+                strokeWidth="1"
+              />
+            </pattern>
+          </defs>
+          <rect
+            x={x}
+            y={y + height - hGt5}
+            width={width}
+            height={hGt5}
+            fill={`url(#${patternIdGt5})`}
+            rx={2}
+            ry={2}
+          />
+        </>
+      )}
+
+      {/* 5 Overlay (Above Gt5) */}
+      {h5 > 0 && patternId5 && (
+        <>
+          <defs>
+            {/* Lighter Stripes for =5 */}
+            <pattern
+              id={patternId5}
+              patternUnits="userSpaceOnUse"
+              width="6"
+              height="6"
+              patternTransform="rotate(-45)"
+            >
               <line
                 x1="0"
                 y1="0"
                 x2="0"
-                y2="4"
-                stroke="rgba(255,255,255,0.4)"
+                y2="6"
+                stroke="rgba(255,255,255,0.3)"
                 strokeWidth="2"
               />
             </pattern>
           </defs>
           <rect
             x={x}
-            y={y + height - powerHeight}
+            y={y + height - hGt5 - h5}
             width={width}
-            height={powerHeight}
-            fill={`url(#${patternId})`}
+            height={h5}
+            fill={`url(#${patternId5})`}
             rx={2}
             ry={2}
           />
@@ -172,9 +278,11 @@ export function ActiveUsersChart({
   variant = "mini",
   className,
   colors = DEFAULT_COLORS,
+  showTooltip = false,
 }) {
   const chartId = React.useId().replace(/:/g, "");
   const isDetailed = variant === "detailed";
+  const shouldShowTooltip = isDetailed || showTooltip;
   const hasData = data && data.length > 0;
 
   if (!hasData) {
@@ -243,7 +351,9 @@ export function ActiveUsersChart({
           />
         )}
 
-        {isDetailed && <Tooltip content={<CustomTooltip colors={colors} />} />}
+        {shouldShowTooltip && (
+          <Tooltip content={<CustomTooltip colors={colors} />} />
+        )}
 
         {isDetailed && (
           <Legend

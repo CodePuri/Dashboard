@@ -13,7 +13,7 @@ export function processUsageData(rawData, startDate, endDate) {
   rawData.forEach((row) => {
     // Skip rows with invalid created_at
     if (!row.created_at) return;
-    
+
     const uid = row.user_id;
     if (!users[uid]) {
       users[uid] = {
@@ -28,7 +28,9 @@ export function processUsageData(rawData, startDate, endDate) {
         totalTokens: 0,
         status: (row.user_status || "free").toLowerCase(),
         occupation: row.occupation || "Unknown",
-        signupDate: row.user_signup_date ? new Date(row.user_signup_date) : new Date(),
+        signupDate: row.user_signup_date
+          ? new Date(row.user_signup_date)
+          : new Date(),
       };
     }
 
@@ -37,6 +39,7 @@ export function processUsageData(rawData, startDate, endDate) {
       const dateStr = new Date(row.created_at).toISOString().split("T")[0];
       u.prompts.push(row);
       u.daysActive.add(dateStr);
+
       if (row.mode) u.modesUsed.add(row.mode);
       if (row.llm_used) u.llmsUsed.add(row.llm_used);
       if (row.has_refinement) u.refineCount++;
@@ -221,7 +224,7 @@ export function processUsageData(rawData, startDate, endDate) {
   rawData.forEach((row) => {
     // Skip rows with invalid created_at
     if (!row.created_at) return;
-    
+
     try {
       const dateKey = new Date(row.created_at).toISOString().split("T")[0];
       if (!dailyTrendMap[dateKey]) {
@@ -260,7 +263,10 @@ export function processUsageData(rawData, startDate, endDate) {
         }
       }
     } catch (dateError) {
-      console.warn(`Invalid date in trend data for user ${row.user_id}:`, row.created_at);
+      console.warn(
+        `Invalid date in trend data for user ${row.user_id}:`,
+        row.created_at,
+      );
       return;
     }
   });

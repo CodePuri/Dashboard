@@ -1,0 +1,509 @@
+{
+  "success": true,
+  "data": {
+    "totalClicks": 272,
+    "humanClicks": 211,
+    "totalClicksChange": "999",
+    "humanClicksChange": "999",
+    "linkCount": 3,
+    "topLinks": [
+      {
+        "path": "velocity",
+        "shortURL": "https://get.thinkvelocity.in/velocity",
+        "title": "Velocity: The Prompt Co-Pilot - Chrome Web Store",
+        "totalClicks": 146,
+        "humanClicks": 96
+      },
+      {
+        "path": "Chat",
+        "shortURL": "https://get.thinkvelocity.in/Chat",
+        "title": "Velocity - AI Prompt Enhancer | Make Ai Work Smarter For You",
+        "totalClicks": 125,
+        "humanClicks": 114
+      },
+      {
+        "path": "pricing",
+        "shortURL": "https://get.thinkvelocity.in/pricing",
+        "title": "Pricing",
+        "totalClicks": 1,
+        "humanClicks": 1
+      }
+    ],
+    "activeLinks": [
+      "velocity",
+      "Chat",
+      "pricing"
+    ],
+    "country": [
+      {
+        "name": "India",
+        "total": 152,
+        "pricing": 1,
+        "Chat": 83,
+        "velocity": 68
+      },
+      {
+        "name": "Pakistan",
+        "total": 16,
+        "Chat": 7,
+        "velocity": 9
+      },
+      {
+        "name": "United States",
+        "total": 13,
+        "Chat": 9,
+        "velocity": 4
+      },
+      {
+        "name": "Bangladesh",
+        "total": 8,
+        "Chat": 1,
+        "velocity": 7
+      },
+      {
+        "name": "Malaysia",
+        "total": 4,
+        "Chat": 3,
+        "velocity": 1
+      },
+      {
+        "name": "Finland",
+        "total": 4,
+        "Chat": 2,
+        "velocity": 2
+      },
+      {
+        "name": "Canada",
+        "total": 3,
+        "Chat": 1,
+        "velocity": 2
+      },
+      {
+        "name": "Philippines",
+        "total": 2,
+        "Chat": 2
+      },
+      {
+        "name": "Russia",
+        "total": 2,
+        "Chat": 2
+      },
+      {
+        "name": "Germany",
+        "total": 2,
+        "velocity": 2
+      },
+      {
+        "name": "Algeria",
+        "total": 1,
+        "Chat": 1
+      },
+      {
+        "name": "Norway",
+        "total": 1,
+        "Chat": 1
+      },
+      {
+        "name": "Czechia",
+        "total": 1,
+        "Chat": 1
+      },
+      {
+        "name": "Spain",
+        "total": 1,
+        "Chat": 1
+      },
+      {
+        "name": "United Kingdom",
+        "total": 1,
+        "velocity": 1
+      }
+    ],
+    "browser": [
+      {
+        "name": "Chrome",
+        "total": 94,
+        "pricing": 1,
+        "Chat": 60,
+        "velocity": 33
+      },
+      {
+        "name": "Chrome Mobile",
+        "total": 53,
+        "Chat": 33,
+        "velocity": 20
+      },
+      {
+        "name": "Instagram",
+        "total": 39,
+        "Chat": 5,
+        "velocity": 34
+      },
+      {
+        "name": "Mobile Safari",
+        "total": 7,
+        "Chat": 7
+      },
+      {
+        "name": "Edge",
+        "total": 7,
+        "Chat": 5,
+        "velocity": 2
+      },
+      {
+        "name": "Opera",
+        "total": 3,
+        "Chat": 1,
+        "velocity": 2
+      },
+      {
+        "name": "Samsung Internet",
+        "total": 2,
+        "velocity": 2
+      },
+      {
+        "name": "HiBrowser",
+        "total": 2,
+        "velocity": 2
+      },
+      {
+        "name": "HeadlessChrome",
+        "total": 1,
+        "Chat": 1
+      },
+      {
+        "name": "Google",
+        "total": 1,
+        "Chat": 1
+      }
+    ],
+    "referer": [
+      {
+        "name": "thinkvelocity.in",
+        "total": 22,
+        "Chat": 18,
+        "velocity": 4
+      },
+      {
+        "name": "l.instagram.com",
+        "total": 6,
+        "velocity": 6
+      },
+      {
+        "name": "Direct / Other Traffic",
+        "total": 4,
+        "Chat": 4,
+        "velocity": 0
+      },
+      {
+        "name": "localhost",
+        "total": 1,
+        "velocity": 1
+      },
+      {
+        "name": "m.facebook.com",
+        "total": 0,
+        "velocity": 0
+      },
+      {
+        "name": "fazier.com",
+        "total": 0,
+        "velocity": 0
+      },
+      {
+        "name": "www.facebook.com",
+        "total": 0,
+        "velocity": 0
+      }
+    ],
+    "social": [
+      {
+        "name": "Direct / Other Traffic",
+        "total": 174,
+        "pricing": 1,
+        "Chat": 113,
+        "velocity": 60
+      },
+      {
+        "name": "Instagram",
+        "total": 37,
+        "Chat": 1,
+        "velocity": 36
+      },
+      {
+        "name": "Facebook",
+        "total": 0,
+        "velocity": 0
+      }
+    ],
+    "os": [
+      {
+        "name": "Windows",
+        "total": 92,
+        "pricing": 1,
+        "Chat": 59,
+        "velocity": 32
+      },
+      {
+        "name": "Android",
+        "total": 85,
+        "Chat": 38,
+        "velocity": 47
+      },
+      {
+        "name": "iOS",
+        "total": 19,
+        "Chat": 9,
+        "velocity": 10
+      },
+      {
+        "name": "Mac OS X",
+        "total": 10,
+        "Chat": 6,
+        "velocity": 4
+      },
+      {
+        "name": "Linux",
+        "total": 5,
+        "Chat": 2,
+        "velocity": 3
+      },
+      {
+        "name": "Other",
+        "total": 0,
+        "Chat": 0,
+        "velocity": 0
+      }
+    ],
+    "city": [
+      {
+        "name": "Mumbai",
+        "total": 27,
+        "pricing": 1,
+        "Chat": 17,
+        "velocity": 9
+      },
+      {
+        "name": "Unknown City",
+        "total": 20,
+        "Chat": 10,
+        "velocity": 10
+      },
+      {
+        "name": "Bengaluru",
+        "total": 9,
+        "Chat": 9
+      },
+      {
+        "name": "Pune",
+        "total": 8,
+        "Chat": 4,
+        "velocity": 4
+      },
+      {
+        "name": "Hyderabad",
+        "total": 7,
+        "Chat": 5,
+        "velocity": 2
+      },
+      {
+        "name": "New Delhi",
+        "total": 6,
+        "Chat": 3,
+        "velocity": 3
+      },
+      {
+        "name": "Riverview",
+        "total": 5,
+        "Chat": 4,
+        "velocity": 1
+      },
+      {
+        "name": "Lahore",
+        "total": 4,
+        "Chat": 3,
+        "velocity": 1
+      },
+      {
+        "name": "Dhaka",
+        "total": 4,
+        "velocity": 4
+      },
+      {
+        "name": "Balasore",
+        "total": 4,
+        "velocity": 4
+      },
+      {
+        "name": "Patna",
+        "total": 3,
+        "Chat": 3
+      },
+      {
+        "name": "Seri Kembangan",
+        "total": 3,
+        "Chat": 3
+      },
+      {
+        "name": "Clarksburg",
+        "total": 3,
+        "Chat": 2,
+        "velocity": 1
+      },
+      {
+        "name": "Bahawalnagar",
+        "total": 3,
+        "velocity": 3
+      },
+      {
+        "name": "Lucknow",
+        "total": 3,
+        "velocity": 3
+      }
+    ],
+    "utmMedium": [],
+    "utmSource": [],
+    "utmCampaign": [],
+    "clicksOverTime": [
+      {
+        "date": "2026-01-24T00:00:00.000Z",
+        "pricing": 0,
+        "total": 28,
+        "Chat": 12,
+        "velocity": 16
+      },
+      {
+        "date": "2026-01-25T00:00:00.000Z",
+        "pricing": 0,
+        "total": 19,
+        "Chat": 8,
+        "velocity": 11
+      },
+      {
+        "date": "2026-01-26T00:00:00.000Z",
+        "pricing": 0,
+        "total": 22,
+        "Chat": 11,
+        "velocity": 11
+      },
+      {
+        "date": "2026-01-27T00:00:00.000Z",
+        "pricing": 0,
+        "total": 26,
+        "Chat": 17,
+        "velocity": 9
+      },
+      {
+        "date": "2026-01-28T00:00:00.000Z",
+        "pricing": 0,
+        "total": 38,
+        "Chat": 22,
+        "velocity": 16
+      },
+      {
+        "date": "2026-01-29T00:00:00.000Z",
+        "pricing": 0,
+        "total": 27,
+        "Chat": 13,
+        "velocity": 14
+      },
+      {
+        "date": "2026-01-30T00:00:00.000Z",
+        "pricing": 0,
+        "total": 35,
+        "Chat": 21,
+        "velocity": 14
+      },
+      {
+        "date": "2026-01-31T00:00:00.000Z",
+        "pricing": 1,
+        "total": 16,
+        "Chat": 10,
+        "velocity": 5
+      }
+    ],
+    "debugKeys": [
+      "totalClicks",
+      "humanClicks",
+      "humanClicksChange",
+      "totalClicksChange",
+      "clickStatistics",
+      "interval",
+      "os",
+      "social",
+      "browser",
+      "referer",
+      "country",
+      "city",
+      "device",
+      "utm_medium",
+      "utm_source",
+      "utm_campaign",
+      "loading"
+    ],
+    "clickStatistics": {
+      "datasets": [
+        {
+          "data": [
+            {
+              "date": "2026-01-24T00:00:00.000Z",
+              "pricing": 0,
+              "total": 28,
+              "Chat": 12,
+              "velocity": 16
+            },
+            {
+              "date": "2026-01-25T00:00:00.000Z",
+              "pricing": 0,
+              "total": 19,
+              "Chat": 8,
+              "velocity": 11
+            },
+            {
+              "date": "2026-01-26T00:00:00.000Z",
+              "pricing": 0,
+              "total": 22,
+              "Chat": 11,
+              "velocity": 11
+            },
+            {
+              "date": "2026-01-27T00:00:00.000Z",
+              "pricing": 0,
+              "total": 26,
+              "Chat": 17,
+              "velocity": 9
+            },
+            {
+              "date": "2026-01-28T00:00:00.000Z",
+              "pricing": 0,
+              "total": 38,
+              "Chat": 22,
+              "velocity": 16
+            },
+            {
+              "date": "2026-01-29T00:00:00.000Z",
+              "pricing": 0,
+              "total": 27,
+              "Chat": 13,
+              "velocity": 14
+            },
+            {
+              "date": "2026-01-30T00:00:00.000Z",
+              "pricing": 0,
+              "total": 35,
+              "Chat": 21,
+              "velocity": 14
+            },
+            {
+              "date": "2026-01-31T00:00:00.000Z",
+              "pricing": 1,
+              "total": 16,
+              "Chat": 10,
+              "velocity": 5
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

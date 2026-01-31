@@ -10,6 +10,7 @@ import {
   DetailedChartV2,
 } from "@/components/ui/metric-card";
 import { ActiveUsersChart } from "@/components/ui/active-users-chart";
+import { PeakUsageChart } from "@/components/ui/peak-usage-chart";
 import { FilterBar } from "@/components/ui/filter-bar";
 import {
   Zap,
@@ -248,21 +249,12 @@ export default function ActivityPage() {
             tooltip="Peak Daily Usage (Avg Max Prompts). Calculated by finding the maximum daily prompt count for each user, then averaging these maximums across all active users."
             chart={
               dailyActivity.length > 0 ? (
-                <SparklineV2
-                  data={dailyActivity}
-                  dataKey="peakUsage"
-                  color={COLORS.warning}
-                />
+                <PeakUsageChart data={dailyActivity} variant="mini" />
               ) : null
             }
             detailedChart={
               dailyActivity.length > 0 ? (
-                <DetailedChartV2
-                  data={dailyActivity}
-                  dataKey="peakUsage"
-                  color={COLORS.warning}
-                  title="Daily Peak Usage Trend"
-                />
+                <PeakUsageChart data={dailyActivity} variant="detailed" />
               ) : null
             }
           />

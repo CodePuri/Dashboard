@@ -39,6 +39,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { UsageDetailedTable } from "./detailed-table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
 export default function UsagePage() {
@@ -77,6 +86,46 @@ export default function UsagePage() {
   const features = data.featureLevel || {};
   const occupations = data.occupations?.slice(0, 5) || [];
   const complexityData = data.complexityDistribution || [];
+
+  const upgradeRecords = (segments.power?.records || []).filter(
+    (r) => r.status === "free",
+  );
+
+  const upgradeColumns = [
+    {
+      label: "User",
+      key: "name",
+      className: "w-[180px]",
+      render: (val, row) => (
+        <div className="flex flex-col">
+          <span className="font-bold text-foreground truncate max-w-[160px]">
+            {val}
+          </span>
+          <span className="text-[10px] font-mono text-muted-foreground/60 tracking-tighter">
+            #{String(row.id || "").slice(-8)}
+          </span>
+        </div>
+      ),
+    },
+    {
+      label: "Email",
+      key: "email",
+      className: "flex-1 min-w-[180px]",
+      render: (val) => (
+        <span className="text-[11px] text-muted-foreground/80 truncate block max-w-[200px]">
+          {val}
+        </span>
+      ),
+    },
+    {
+      label: "Prompts",
+      key: "totalPrompts",
+      className: "text-right w-[100px] pr-4",
+      render: (val) => (
+        <span className="font-black text-amber-500 tabular-nums">{val}</span>
+      ),
+    },
+  ];
 
   const userColumns = [
     {
@@ -575,7 +624,8 @@ export default function UsagePage() {
           subtitle="Free users with Power habits"
           icon={UserCheck}
           color={COLORS.warning}
-tooltip="Free tier users showing high engagement patterns - Prime candidates for upgrade. Power users (5+ prompts with diverse feature usage) currently on free plan."          chart={
+          tooltip="Free tier users showing high engagement patterns - Prime candidates for upgrade. Power users (5+ prompts with diverse feature usage) currently on free plan."
+          chart={
             <SparklineV2
               data={data.trends}
               dataKey="upgrades"
@@ -590,6 +640,80 @@ tooltip="Free tier users showing high engagement patterns - Prime candidates for
               title="Potential Upgrades Trend"
             />
           }
+          dialogContent={
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full min-h-0">
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col">
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-1">
+                    Engagement Trend
+                  </h4>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Volume of free users showing power behaviors over time.
+                  </p>
+                </div>
+                <div className="flex-1 min-h-[250px] bg-muted/10 rounded-xl p-4 border border-border/40">
+                  <DetailedChartV2
+                    data={data.trends}
+                    dataKey="upgrades"
+                    color={COLORS.warning}
+                    title="Upgrades Trend"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-4 min-h-0">
+                <div className="flex flex-col">
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-1">
+                    Upgrade Candidates ({upgradeRecords.length})
+                  </h4>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    High-volume users currently on the free tier.
+                  </p>
+                </div>
+                <ScrollArea className="flex-1 min-h-0 bg-card/50 border border-border/40 rounded-xl">
+                  <Table className="w-full">
+                    <TableHeader className="bg-muted/50 sticky top-0 z-10">
+                      <TableRow className="hover:bg-transparent border-b border-border/40">
+                        {upgradeColumns.map((col) => (
+                          <TableHead
+                            key={col.key}
+                            className={cn(
+                              "text-[9px] uppercase tracking-[0.15em] font-black text-muted-foreground/70 h-10 px-4",
+                              col.className,
+                            )}
+                          >
+                            {col.label}
+                          </TableHead>
+                        ))}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {upgradeRecords.map((row, i) => (
+                        <TableRow
+                          key={row.id || i}
+                          className="h-12 border-border/40 hover:bg-amber-500/[0.02] transition-colors"
+                        >
+                          {upgradeColumns.map((col) => (
+                            <TableCell
+                              key={col.key}
+                              className={cn(
+                                "py-2 px-4 whitespace-nowrap overflow-hidden",
+                                col.className,
+                              )}
+                            >
+                              {col.render
+                                ? col.render(row[col.key], row)
+                                : row[col.key]}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              </div>
+            </div>
+          }
         />
         <MetricCard
           title="Pro Users"
@@ -597,6 +721,7 @@ tooltip="Free tier users showing high engagement patterns - Prime candidates for
           subtitle="Revenue Baseline"
           icon={Zap}
           color={COLORS.success}
+          tooltip="Total number of users currently on a paid subscription plan, representing the core revenue-generating user base."
           chart={
             <SparklineV2
               data={data.trends}
@@ -619,6 +744,7 @@ tooltip="Free tier users showing high engagement patterns - Prime candidates for
           subtitle="Multi-LLM utility"
           icon={Users}
           color={COLORS.info}
+          tooltip="The percentage of users who utilize multiple LLM models, demonstrating high versatility and sophisticated tool usage."
           chart={
             <SparklineV2
               data={data.trends}
@@ -875,7 +1001,7 @@ tooltip="Free tier users showing high engagement patterns - Prime candidates for
 
         <ChartCard
           title="Feature Adaption Progression"
-          tooltip="Level 1: Basic Enhance -> Level 4: Modes + Refinement Mastery"
+          tooltip="Level 1: Basic Enhance Level 2: Modes Level 3: Refine feature Level 4: Modes + Refinement Mastery"
           className="h-auto"
           headerAction={
             <Button

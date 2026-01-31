@@ -25,7 +25,6 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { useAnalyticsData } from "@/hooks/use-analytics-data";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ExportAction } from "@/components/export-action";
 
 const chartConfig = {
   count: {
@@ -119,7 +118,6 @@ export default function ConversionPage() {
             customDateRange={customDateRange}
             onCustomDateChange={setCustomDateRange}
           />
-          <ExportAction data={data} />
         </div>
       </div>
 

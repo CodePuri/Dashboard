@@ -180,7 +180,7 @@ export default function PromptsPage() {
         <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
           <ChartCard
             title="Word Count Expansion"
-            tooltip="Comparison of average word count before and after enhancement"
+            tooltip="Comparison of average word count before and after enhancement (words in user_prompt vs words in enhanced_prompt)"
           >
             <ChartContainer
               config={chartConfig}
@@ -211,7 +211,9 @@ export default function PromptsPage() {
       <section>
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-xl font-bold tracking-tight">Performance Analysis</h2>
+            <h2 className="text-xl font-bold tracking-tight">
+              Performance Analysis
+            </h2>
             <p className="text-sm text-muted-foreground">
               Top 5 slowest prompts by processing time
             </p>
@@ -223,61 +225,93 @@ export default function PromptsPage() {
             </div>
           </div>
         </div>
-        
+
         <div className="rounded-lg border bg-card shadow-sm">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50 hover:bg-muted/50">
-                  <TableHead className="font-semibold text-foreground py-3 w-[150px]">User</TableHead>
-                  <TableHead className="font-semibold text-foreground py-3 min-w-[200px]">User Prompt</TableHead>
-                  <TableHead className="font-semibold text-foreground py-3 min-w-[200px]">Enhanced Prompt</TableHead>
-                  <TableHead className="font-semibold text-foreground py-3 w-[100px]">Intent</TableHead>
-                  <TableHead className="font-semibold text-foreground py-3 w-[100px]">Domain</TableHead>
-                  <TableHead className="font-semibold text-foreground py-3 text-right w-[130px]">Processing Time</TableHead>
-                  <TableHead className="font-semibold text-foreground py-3 text-center w-[80px]">Plan</TableHead>
-                  <TableHead className="font-semibold text-foreground py-3 text-center w-[90px]">Platform</TableHead>
-                  <TableHead className="font-semibold text-foreground py-3 text-right w-[120px]">Date</TableHead>
+                  <TableHead className="font-semibold text-foreground py-3 w-[150px]">
+                    User
+                  </TableHead>
+                  <TableHead className="font-semibold text-foreground py-3 min-w-[200px]">
+                    User Prompt
+                  </TableHead>
+                  <TableHead className="font-semibold text-foreground py-3 min-w-[200px]">
+                    Enhanced Prompt
+                  </TableHead>
+                  <TableHead className="font-semibold text-foreground py-3 w-[100px]">
+                    Intent
+                  </TableHead>
+                  <TableHead className="font-semibold text-foreground py-3 w-[100px]">
+                    Domain
+                  </TableHead>
+                  <TableHead className="font-semibold text-foreground py-3 text-right w-[130px]">
+                    Processing Time
+                  </TableHead>
+                  <TableHead className="font-semibold text-foreground py-3 text-center w-[80px]">
+                    Plan
+                  </TableHead>
+                  <TableHead className="font-semibold text-foreground py-3 text-center w-[90px]">
+                    Platform
+                  </TableHead>
+                  <TableHead className="font-semibold text-foreground py-3 text-right w-[120px]">
+                    Date
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {slowestPrompts.length > 0 ? (
                   slowestPrompts.map((prompt, index) => (
-                    <TableRow 
+                    <TableRow
                       key={index}
                       className="border-b transition-colors hover:bg-muted/30 data-[state=selected]:bg-muted"
                     >
                       <TableCell className="py-3">
                         <div>
-                          <div className="font-medium text-foreground">{prompt.name}</div>
+                          <div className="font-medium text-foreground">
+                            {prompt.name}
+                          </div>
                           <div className="text-xs text-muted-foreground truncate">
                             {prompt.email}
                           </div>
                         </div>
                       </TableCell>
                       <TableCell className="py-3 max-w-[200px]">
-                        <div 
+                        <div
                           className="cursor-pointer text-sm text-primary hover:text-primary/80 transition-colors font-medium truncate"
-                          onClick={() => setSelectedPrompt({
-                            title: "User Prompt",
-                            content: prompt.prompt,
-                            prompt: prompt
-                          })}
+                          onClick={() =>
+                            setSelectedPrompt({
+                              title: "User Prompt",
+                              content: prompt.prompt,
+                              prompt: prompt,
+                            })
+                          }
                           title={prompt.prompt}
                         >
-                          {prompt.prompt ? (prompt.prompt.length > 100 ? prompt.prompt.substring(0, 100) + "..." : prompt.prompt) : "—"}
+                          {prompt.prompt
+                            ? prompt.prompt.length > 100
+                              ? prompt.prompt.substring(0, 100) + "..."
+                              : prompt.prompt
+                            : "—"}
                         </div>
                       </TableCell>
                       <TableCell className="py-3 max-w-[200px]">
-                        <div 
+                        <div
                           className="cursor-pointer text-sm text-purple-600 hover:text-purple-700 transition-colors truncate"
-                          onClick={() => setSelectedPrompt({
-                            title: "Enhanced Prompt",
-                            content: prompt.enhancedPrompt,
-                            prompt: prompt
-                          })}
+                          onClick={() =>
+                            setSelectedPrompt({
+                              title: "Enhanced Prompt",
+                              content: prompt.enhancedPrompt,
+                              prompt: prompt,
+                            })
+                          }
                         >
-                          {prompt.enhancedPrompt ? (prompt.enhancedPrompt.length > 100 ? prompt.enhancedPrompt.substring(0, 100) + "..." : prompt.enhancedPrompt) : "—"}
+                          {prompt.enhancedPrompt
+                            ? prompt.enhancedPrompt.length > 100
+                              ? prompt.enhancedPrompt.substring(0, 100) + "..."
+                              : prompt.enhancedPrompt
+                            : "—"}
                         </div>
                       </TableCell>
                       <TableCell className="py-3">
@@ -304,8 +338,8 @@ export default function PromptsPage() {
                             prompt.plan === "Pro"
                               ? "bg-purple-100 text-purple-700"
                               : prompt.plan === "Freetrial"
-                              ? "bg-blue-100 text-blue-700"
-                              : "bg-gray-100 text-gray-700"
+                                ? "bg-blue-100 text-blue-700"
+                                : "bg-gray-100 text-gray-700"
                           }`}
                         >
                           {prompt.plan}
@@ -324,16 +358,22 @@ export default function PromptsPage() {
                       </TableCell>
                       <TableCell className="py-3 text-right">
                         <div className="text-sm text-muted-foreground">
-                          {new Date(prompt.createdAt).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric'
-                          })}
+                          {new Date(prompt.createdAt).toLocaleDateString(
+                            "en-US",
+                            {
+                              month: "short",
+                              day: "numeric",
+                            },
+                          )}
                         </div>
                         <div className="text-xs text-muted-foreground/60">
-                          {new Date(prompt.createdAt).toLocaleTimeString('en-US', {
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
+                          {new Date(prompt.createdAt).toLocaleTimeString(
+                            "en-US",
+                            {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            },
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>

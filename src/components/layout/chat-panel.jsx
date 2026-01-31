@@ -123,7 +123,13 @@ export function ChatPanel() {
         <>
           {/* AI Magic Hint Bubble */}
           {showBubble && (
-            <div className="fixed bottom-24 right-6 z-50 animate-bounce pointer-events-none">
+            <div
+              className="fixed bottom-24 right-6 z-50 animate-bounce pointer-events-none"
+              style={{
+                bottom: "calc(6rem + env(safe-area-inset-bottom))",
+                right: "max(1.5rem, env(safe-area-inset-right))",
+              }}
+            >
               <div className="relative bg-white dark:bg-zinc-800 text-foreground px-4 py-2 rounded-xl shadow-xl border border-border/50">
                 <div className="flex items-center gap-2 font-medium text-sm whitespace-nowrap">
                   <span className="text-lg">✨</span>
@@ -137,7 +143,11 @@ export function ChatPanel() {
 
           <Button
             onClick={toggleChat}
-            className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50 animate-in fade-in zoom-in duration-300 bg-primary text-primary-foreground hover:scale-105"
+            className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50 animate-in fade-in zoom-in duration-300 bg-primary text-primary-foreground hover:scale-105 min-h-[44px] min-w-[44px]"
+            style={{
+              bottom: "max(1.5rem, env(safe-area-inset-bottom))",
+              right: "max(1.5rem, env(safe-area-inset-right))",
+            }}
             size="icon"
           >
             <MessageSquare className="h-6 w-6" />
@@ -156,9 +166,12 @@ export function ChatPanel() {
       {/* Chat Panel */}
       <div
         className={cn(
-          "fixed inset-y-0 right-0 z-40 w-full sm:w-[400px] border-l bg-card shadow-2xl transition-transform duration-300 ease-in-out transform",
-          isChatOpen ? "translate-x-0" : "translate-x-full",
+          "fixed inset-y-0 right-0 z-40 w-full sm:w-[400px] max-w-[100vw] border-l bg-card shadow-2xl transition-transform duration-300 ease-in-out transform",
+          isChatOpen ? "translate-x-0" : "translate-x-full"
         )}
+        style={{
+          paddingRight: "env(safe-area-inset-right)",
+        }}
       >
         <div className="flex flex-col h-full">
           {/* Header */}
@@ -189,7 +202,7 @@ export function ChatPanel() {
                 key={msg.id}
                 className={cn(
                   "flex gap-3 max-w-[85%]",
-                  msg.role === "user" ? "ml-auto flex-row-reverse" : "",
+                  msg.role === "user" ? "ml-auto flex-row-reverse" : ""
                 )}
               >
                 <div
@@ -197,7 +210,7 @@ export function ChatPanel() {
                     "h-8 w-8 rounded-full flex items-center justify-center shrink-0 border",
                     msg.role === "user"
                       ? "bg-primary text-primary-foreground"
-                      : "bg-muted",
+                      : "bg-muted"
                   )}
                 >
                   {msg.role === "user" ? (
@@ -211,7 +224,7 @@ export function ChatPanel() {
                     "rounded-lg p-3 text-sm",
                     msg.role === "user"
                       ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-foreground",
+                      : "bg-muted text-foreground"
                   )}
                 >
                   {msg.content}
@@ -220,7 +233,7 @@ export function ChatPanel() {
                       "text-[10px] mt-1 opacity-70",
                       msg.role === "user"
                         ? "text-primary-foreground"
-                        : "text-muted-foreground",
+                        : "text-muted-foreground"
                     )}
                   >
                     {msg.timestamp.toLocaleTimeString([], {

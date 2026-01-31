@@ -267,6 +267,23 @@ export function processData(
   // Calculate cumulative totals and daily metrics
   const cumulativeActivePaidUsers = new Set(initialPaidUserIds);
 
+  // Cache user segments to avoid repeated searching
+  const userSegmentMap = {};
+  unique.forEach((d) => {
+    if (!userSegmentMap[d.user_id]) {
+      const status = (d.user_status || "").toLowerCase();
+      if (
+        status.includes("paid") ||
+        status.includes("pro") ||
+        status.includes("premium")
+      )
+        userSegmentMap[d.user_id] = "Pro";
+      else if (status.includes("trial"))
+        userSegmentMap[d.user_id] = "Freetrial";
+      else userSegmentMap[d.user_id] = "Free";
+    }
+  });
+
   const dailyActivityWithCumulative = dailyActivity.map(([date, count]) => {
     // Add active paid users from this day (for active line)
     if (dailyActivePaidUsersSet[date]) {
@@ -372,11 +389,44 @@ export function processData(
           1000
         : 0;
 
+    // Segmented Peak Usage Calculation
+    // We want the average contribution of each segment to the daily intensity
+    // Intensity = (Sum of max prompts per user on day) / (Total active users on day)
+    const dayActiveUsersList = Array.from(dailyActiveUsers[date] || []);
+    const totalDayActiveUsers = dayActiveUsersList.length;
+
+    let daySegmentMaxSum = { Free: 0, Freetrial: 0, Pro: 0 };
+
+    dayActiveUsersList.forEach((uid) => {
+      const maxPromptsOnDay = userDailyPrompts[uid]?.[date] || 0;
+      const segment = userSegmentMap[uid] || "Free";
+      daySegmentMaxSum[segment] += maxPromptsOnDay;
+    });
+
     return {
       date,
       prompts: count,
-      users: dailyActiveUsers[date] ? dailyActiveUsers[date].size : 0,
+      users: totalDayActiveUsers,
       peakUsage,
+      peakFree:
+        totalDayActiveUsers > 0
+          ? daySegmentMaxSum.Free / totalDayActiveUsers
+          : 0,
+      peakTrial:
+        totalDayActiveUsers > 0
+          ? daySegmentMaxSum.Freetrial / totalDayActiveUsers
+          : 0,
+      peakPro:
+        totalDayActiveUsers > 0
+          ? daySegmentMaxSum.Pro / totalDayActiveUsers
+          : 0,
+      peakTotal:
+        totalDayActiveUsers > 0
+          ? (daySegmentMaxSum.Free +
+              daySegmentMaxSum.Freetrial +
+              daySegmentMaxSum.Pro) /
+            totalDayActiveUsers
+          : 0,
       habitUsers: habitUsersCount,
       powerUsers: powerUsersCount,
       returningUsers: returningUsersCount,
@@ -731,41 +781,6 @@ export function processData(
     userActiveDateSets[uid] = new Set(userActiveDates[uid]);
   });
 
-  const getUserSegment = (uid) => {
-    // We need to look up the user object or store segment map earlier
-    // Re-finding user in `unique` is expensive inside this loop, better to build a map first
-    // Existing code builds `userStats` later, let's just do a quick lookup or use what we have
-    // We can find one entry for the user in `unique` array
-    const entry = unique.find((u) => u.user_id === uid);
-    if (!entry) return "Free";
-    const status = (entry.user_status || "").toLowerCase();
-    if (
-      status.includes("paid") ||
-      status.includes("pro") ||
-      status.includes("premium")
-    )
-      return "Pro";
-    if (status.includes("trial")) return "Freetrial";
-    return "Free";
-  };
-
-  // Cache user segments to avoid repeated searching
-  const userSegmentMap = {};
-  unique.forEach((d) => {
-    if (!userSegmentMap[d.user_id]) {
-      const status = (d.user_status || "").toLowerCase();
-      if (
-        status.includes("paid") ||
-        status.includes("pro") ||
-        status.includes("premium")
-      )
-        userSegmentMap[d.user_id] = "Pro";
-      else if (status.includes("trial"))
-        userSegmentMap[d.user_id] = "Freetrial";
-      else userSegmentMap[d.user_id] = "Free";
-    }
-  });
-
   // Better Approach: Iterate all users
   const now = new Date();
   Object.keys(userActiveDates).forEach((userId) => {
@@ -833,11 +848,24 @@ export function processData(
   ["Pro", "Freetrial", "Free"].forEach((seg) => {
     retentionMetrics.bySegment.d1[seg] =
       usersForD1 > 0 ? (segmentCountsD1[seg] / usersForD1) * 100 : 0;
+    retentionMetrics.bySegment.d1[`${seg}Count`] = segmentCountsD1[seg];
+
     retentionMetrics.bySegment.d3[seg] =
       usersForD3 > 0 ? (segmentCountsD3[seg] / usersForD3) * 100 : 0;
+    retentionMetrics.bySegment.d3[`${seg}Count`] = segmentCountsD3[seg];
+
     retentionMetrics.bySegment.d7[seg] =
       usersForD7 > 0 ? (segmentCountsD7[seg] / usersForD7) * 100 : 0;
+    retentionMetrics.bySegment.d7[`${seg}Count`] = segmentCountsD7[seg];
   });
+
+  // Add total counts and denominators for each bucket
+  retentionMetrics.d1Count = d1Count;
+  retentionMetrics.d1Total = usersForD1;
+  retentionMetrics.d3Count = d3Count;
+  retentionMetrics.d3Total = usersForD3;
+  retentionMetrics.d7Count = d7Count;
+  retentionMetrics.d7Total = usersForD7;
 
   // Calculate Power User details (Top 5)
   // Updated threshold to 5+ prompts (handled in powerUserRate)
@@ -1175,7 +1203,7 @@ export function processData(
     installationMetrics: installationMetrics,
     // Get slowest prompts (top 5 by processing time)
     slowestPrompts: unique
-      .filter(d => d.processing_time && !isNaN(Number(d.processing_time)))
+      .filter((d) => d.processing_time && !isNaN(Number(d.processing_time)))
       .sort((a, b) => Number(b.processing_time) - Number(a.processing_time))
       .slice(0, 5)
       .map((d) => ({

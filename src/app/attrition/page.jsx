@@ -189,7 +189,7 @@ export default function AttritionPage() {
             subtitle="Power Users Lost"
             icon={Anchor}
             color={COLORS.warning}
-            tooltip={`Users with >${powerUserThreshold} prompts who churned`}
+            tooltip={`Count of Power Users (${powerUserThreshold}+ prompts) who have churned. Losing these users is considered 'regrettable' as they had already formed a strong usage habit.`}
             chart={
               data.dailyActivity?.length > 0 ? (
                 <SparklineV2
@@ -216,7 +216,7 @@ export default function AttritionPage() {
             subtitle="Avg time to churn"
             icon={Clock}
             color={COLORS.info}
-            tooltip="Average days between first and last prompt for churned users"
+            tooltip="Average number of days between the first and last prompt for churned users. Longer lifespans indicate higher initial engagement before eventually dropping off."
             chart={
               data.dailyActivity?.length > 0 ? (
                 <SparklineV2
@@ -237,33 +237,6 @@ export default function AttritionPage() {
               ) : null
             }
           />
-          <MetricCard
-            title="Exit Trigger"
-            value={`${exitTriggerRate.toFixed(1)}%`}
-            subtitle="Failed on last prompt"
-            icon={AlertCircle}
-            color={COLORS.secondary}
-            tooltip="% of churned users whose last prompt failed"
-            chart={
-              data.dailyActivity?.length > 0 ? (
-                <SparklineV2
-                  data={data.dailyActivity}
-                  dataKey="exitTriggerRate"
-                  color={COLORS.secondary}
-                />
-              ) : null
-            }
-            detailedChart={
-              data.dailyActivity?.length > 0 ? (
-                <DetailedChartV2
-                  data={data.dailyActivity}
-                  dataKey="exitTriggerRate"
-                  color={COLORS.secondary}
-                  title="Daily Exit Trigger Rate (%)"
-                />
-              ) : null
-            }
-          />
         </div>
       </section>
 
@@ -272,7 +245,7 @@ export default function AttritionPage() {
         {/* Whale Scatter Plot */}
         <ChartCard
           title="Whale Scatter Plot (Power User Loss)"
-          tooltip="Red dots high up are Regrettable Churn"
+          tooltip="This chart visualizes user loyalty (Days Active) vs. product depth (Lifetime Prompts). Green dots represent active users, while red dots show churned users. Users in the top-right quadrant are your most valuable 'Whales', and their loss is considered critical regrettable churn."
         >
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -292,13 +265,32 @@ export default function AttritionPage() {
                   content={({ active, payload }) => {
                     if (active && payload && payload.length) {
                       const d = payload[0].payload;
+                      const isPower = d.y >= 20;
                       return (
-                        <div className="bg-black/90 border border-white/10 rounded-xl p-3 shadow-2xl backdrop-blur-xl text-xs text-white">
-                          <p className="font-bold mb-1">{d.status}</p>
-                          <div className="grid gap-1 opacity-90">
-                            <p>User: {String(d.userId || "").slice(0, 8)}...</p>
-                            <p>Active: {d.x} days</p>
-                            <p>Prompts: {d.y}</p>
+                        <div className="bg-black/90 border border-white/10 rounded-xl p-3 shadow-2xl backdrop-blur-xl text-[10px] text-white min-w-[140px]">
+                          <div className="flex justify-between items-center mb-2 border-b border-white/10 pb-1">
+                            <span
+                              className={`font-bold px-1.5 py-0.5 rounded ${d.status === "Active" ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}
+                            >
+                              {d.status}
+                            </span>
+                            <span className="text-white/40">
+                              {isPower ? "Power User" : "Casual"}
+                            </span>
+                          </div>
+                          <div className="space-y-1">
+                            <div className="flex justify-between">
+                              <span className="text-white/50">User ID</span>
+                              <span>{String(d.userId || "").slice(0, 8)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-white/50">Lifespan</span>
+                              <span>{d.x} days</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-white/50">Prompts</span>
+                              <span>{d.y} units</span>
+                            </div>
                           </div>
                         </div>
                       );
@@ -326,7 +318,7 @@ export default function AttritionPage() {
         {/* Survival Curve */}
         <ChartCard
           title="User Survival Curve"
-          tooltip="% of users remaining active over time"
+          tooltip="Shows the percentage of users who remain active 'X' days after their first signup. A flattening curve (asymptotic) indicates healthy long-term retention, while a curve that drops to zero quickly suggests users aren't finding lasting value beyond the first few sessions."
         >
           <ChartContainer config={chartConfig} className="h-[300px] w-full">
             <LineChart
@@ -343,7 +335,33 @@ export default function AttritionPage() {
                 }}
               />
               <YAxis unit="%" />
-              <ChartTooltip content={<ChartTooltipContent />} />
+              <Tooltip
+                content={({ active, payload }) => {
+                  if (active && payload && payload.length) {
+                    const d = payload[0].payload;
+                    return (
+                      <div className="bg-black/90 border border-white/10 rounded-xl p-3 shadow-2xl backdrop-blur-xl text-[10px] text-white">
+                        <p className="font-bold border-b border-white/10 pb-1 mb-1">
+                          Retention Snapshot
+                        </p>
+                        <div className="space-y-1">
+                          <div className="flex justify-between gap-4">
+                            <span className="text-white/50">Timeline</span>
+                            <span>Day {d.day}</span>
+                          </div>
+                          <div className="flex justify-between gap-4">
+                            <span className="text-white/50">Survival</span>
+                            <span className="text-primary font-bold">
+                              {d.survival.toFixed(1)}%
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
               <Line
                 type="monotone"
                 dataKey="survival"

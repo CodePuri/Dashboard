@@ -230,36 +230,49 @@ export function MetricCard({
   tooltip,
   chart,
   detailedChart, // New prop for larger chart
+  dialogContent, // Custom content for the dialog
   className,
 }) {
   return (
     <div
       className={cn(
-        "rounded-xl border bg-card p-4 transition-all hover:shadow-md dark:hover:bg-accent/5 flex flex-col gap-4",
+        "rounded-xl border bg-card p-4 transition-all hover:shadow-md dark:hover:bg-accent/5 flex flex-col gap-4 min-w-0 overflow-hidden",
         className,
       )}
     >
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs font-semibold text-muted-foreground/80 tracking-tight uppercase">
-            {title}
-          </span>
-          {tooltip && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Info className="h-3.5 w-3.5 text-muted-foreground/40 cursor-help hover:text-muted-foreground transition-colors" />
-              </TooltipTrigger>
-              <TooltipContent
-                side="top"
-                className="max-w-xs text-[11px] leading-relaxed bg-popover/90 text-popover-foreground backdrop-blur-md border-primary/20"
-              >
-                {tooltip}
-              </TooltipContent>
-            </Tooltip>
+        <div className="flex items-center gap-2">
+          {Icon && (
+            <div
+              className="p-1.5 rounded-lg bg-muted/5 flex items-center justify-center"
+              style={{ color: `${color}44` }}
+            >
+              <Icon className="h-4 w-4" style={{ color: color }} />
+            </div>
           )}
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-semibold text-muted-foreground/80 tracking-tight uppercase">
+              {title}
+            </span>
+            {tooltip && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button className="text-muted-foreground/30 transition-colors hover:text-primary outline-none focus-visible:ring-1 focus-visible:ring-primary rounded-full p-0.5">
+                    <Info className="h-3.5 w-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent
+                  side="top"
+                  className="max-w-xs text-[11px] leading-relaxed bg-popover/90 text-popover-foreground backdrop-blur-md border-primary/20"
+                >
+                  {tooltip}
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </div>
         </div>
 
-        {detailedChart && (
+        {(detailedChart || dialogContent) && (
           <Dialog>
             <DialogTrigger asChild>
               <button
@@ -269,22 +282,44 @@ export function MetricCard({
                 <Maximize2 className="h-3.5 w-3.5 hover:text-[var(--hover-color)] transition-colors" />
               </button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[700px] bg-background/95 backdrop-blur-sm">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <span className="text-xl font-bold tracking-tight">
-                    {title}
-                  </span>
+            <DialogContent
+              className={cn(
+                "bg-background/95 backdrop-blur-sm border-primary/10 overflow-hidden flex flex-col gap-0 p-0 sm:rounded-2xl",
+                dialogContent
+                  ? "sm:max-w-[95vw] lg:max-w-[1000px] h-[85vh] sm:h-[600px]"
+                  : "sm:max-w-[700px]",
+              )}
+            >
+              <DialogHeader className="p-6 pb-2 border-b border-border/40">
+                <DialogTitle className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    {Icon && (
+                      <Icon className="h-5 w-5" style={{ color: color }} />
+                    )}
+                    <span className="text-xl font-bold tracking-tight">
+                      {title}
+                    </span>
+                  </div>
+                  <div className="h-6 w-px bg-border/60 mx-1" />
                   <span
-                    className="text-2xl font-bold ml-2"
+                    className="text-2xl font-black tabular-nums"
                     style={{ color: color }}
                   >
                     {value}
                   </span>
                 </DialogTitle>
               </DialogHeader>
-              <div className="mt-6 h-[350px] w-full animate-in zoom-in-95 duration-300">
-                {detailedChart}
+
+              <div className="flex-1 overflow-auto p-6 scrollbar-thin">
+                {dialogContent ? (
+                  <div className="animate-in fade-in zoom-in-95 duration-500 h-full">
+                    {dialogContent}
+                  </div>
+                ) : (
+                  <div className="h-[350px] w-full animate-in zoom-in-95 duration-300">
+                    {detailedChart}
+                  </div>
+                )}
               </div>
             </DialogContent>
           </Dialog>
@@ -321,7 +356,7 @@ export function MetricCard({
         </div>
 
         {chart && (
-          <div className="flex-1 max-w-[200px] h-[80px] animate-in fade-in duration-700">
+          <div className="flex-1 min-w-0 max-w-[200px] h-[60px] sm:h-[80px] animate-in fade-in duration-700">
             {chart}
           </div>
         )}
@@ -340,7 +375,7 @@ export function ChartCard({
   return (
     <div
       className={cn(
-        "rounded-2xl border bg-card/50 backdrop-blur-xl text-card-foreground p-5 sm:p-6 shadow-xl shadow-black/5 flex flex-col h-full transition-all hover:bg-card/60 hover:shadow-2xl hover:shadow-black/10",
+        "rounded-2xl border bg-card/50 backdrop-blur-xl text-card-foreground p-4 sm:p-5 md:p-6 shadow-xl shadow-black/5 flex flex-col h-full min-w-0 overflow-hidden transition-all hover:bg-card/60 hover:shadow-2xl hover:shadow-black/10",
         className,
       )}
     >

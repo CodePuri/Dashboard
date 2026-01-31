@@ -88,9 +88,20 @@ export async function GET(request) {
       free: parseInt(row.free_users || 0),
       trial: parseInt(row.trial_users || 0),
       pro: parseInt(row.pro_users || 0),
-      freePower: parseInt(row.free_power || 0),
-      trialPower: parseInt(row.trial_power || 0),
-      proPower: parseInt(row.pro_power || 0),
+      // Aggregated Power Counts (Legacy support for Overview page)
+      freePower:
+        parseInt(row.free_power_5 || 0) + parseInt(row.free_power_gt_5 || 0),
+      trialPower:
+        parseInt(row.trial_power_5 || 0) + parseInt(row.trial_power_gt_5 || 0),
+      proPower:
+        parseInt(row.pro_power_5 || 0) + parseInt(row.pro_power_gt_5 || 0),
+      // Granular Power Counts (New support for Acquisition page)
+      freePower5: parseInt(row.free_power_5 || 0),
+      freePowerGt5: parseInt(row.free_power_gt_5 || 0),
+      trialPower5: parseInt(row.trial_power_5 || 0),
+      trialPowerGt5: parseInt(row.trial_power_gt_5 || 0),
+      proPower5: parseInt(row.pro_power_5 || 0),
+      proPowerGt5: parseInt(row.pro_power_gt_5 || 0),
       total: parseInt(row.total_users || 0),
     }));
 
