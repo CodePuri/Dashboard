@@ -67,7 +67,7 @@ export default function ConversionPage() {
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-              Conversion
+              Funnel
             </h1>
             <p className="text-muted-foreground">Loading...</p>
           </div>
@@ -103,10 +103,10 @@ export default function ConversionPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
-            Conversion
+            Funnel
           </h1>
           <p className="mt-2 text-muted-foreground text-sm md:text-base">
-            Who takes action and completes key goals
+            User onboarding and monetization opportunities
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-4 items-end sm:items-center">
@@ -121,7 +121,7 @@ export default function ConversionPage() {
         </div>
       </div>
 
-      {/* Metrics */}
+      {/* Metrics
       <section>
         <h2 className="text-lg md:text-xl font-bold mb-4 pb-2 border-b-2">
           Conversion Metrics
@@ -237,72 +237,42 @@ export default function ConversionPage() {
           />
         </div>
       </section>
+      */}
 
       {/* Growth & Monetization */}
       <section>
         <h2 className="text-lg md:text-xl font-bold mb-4 pb-2 border-b-2">
           Growth & Monetization
         </h2>
-        <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-3">
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-3 items-start">
           {/* Opportunity Metrics */}
-          <div className="grid gap-4 grid-cols-1 lg:col-span-1">
-            <MetricCard
-              title="Onboarding Completion"
-              value={`${(data?.conversion?.activationRate || 0).toFixed(1)}%`}
-              subtitle={`${data?.conversion?.activatedUsers || 0} users completed`}
-              icon={CheckCircle}
-              color={COLORS.success}
-              tooltip="Activation Rate (%). Percentage of signups found in the onboarding_data table."
-              chart={
-                dailyInstallationMetrics.length > 0 ? (
-                  <SparklineV2
-                    data={dailyInstallationMetrics}
-                    dataKey="signups"
-                    color={COLORS.success}
-                  />
-                ) : null
-              }
-              detailedChart={
-                dailyInstallationMetrics.length > 0 ? (
-                  <DetailedChartV2
-                    data={dailyInstallationMetrics}
-                    dataKey="signups"
-                    color={COLORS.success}
-                    title="Daily Signups"
-                  />
-                ) : null
-              }
-            />
-            <MetricCard
-              title="Upgrade Candidates"
-              value={(
-                data?.conversion?.potentialPaidUsers || 0
-              ).toLocaleString()}
-              subtitle="High Value Free Users"
-              icon={TrendingUp}
-              color={COLORS.warning}
-              tooltip="Upgrade Candidates (Count). Free tier users who have submitted more than 20 prompts (Power Users)."
-              chart={
-                dailyActivity.length > 0 ? (
-                  <SparklineV2
-                    data={dailyActivity}
-                    dataKey="powerUsers"
-                    color={COLORS.warning}
-                  />
-                ) : null
-              }
-              detailedChart={
-                dailyActivity.length > 0 ? (
-                  <DetailedChartV2
-                    data={dailyActivity}
-                    dataKey="powerUsers"
-                    color={COLORS.warning}
-                    title="Daily Upgrade Candidate Trend"
-                  />
-                ) : null
-              }
-            />
-          </div>
+          <MetricCard
+            title="Onboarding Completion"
+            value={`${(data?.conversion?.onboardingCompletionRate || 0).toFixed(1)}%`}
+            subtitle={`${data?.conversion?.activatedUsers || 0} users completed`}
+            icon={CheckCircle}
+            color={COLORS.success}
+            tooltip="Activation Rate (%). Percentage of signups found in the onboarding_data table."
+            chart={
+              dailyInstallationMetrics.length > 0 ? (
+                <SparklineV2
+                  data={dailyInstallationMetrics}
+                  dataKey="signups"
+                  color={COLORS.success}
+                />
+              ) : null
+            }
+            detailedChart={
+              dailyInstallationMetrics.length > 0 ? (
+                <DetailedChartV2
+                  data={dailyInstallationMetrics}
+                  dataKey="signups"
+                  color={COLORS.success}
+                  title="Daily Signups"
+                />
+              ) : null
+            }
+          />
 
           <div className="lg:col-span-2">
             <ChartCard
@@ -320,8 +290,8 @@ export default function ConversionPage() {
                 >
                   <CartesianGrid
                     strokeDasharray="3 3"
-                    horizontal={true}
-                    vertical={false}
+                    horizontal={false}
+                    vertical={true}
                   />
                   <XAxis type="number" hide />
                   <YAxis
@@ -333,25 +303,10 @@ export default function ConversionPage() {
                   />
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Bar
-                    dataKey="Free"
-                    stackId="a"
-                    fill={SEGMENT_COLORS.Free}
-                    radius={[0, 0, 0, 0]}
-                    barSize={24}
-                  />
-                  <Bar
-                    dataKey="Freetrial"
-                    stackId="a"
-                    fill={SEGMENT_COLORS.Freetrial}
-                    radius={[0, 0, 0, 0]}
-                    barSize={24}
-                  />
-                  <Bar
-                    dataKey="Pro"
-                    stackId="a"
-                    fill={SEGMENT_COLORS.Pro}
+                    dataKey="count"
+                    fill={chartConfig.count.color}
                     radius={[0, 4, 4, 0]}
-                    barSize={24}
+                    barSize={32}
                   />
                 </BarChart>
               </ChartContainer>

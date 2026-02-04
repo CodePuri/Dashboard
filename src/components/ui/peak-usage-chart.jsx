@@ -91,9 +91,6 @@ const CustomTooltip = ({ active, payload, label }) => {
                   <span className="font-mono font-bold text-foreground">
                     {val?.toFixed(1)}
                   </span>
-                  <span className="text-[9px] text-muted-foreground/60 w-7 text-right">
-                    {getPercent(val)}
-                  </span>
                 </div>
               </div>
             );
@@ -113,8 +110,7 @@ const CustomTooltip = ({ active, payload, label }) => {
               </span>
             </div>
             <p className="text-[8px] text-muted-foreground/80 italic mt-1.5 leading-tight opacity-80">
-              * Number: Average max prompts per user. Percentage: % of total
-              weight for that day.
+              * Number: Average max prompts per user.
             </p>
           </div>
         </div>

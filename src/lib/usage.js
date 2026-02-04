@@ -1,4 +1,5 @@
 import { calculatePromptComplexity } from "./utils.js";
+import { TIME_SAVED_CAP_MINUTES, POWER_USER_THRESHOLD } from "./constants.js";
 
 /**
  * Logic for classifying users into behavioral segments: Power, Casual, Dead.
@@ -27,7 +28,10 @@ export function processUsageData(rawData, startDate, endDate) {
         refineCount: 0,
         totalTokens: 0,
         status: (row.user_status || "free").toLowerCase(),
-        occupation: row.occupation || "Unknown",
+        occupation:
+          row.occupation && row.occupation !== "Unknown"
+            ? row.occupation
+            : "Not Specified",
         signupDate: row.user_signup_date
           ? new Date(row.user_signup_date)
           : new Date(),
@@ -77,8 +81,8 @@ export function processUsageData(rawData, startDate, endDate) {
       const len = row.user_prompt.length;
       const promptRecord = {
         id: row.prompt_id,
-        userName: row.name || "Anon",
-        userEmail: row.email || "N/A",
+        name: row.name || "Anon",
+        email: row.email || "N/A",
         content: row.user_prompt,
         length: len,
         date: row.created_at || null,
@@ -98,7 +102,7 @@ export function processUsageData(rawData, startDate, endDate) {
         if (result.level === "high") multiplier = 1.4;
 
         let savedMinutes = (extraWords / 40) * multiplier;
-        savedMinutes = Math.min(savedMinutes, 6);
+        savedMinutes = Math.min(savedMinutes, TIME_SAVED_CAP_MINUTES);
         totalTimeSaved += savedMinutes;
       }
     }
@@ -149,7 +153,7 @@ export function processUsageData(rawData, startDate, endDate) {
     record.isDead = false;
 
     if (
-      totalPrompts > 5 &&
+      totalPrompts > POWER_USER_THRESHOLD &&
       activeDays > 1 &&
       (multiModes || heavyRefine) &&
       isRecentlyActive

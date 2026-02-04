@@ -1,11 +1,11 @@
 import { calculatePromptComplexity } from "./utils.js";
-
-// Helper to get date shifted to IST (UTC + 5:30) for display alignment
-function getDisplayDate(dateStr) {
-  const date = new Date(dateStr);
-  // Add 5 hours 30 minutes to recover Local Face Value from the UTC-shifted string
-  return new Date(date.getTime() + 5.5 * 60 * 60 * 1000);
-}
+import {
+  TIME_SAVED_CAP_MINUTES,
+  POWER_USER_THRESHOLD,
+  UPGRADE_CANDIDATE_THRESHOLD,
+  TOKEN_PRICING,
+} from "./constants.js";
+import { getDisplayDate } from "./date-utils.js";
 
 export function processData(
   data,
@@ -16,7 +16,44 @@ export function processData(
   installationMetrics = null,
   prevData = [],
 ) {
-  // Helper to calculate core metrics for a dataset
+  const getSegment = (d) => {
+    const status = (d.user_status || "").toLowerCase();
+    if (
+      status.includes("paid") ||
+      status.includes("pro") ||
+      status.includes("premium")
+    )
+      return "Pro";
+    if (status.includes("trial")) return "Freetrial";
+    return "Free";
+  };
+
+  const buildDistribution = (data, keyFn) => {
+    const counts = {};
+    data.forEach((d) => {
+      const key = keyFn(d);
+      const segment = getSegment(d);
+      if (!counts[key])
+        counts[key] = { total: 0, Free: 0, Freetrial: 0, Pro: 0 };
+      counts[key].total++;
+      counts[key][segment]++;
+    });
+    return counts;
+  };
+
+  const toArray = (counts, topK = null) => {
+    let entries = Object.entries(counts).map(([name, val]) => ({
+      name,
+      count: val.total,
+      Free: val.Free,
+      Freetrial: val.Freetrial,
+      Pro: val.Pro,
+    }));
+    entries.sort((a, b) => b.count - a.count);
+    if (topK) entries = entries.slice(0, topK);
+    return entries;
+  };
+
   const calculateCoreMetrics = (dataset) => {
     const seen = new Set();
     const unique = dataset.filter((item) => {
@@ -47,7 +84,7 @@ export function processData(
         let savedMinutes = (extraWords / 40) * multiplier;
 
         // Hard Cap: 10 minutes max per prompt to prevent outliers
-        savedMinutes = Math.min(savedMinutes, 10);
+        savedMinutes = Math.min(savedMinutes, TIME_SAVED_CAP_MINUTES);
 
         totalTimeSaved += savedMinutes;
       }
@@ -78,6 +115,49 @@ export function processData(
     return ((curr - prev) / prev) * 100;
   };
 
+  const calculateD1Retention = (dataset) => {
+    if (!dataset || dataset.length === 0) return 0;
+
+    const userActiveDates = {};
+    dataset.forEach((d) => {
+      if (String(d.user_id) === "329") return; // Exclude test user
+
+      const displayDate = getDisplayDate(d.prompt_created_at);
+      const date = displayDate.toISOString().split("T")[0];
+
+      if (!userActiveDates[d.user_id]) userActiveDates[d.user_id] = new Set();
+      userActiveDates[d.user_id].add(date);
+    });
+
+    // Use endDate as reference for 'now' if provided
+    const refDate = endDate ? new Date(endDate) : new Date();
+    let d1Count = 0;
+    let eligibleUsers = 0;
+
+    Object.values(userActiveDates).forEach((datesSet) => {
+      const dates = Array.from(datesSet).sort();
+      if (dates.length === 0) return;
+
+      const firstDate = new Date(dates[0]);
+      const d1Target = new Date(firstDate);
+      d1Target.setDate(d1Target.getDate() + 1);
+      const d1Str = d1Target.toISOString().split("T")[0];
+
+      // Check eligibility (older than 1 day relative to reference date)
+      if ((refDate - firstDate) / (1000 * 60 * 60 * 24) >= 1) {
+        eligibleUsers++;
+        if (datesSet.has(d1Str)) {
+          d1Count++;
+        }
+      }
+    });
+
+    return eligibleUsers > 0 ? (d1Count / eligibleUsers) * 100 : 0;
+  };
+
+  const currentRetention = calculateD1Retention(data);
+  const prevRetention = calculateD1Retention(prevData);
+
   const trends = {
     prompts: calculateTrend(currentMetrics.total, previousMetrics.total),
     users: calculateTrend(
@@ -88,12 +168,17 @@ export function processData(
       currentMetrics.timeSavedHours,
       previousMetrics.timeSavedHours,
     ),
+    retention: calculateTrend(currentRetention, prevRetention),
   };
-  // Remove duplicates
+  // Remove duplicates by prompt_id
   const seen = new Set();
   const unique = data.filter((item) => {
-    // Exclude Aniket Sir (Tester) - ID 329
+    // Exclude test user - ID 329
     if (String(item.user_id) === "329") {
+      return false;
+    }
+    // Skip if we've already seen this prompt_id
+    if (seen.has(item.prompt_id)) {
       return false;
     }
     seen.add(item.prompt_id);
@@ -141,8 +226,8 @@ export function processData(
       // Base Calculation
       let savedMinutes = (extraWords / 40) * multiplier;
 
-      // Hard Cap: 6 minutes
-      savedMinutes = Math.min(savedMinutes, 6);
+      // Hard Cap
+      savedMinutes = Math.min(savedMinutes, TIME_SAVED_CAP_MINUTES);
 
       debugLog.push({
         prompt:
@@ -159,14 +244,6 @@ export function processData(
     }
   });
 
-  if (debugLog.length > 0) {
-    console.groupCollapsed(
-      "⏱️ Time Saved Calculation Details (" + debugLog.length + " prompts)",
-    );
-    console.table(debugLog);
-    console.groupEnd();
-  }
-
   const totalTimeSavedHours = totalTimeSaved / 60;
 
   // Refinement rate
@@ -174,41 +251,29 @@ export function processData(
   const refineRate = total > 0 ? (refinedCount / total) * 100 : 0;
 
   // Intent distribution
-  const intentCounts = {};
-  unique.forEach((d) => {
+  const intentCounts = buildDistribution(unique, (d) => {
     let intent = d.intent || "General";
     if (intent === "General") intent = "general_query";
-    intentCounts[intent] = (intentCounts[intent] || 0) + 1;
+    return intent;
   });
-  const topIntents = Object.entries(intentCounts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 10)
-    .map(([name, count]) => ({ name, count }));
+  const topIntents = toArray(intentCounts, 10);
 
   // Domain distribution
-  const domainCounts = {};
-  unique.forEach((d) => {
+  const domainCounts = buildDistribution(unique, (d) => {
     let domain = d.domain || "General";
     if (domain === "General") domain = "general";
-    domainCounts[domain] = (domainCounts[domain] || 0) + 1;
+    return domain;
   });
-  const topDomains = Object.entries(domainCounts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 10)
-    .map(([name, count]) => ({ name, count }));
+  const topDomains = toArray(domainCounts, 10);
 
   // Mode distribution
-  const modeCounts = {};
-  unique.forEach((d) => {
+  const modeCounts = buildDistribution(unique, (d) => {
     let mode = d.mode || "standard";
     if (mode === "enhance" || mode === null) mode = "standard";
     if (mode === "research") mode = "deep research";
-    modeCounts[mode] = (modeCounts[mode] || 0) + 1;
+    return mode;
   });
-  const modeData = Object.entries(modeCounts).map(([name, count]) => ({
-    name,
-    count,
-  }));
+  const modeData = toArray(modeCounts);
 
   // Daily active users and active paid users
   const dailyActiveUsers = {};
@@ -376,7 +441,7 @@ export function processData(
           if (complexity.level === "high") multiplier = 1.4;
 
           let savedMinutes = (extraWords / 40) * multiplier;
-          savedMinutes = Math.min(savedMinutes, 6); // Cap
+          savedMinutes = Math.min(savedMinutes, TIME_SAVED_CAP_MINUTES); // Cap
           dayTimeSavedMinutes += savedMinutes;
         }
       }
@@ -396,11 +461,13 @@ export function processData(
     const totalDayActiveUsers = dayActiveUsersList.length;
 
     let daySegmentMaxSum = { Free: 0, Freetrial: 0, Pro: 0 };
+    let daySegmentUserCounts = { Free: 0, Freetrial: 0, Pro: 0 };
 
     dayActiveUsersList.forEach((uid) => {
       const maxPromptsOnDay = userDailyPrompts[uid]?.[date] || 0;
       const segment = userSegmentMap[uid] || "Free";
       daySegmentMaxSum[segment] += maxPromptsOnDay;
+      daySegmentUserCounts[segment]++;
     });
 
     return {
@@ -408,17 +475,19 @@ export function processData(
       prompts: count,
       users: totalDayActiveUsers,
       peakUsage,
+      // Change: Divide by segment user count for "Avg Intensity of Segment" or total users?
+      // User asked for "peak". If we stick to "Avg Max Prompts", splitting the average by segment user base is more accurate for "Segment Intensity".
       peakFree:
-        totalDayActiveUsers > 0
-          ? daySegmentMaxSum.Free / totalDayActiveUsers
+        daySegmentUserCounts.Free > 0
+          ? daySegmentMaxSum.Free / daySegmentUserCounts.Free
           : 0,
       peakTrial:
-        totalDayActiveUsers > 0
-          ? daySegmentMaxSum.Freetrial / totalDayActiveUsers
+        daySegmentUserCounts.Freetrial > 0
+          ? daySegmentMaxSum.Freetrial / daySegmentUserCounts.Freetrial
           : 0,
       peakPro:
-        totalDayActiveUsers > 0
-          ? daySegmentMaxSum.Pro / totalDayActiveUsers
+        daySegmentUserCounts.Pro > 0
+          ? daySegmentMaxSum.Pro / daySegmentUserCounts.Pro
           : 0,
       peakTotal:
         totalDayActiveUsers > 0
@@ -441,17 +510,20 @@ export function processData(
       outputTokens: dayOutputTokens,
       totalTokens: dayInputTokens + dayOutputTokens,
       totalCost:
-        (dayInputTokens / 1_000_000) * 1.0 +
-        (dayOutputTokens / 1_000_000) * 3.0,
+        (dayInputTokens / 1_000_000) * TOKEN_PRICING.input +
+        (dayOutputTokens / 1_000_000) * TOKEN_PRICING.output,
       avgProcessingTime: avgDayProcessingTime,
       timeSavedHours: dayTimeSavedMinutes / 60,
       avgTimeSavedMinutes: count > 0 ? dayTimeSavedMinutes / count : 0,
       enhancementRate: count > 0 ? (dayEnhancedCount / count) * 100 : 0,
+      refinedCount: dayRefinedCount,
       refineRate: count > 0 ? (dayRefinedCount / count) * 100 : 0,
       expansionRatio:
         dayTotalUserWords > 0 ? dayTotalEnhancedWords / dayTotalUserWords : 0,
     };
   });
+
+  // Day of week distribution
 
   // Day of week distribution
   const dayNames = [
@@ -463,21 +535,13 @@ export function processData(
     "Friday",
     "Saturday",
   ];
-  const dowCounts = {
-    Monday: 0,
-    Tuesday: 0,
-    Wednesday: 0,
-    Thursday: 0,
-    Friday: 0,
-    Saturday: 0,
-    Sunday: 0,
-  };
-  unique.forEach((d) => {
+  const dowCounts = buildDistribution(unique, (d) => {
     const displayDate = getDisplayDate(d.prompt_created_at);
-    const day = dayNames[displayDate.getUTCDay()]; // Use UTC methods on shifted date
-    dowCounts[day] = (dowCounts[day] || 0) + 1;
+    return dayNames[displayDate.getUTCDay()];
   });
-  const dayOfWeekData = [
+
+  // Ensure order
+  const dayOrder = [
     "Monday",
     "Tuesday",
     "Wednesday",
@@ -485,38 +549,52 @@ export function processData(
     "Friday",
     "Saturday",
     "Sunday",
-  ].map((name) => ({ name, count: dowCounts[name] }));
+  ];
+  const dayOfWeekData = dayOrder.map((name) => {
+    const val = dowCounts[name] || { total: 0, Free: 0, Freetrial: 0, Pro: 0 };
+    return {
+      name,
+      count: val.total,
+      Free: val.Free,
+      Freetrial: val.Freetrial,
+      Pro: val.Pro,
+    };
+  });
 
   // Time period distribution
-  const periodCounts = {
-    Night: 0,
-    Morning: 0,
-    Afternoon: 0,
-    Evening: 0,
-  };
-  unique.forEach((d) => {
+  const periodCounts = buildDistribution(unique, (d) => {
     const displayDate = getDisplayDate(d.prompt_created_at);
-    const hour = displayDate.getUTCHours(); // Use UTC methods on shifted date
-    let period = "Night";
-    if (hour >= 6 && hour < 12) period = "Morning";
-    else if (hour >= 12 && hour < 18) period = "Afternoon";
-    else if (hour >= 18 && hour < 24) period = "Evening";
-    periodCounts[period] = (periodCounts[period] || 0) + 1;
+    const hour = displayDate.getUTCHours();
+    if (hour >= 6 && hour < 12) return "Morning";
+    if (hour >= 12 && hour < 18) return "Afternoon";
+    if (hour >= 18 && hour < 24) return "Evening";
+    return "Night";
   });
-  const timePeriodData = ["Morning", "Afternoon", "Evening", "Night"].map(
-    (name) => ({ name, count: periodCounts[name] }),
-  );
+
+  const periodOrder = ["Morning", "Afternoon", "Evening", "Night"];
+  const timePeriodData = periodOrder.map((name) => {
+    const val = periodCounts[name] || {
+      total: 0,
+      Free: 0,
+      Freetrial: 0,
+      Pro: 0,
+    };
+    return {
+      name,
+      count: val.total,
+      Free: val.Free,
+      Freetrial: val.Freetrial,
+      Pro: val.Pro,
+    };
+  });
 
   // LLM distribution
-  const llmCounts = {};
-  unique.forEach((d) => {
+  const llmCounts = buildDistribution(unique, (d) => {
     let llm = d.llm_used || "Unknown";
     if (llm === "Unknown") llm = "ChatGPT";
-    llmCounts[llm] = (llmCounts[llm] || 0) + 1;
+    return llm;
   });
-  const llmData = Object.entries(llmCounts)
-    .sort((a, b) => b[1] - a[1])
-    .map(([name, count]) => ({ name, count }));
+  const llmData = toArray(llmCounts);
 
   // User segments
   const userPromptCounts = {};
@@ -728,10 +806,12 @@ export function processData(
   const dailyHabitUsers = dailyHabitUsersCount;
   const dormantHabitUsers = dormantHabitUsersCount;
 
-  // Power User: > 5 prompts
+  // Power User: > Threshold
   const powerUserRate =
     uniqueUsers > 0
-      ? (Object.values(userPromptCounts).filter((c) => c >= 5).length /
+      ? (Object.values(userPromptCounts).filter(
+          (c) => c >= POWER_USER_THRESHOLD,
+        ).length /
           uniqueUsers) *
         100
       : 0;
@@ -782,7 +862,7 @@ export function processData(
   });
 
   // Better Approach: Iterate all users
-  const now = new Date();
+  const refDate = endDate ? new Date(endDate) : new Date();
   Object.keys(userActiveDates).forEach((userId) => {
     const dates = userActiveDates[userId].sort();
     if (dates.length === 0) return;
@@ -804,7 +884,7 @@ export function processData(
     const segment = userSegmentMap[userId] || "Free";
 
     // Only count towards denominator if user is "old enough" to have retained
-    const diffDays = (now - firstDate) / (1000 * 60 * 60 * 24);
+    const diffDays = (refDate - firstDate) / (1000 * 60 * 60 * 24);
 
     if (diffDays >= 1) {
       if (hasActivityOn(d1Target)) {
@@ -831,7 +911,7 @@ export function processData(
     return Object.values(userActiveDates).filter((dates) => {
       if (dates.length === 0) return false;
       const firstDate = new Date(dates.sort()[0]);
-      return (now - firstDate) / (1000 * 60 * 60 * 24) >= days;
+      return (refDate - firstDate) / (1000 * 60 * 60 * 24) >= days;
     }).length;
   };
 
@@ -1035,7 +1115,7 @@ export function processData(
   // 1. Engagement Cohort (Power vs Casual)
   const engagementCounts = { Power: 0, Casual: 0 };
   Object.values(userPromptCounts).forEach((count) => {
-    if (count >= 50) engagementCounts.Power++;
+    if (count >= POWER_USER_THRESHOLD) engagementCounts.Power++;
     else engagementCounts.Casual++;
   });
 
@@ -1232,6 +1312,7 @@ export function processData(
       email: d.user_email || "—",
       prompt: d.user_prompt || "",
       enhancedPrompt: d.enhanced_prompt || "",
+      processingTime: Number(d.processing_time || 0),
       installed: d.installed,
       platform:
         d.llm_used && d.llm_used.toLowerCase().includes("velocity")

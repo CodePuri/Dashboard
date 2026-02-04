@@ -95,27 +95,23 @@ export default function AcquisitionPage() {
   const userSegments = insights?.userSegments || [];
   const activeUsersChartData = (data?.activeUsersChartData || []).map((d) => ({
     ...d,
-    // Reconstruct total power counts since we only get split counts from API now
-    freePower: (d.freePower5 || 0) + (d.freePowerGt5 || 0),
-    trialPower: (d.trialPower5 || 0) + (d.trialPowerGt5 || 0),
-    proPower: (d.proPower5 || 0) + (d.proPowerGt5 || 0),
+    // Granular fields for dual texture
+    freeLt5: d.freeLt5 || 0,
+    freeGe5: d.freeGe5 || 0,
+    trialLt5: d.trialLt5 || 0,
+    trialGe5: d.trialGe5 || 0,
+    proLt5: d.proLt5 || 0,
+    proGe5: d.proGe5 || 0,
   }));
 
   // Create dataset specifically for Power Users Chart (plotting ONLY power users)
   const powerUsersChartData = activeUsersChartData.map((d) => ({
     ...d,
-    // Override main bars to be just the power counts
-    free: d.freePower,
-    trial: d.trialPower,
-    pro: d.proPower,
-    total: d.freePower + d.trialPower + d.proPower,
-    // Preserve split counts for texturing
-    freePower5: d.freePower5,
-    freePowerGt5: d.freePowerGt5,
-    trialPower5: d.trialPower5,
-    trialPowerGt5: d.trialPowerGt5,
-    proPower5: d.proPower5,
-    proPowerGt5: d.proPowerGt5,
+    // Override main bars to be just the power counts (>= 5)
+    free: d.freeGe5,
+    trial: d.trialGe5,
+    pro: d.proGe5,
+    total: d.freeGe5 + d.trialGe5 + d.proGe5,
   }));
 
   // Daily Habit data
@@ -463,8 +459,8 @@ export default function AcquisitionPage() {
                         fill="#8b5cf6"
                         shape={
                           <PowerUserBar
-                            patternId5="stripe-pr-5-mini"
-                            patternIdGt5="stripe-pr-gt5-mini"
+                            patternIdLt5="stripe-pr-lt5-mini"
+                            patternIdGe5="stripe-pr-ge5-mini"
                           />
                         }
                         radius={[0, 0, 0, 0]}
@@ -475,8 +471,8 @@ export default function AcquisitionPage() {
                         fill="#d946ef"
                         shape={
                           <PowerUserBar
-                            patternId5="stripe-pr-5-mini"
-                            patternIdGt5="stripe-pr-gt5-mini"
+                            patternIdLt5="stripe-pr-lt5-mini"
+                            patternIdGe5="stripe-pr-ge5-mini"
                           />
                         }
                         radius={[0, 0, 0, 0]}
@@ -487,8 +483,8 @@ export default function AcquisitionPage() {
                         fill="#f43f5e"
                         shape={
                           <PowerUserBar
-                            patternId5="stripe-pr-5-mini"
-                            patternIdGt5="stripe-pr-gt5-mini"
+                            patternIdLt5="stripe-pr-lt5-mini"
+                            patternIdGe5="stripe-pr-ge5-mini"
                           />
                         }
                         radius={[2, 2, 0, 0]}
@@ -548,8 +544,8 @@ export default function AcquisitionPage() {
                         fill="#8b5cf6"
                         shape={
                           <PowerUserBar
-                            patternId5="stripe-pr-5-detailed"
-                            patternIdGt5="stripe-pr-gt5-detailed"
+                            patternIdLt5="stripe-pr-lt5-detailed"
+                            patternIdGe5="stripe-pr-ge5-detailed"
                           />
                         }
                         radius={[0, 0, 0, 0]}
@@ -560,8 +556,8 @@ export default function AcquisitionPage() {
                         fill="#d946ef"
                         shape={
                           <PowerUserBar
-                            patternId5="stripe-pr-5-detailed"
-                            patternIdGt5="stripe-pr-gt5-detailed"
+                            patternIdLt5="stripe-pr-lt5-detailed"
+                            patternIdGe5="stripe-pr-ge5-detailed"
                           />
                         }
                         radius={[0, 0, 0, 0]}
@@ -572,8 +568,8 @@ export default function AcquisitionPage() {
                         fill="#f43f5e"
                         shape={
                           <PowerUserBar
-                            patternId5="stripe-pr-5-detailed"
-                            patternIdGt5="stripe-pr-gt5-detailed"
+                            patternIdLt5="stripe-pr-lt5-detailed"
+                            patternIdGe5="stripe-pr-ge5-detailed"
                           />
                         }
                         radius={[4, 4, 0, 0]}

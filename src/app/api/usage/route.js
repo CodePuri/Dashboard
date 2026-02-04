@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 import { getUsageBehaviorData } from "@/lib/db";
 import { processUsageData } from "@/lib/usage";
-
-// const TEST_USER_IDS = [329]; // Disabled for production
-const TEST_USER_IDS = [];
+import { TEST_USER_IDS } from "@/lib/constants";
 
 export async function GET(request) {
   try {

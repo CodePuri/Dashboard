@@ -11,6 +11,9 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
+  BarChart,
+  Bar,
+  Cell,
 } from "recharts";
 import {
   ChartContainer,
@@ -58,6 +61,7 @@ export const SparklineV2 = ({
   dataKey,
   color = COLORS.primary,
   height = 50,
+  isAnimationActive = true,
 }) => {
   if (!data || data.length === 0) return null;
 
@@ -104,7 +108,7 @@ export const SparklineV2 = ({
             stroke={color}
             strokeWidth={2}
             fill={`url(#gradient-${dataKey})`}
-            isAnimationActive={true}
+            isAnimationActive={isAnimationActive}
             activeDot={false}
             dot={(props) => {
               const { cx, cy, index } = props;
@@ -130,11 +134,221 @@ export const SparklineV2 = ({
   );
 };
 
+export const RetentionDropOffSparkline = ({ data, color = COLORS.primary }) => {
+  if (!data || data.length === 0) return null;
+
+  return (
+    <ChartContainer
+      config={{
+        Free: { label: "Free", color: "#818cf8" },
+        Freetrial: { label: "Trial", color: "#c084fc" },
+        Pro: { label: "Pro", color: "#34d399" },
+      }}
+      className="w-full h-full"
+    >
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart
+          data={data}
+          margin={{ top: 15, right: 5, left: 5, bottom: 0 }}
+        >
+          <Bar
+            dataKey="Free"
+            stackId="retention"
+            fill="#818cf8"
+            radius={[0, 0, 0, 0]}
+            isAnimationActive={true}
+            barSize={32}
+          />
+          <Bar
+            dataKey="Freetrial"
+            stackId="retention"
+            fill="#c084fc"
+            radius={[0, 0, 0, 0]}
+            isAnimationActive={true}
+            barSize={32}
+          />
+          <Bar
+            dataKey="Pro"
+            stackId="retention"
+            fill="#34d399"
+            radius={[4, 4, 0, 0]}
+            isAnimationActive={true}
+            barSize={32}
+            label={{
+              position: "top",
+              fontSize: 9,
+              fontWeight: "900",
+              fill: color,
+              formatter: (v, entry) => {
+                const total =
+                  entry?.payload?.val ?? entry?.payload?.total ?? v ?? 0;
+                return `${Number(total).toFixed(0)}%`;
+              },
+            }}
+          />
+          <XAxis
+            dataKey="name"
+            hide={false}
+            axisLine={false}
+            tickLine={false}
+            tick={{ fontSize: 10, fontWeight: "700", fill: "#94a3b8" }}
+          />
+        </BarChart>
+      </ResponsiveContainer>
+    </ChartContainer>
+  );
+};
+
+export const RetentionTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="rounded-lg border bg-background/95 p-3 shadow-xl backdrop-blur-md border-border/50 min-w-[160px]">
+        <div className="text-xs font-semibold text-foreground mb-2">
+          {label} Retention
+        </div>
+        <div className="space-y-1.5">
+          <div className="flex justify-between items-center text-xs">
+            <div className="flex items-center gap-2">
+              <div className="w-2.5 h-2.5 rounded-sm bg-[#818cf8]" />
+              <span>Free</span>
+            </div>
+            <div className="flex flex-col items-end">
+              <span className="font-mono font-semibold">
+                {(data.Free || 0).toFixed(1)}%
+              </span>
+              <span className="text-[9px] text-muted-foreground">
+                ({data.FreeCount || 0} users)
+              </span>
+            </div>
+          </div>
+          <div className="flex justify-between items-center text-xs">
+            <div className="flex items-center gap-2">
+              <div className="w-2.5 h-2.5 rounded-sm bg-[#c084fc]" />
+              <span>Trial</span>
+            </div>
+            <div className="flex flex-col items-end">
+              <span className="font-mono font-semibold">
+                {(data.Freetrial || 0).toFixed(1)}%
+              </span>
+              <span className="text-[9px] text-muted-foreground">
+                ({data.FreetrialCount || 0} users)
+              </span>
+            </div>
+          </div>
+          <div className="flex justify-between items-center text-xs">
+            <div className="flex items-center gap-2">
+              <div className="w-2.5 h-2.5 rounded-sm bg-[#34d399]" />
+              <span>Pro</span>
+            </div>
+            <div className="flex flex-col items-end">
+              <span className="font-mono font-semibold">
+                {(data.Pro || 0).toFixed(1)}%
+              </span>
+              <span className="text-[9px] text-muted-foreground">
+                ({data.ProCount || 0} users)
+              </span>
+            </div>
+          </div>
+          <div className="border-t border-border/50 pt-1.5 mt-1.5 flex justify-between items-start text-xs">
+            <span className="font-medium mt-0.5">Total Retention</span>
+            <div className="flex flex-col items-end">
+              <span className="font-mono font-bold text-primary">
+                {(data.val || data.total || 0).toFixed(1)}%
+              </span>
+              <span className="text-[9px] text-muted-foreground font-medium">
+                ({data.totalCount || 0} users)
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
+export const RetentionDetailedChart = ({ data, color = COLORS.primary }) => {
+  if (!data || data.length === 0) return null;
+
+  return (
+    <ChartContainer
+      config={{
+        Free: { label: "Free", color: "#818cf8" },
+        Freetrial: { label: "Trial", color: "#c084fc" },
+        Pro: { label: "Pro", color: "#34d399" },
+      }}
+      className="h-[300px] w-full"
+    >
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart
+          data={data}
+          margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+        >
+          <CartesianGrid
+            strokeDasharray="3 3"
+            vertical={false}
+            stroke="currentColor"
+            className="text-muted-foreground/10"
+          />
+          <XAxis
+            dataKey="name"
+            axisLine={false}
+            tickLine={false}
+            tick={{
+              fontSize: 12,
+              fontWeight: "500",
+              fill: "var(--muted-foreground)",
+            }}
+          />
+          <YAxis
+            unit="%"
+            axisLine={false}
+            tickLine={false}
+            tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+          />
+          <ChartTooltip content={<RetentionTooltip />} />
+          <Bar
+            dataKey="Free"
+            stackId="retention"
+            fill="#818cf8" // Indigo
+            radius={[0, 0, 0, 0]}
+          />
+          <Bar
+            dataKey="Freetrial"
+            stackId="retention"
+            fill="#c084fc" // Purple
+            radius={[0, 0, 0, 0]}
+          />
+          <Bar
+            dataKey="Pro"
+            stackId="retention"
+            fill="#34d399" // Emerald
+            radius={[4, 4, 0, 0]}
+            label={{
+              position: "top",
+              fontSize: 12,
+              fontWeight: "900",
+              fill: "var(--foreground)",
+              formatter: (v, entry) => {
+                const total =
+                  entry?.payload?.val ?? entry?.payload?.total ?? v ?? 0;
+                return `${Number(total).toFixed(1)}%`;
+              },
+            }}
+          />
+        </BarChart>
+      </ResponsiveContainer>
+    </ChartContainer>
+  );
+};
+
 export const DetailedChartV2 = ({
   data,
   dataKey,
   color = COLORS.primary,
   title,
+  isAnimationActive = true,
 }) => {
   if (!data || data.length === 0) return null;
 
@@ -212,6 +426,7 @@ export const DetailedChartV2 = ({
           strokeWidth={3}
           fillOpacity={1}
           fill={`url(#detailed-gradient-${dataKey})`}
+          isAnimationActive={isAnimationActive}
           animationDuration={1000}
         />
       </AreaChart>

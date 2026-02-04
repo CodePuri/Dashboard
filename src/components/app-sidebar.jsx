@@ -46,7 +46,7 @@ const analyticsItems = [
     icon: BarChart3,
   },
   {
-    title: "Reach",
+    title: "Impression",
     url: "/reach",
     icon: Eye,
   },
@@ -61,11 +61,6 @@ const analyticsItems = [
     icon: Gauge,
   },
   {
-    title: "Acquisition",
-    url: "/acquisition",
-    icon: UserPlus,
-  },
-  {
     title: "Engagement",
     url: "/engagement",
     icon: Activity,
@@ -76,14 +71,21 @@ const analyticsItems = [
     icon: Users,
   },
   {
-    title: "Conversion",
+    title: "Funnel",
     url: "/conversion",
     icon: Target,
+  },
+  {
+    title: "Acquisition",
+    url: "/acquisition",
+    icon: UserPlus,
+    disabled: true,
   },
   {
     title: "Attrition / Churn",
     url: "/attrition",
     icon: UserMinus,
+    disabled: true,
   },
 ];
 
@@ -135,11 +137,26 @@ export function AppSidebar({ ...props }) {
             <SidebarMenu>
               {analyticsItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild tooltip={item.title}>
-                    <a href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </a>
+                  <SidebarMenuButton
+                    asChild={!item.disabled}
+                    tooltip={item.title}
+                    className={
+                      item.disabled
+                        ? "opacity-40 pointer-events-none grayscale-[0.5]"
+                        : ""
+                    }
+                  >
+                    {item.disabled ? (
+                      <div className="flex items-center gap-2">
+                        <item.icon className="size-4" />
+                        <span>{item.title}</span>
+                      </div>
+                    ) : (
+                      <a href={item.url}>
+                        <item.icon className="size-4" />
+                        <span>{item.title}</span>
+                      </a>
+                    )}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

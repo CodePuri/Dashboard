@@ -24,7 +24,6 @@ import {
 //   "abhishek",
 //   "test",
 // ];
-const TEST_USER_IDS = [329];
 
 import { processData } from "@/lib/analytics-utils";
 
@@ -63,18 +62,16 @@ export async function GET(request) {
       prevData,
       activeBreakdownRaw,
     ] = await Promise.all([
-      getAnalyticsData(startDate, endDate, source, TEST_USER_IDS),
-      getConversionMetrics(startDate, endDate, source, TEST_USER_IDS),
-      startDate
-        ? getPriorPaidUsers(startDate, source, TEST_USER_IDS)
-        : Promise.resolve([]),
-      getTotalPaidUsersByDate(startDate, endDate, TEST_USER_IDS),
-      getInstallationMetrics(startDate, endDate, TEST_USER_IDS),
-      getDailyInstallationMetrics(startDate, endDate, TEST_USER_IDS),
+      getAnalyticsData(startDate, endDate, source),
+      getConversionMetrics(startDate, endDate, source),
+      startDate ? getPriorPaidUsers(startDate, source) : Promise.resolve([]),
+      getTotalPaidUsersByDate(startDate, endDate),
+      getInstallationMetrics(startDate, endDate),
+      getDailyInstallationMetrics(startDate, endDate),
       prevStartDate && prevEndDate
-        ? getAnalyticsData(prevStartDate, prevEndDate, source, TEST_USER_IDS)
+        ? getAnalyticsData(prevStartDate, prevEndDate, source)
         : Promise.resolve([]),
-      getActiveUsersBreakdown(startDate, endDate, source, TEST_USER_IDS),
+      getActiveUsersBreakdown(startDate, endDate, source),
     ]);
 
     console.log(
@@ -88,20 +85,24 @@ export async function GET(request) {
       free: parseInt(row.free_users || 0),
       trial: parseInt(row.trial_users || 0),
       pro: parseInt(row.pro_users || 0),
-      // Aggregated Power Counts (Legacy support for Overview page)
-      freePower:
-        parseInt(row.free_power_5 || 0) + parseInt(row.free_power_gt_5 || 0),
-      trialPower:
-        parseInt(row.trial_power_5 || 0) + parseInt(row.trial_power_gt_5 || 0),
-      proPower:
-        parseInt(row.pro_power_5 || 0) + parseInt(row.pro_power_gt_5 || 0),
-      // Granular Power Counts (New support for Acquisition page)
-      freePower5: parseInt(row.free_power_5 || 0),
-      freePowerGt5: parseInt(row.free_power_gt_5 || 0),
-      trialPower5: parseInt(row.trial_power_5 || 0),
-      trialPowerGt5: parseInt(row.trial_power_gt_5 || 0),
-      proPower5: parseInt(row.pro_power_5 || 0),
-      proPowerGt5: parseInt(row.pro_power_gt_5 || 0),
+      // Aggregated Power Counts (Users with >= 5 prompts)
+      freePower: parseInt(row.free_ge_5 || 0),
+      trialPower: parseInt(row.trial_ge_5 || 0),
+      proPower: parseInt(row.pro_ge_5 || 0),
+      // Granular Counts for Dual Texture Chart (< 5 and >= 5)
+      freeLt5: parseInt(row.free_lt_5 || 0),
+      freeGe5: parseInt(row.free_ge_5 || 0),
+      trialLt5: parseInt(row.trial_lt_5 || 0),
+      trialGe5: parseInt(row.trial_ge_5 || 0),
+      proLt5: parseInt(row.pro_lt_5 || 0),
+      proGe5: parseInt(row.pro_ge_5 || 0),
+      // Legacy support (mapping ge_5 to Gt5 for safety)
+      freePower5: 0,
+      freePowerGt5: parseInt(row.free_ge_5 || 0),
+      trialPower5: 0,
+      trialPowerGt5: parseInt(row.trial_ge_5 || 0),
+      proPower5: 0,
+      proPowerGt5: parseInt(row.pro_ge_5 || 0),
       total: parseInt(row.total_users || 0),
     }));
 
@@ -116,7 +117,7 @@ export async function GET(request) {
     );
 
     // Merge DB-based Onboarding Metrics (User requested DB logic for onboarding)
-    processed.conversion.activationRate =
+    processed.conversion.onboardingCompletionRate =
       conversionMetrics.onboarding.completionRate;
     processed.conversion.activatedUsers =
       conversionMetrics.onboarding.completedOnboarding;

@@ -8,6 +8,8 @@ import {
   PIE_COLORS,
   SparklineV2,
   DetailedChartV2,
+  RetentionDropOffSparkline,
+  RetentionDetailedChart,
 } from "@/components/ui/metric-card";
 import { FilterBar } from "@/components/ui/filter-bar";
 import { Users, Repeat, TrendingUp, UserCheck } from "lucide-react";
@@ -156,9 +158,13 @@ export default function RetentionPage() {
 
   const activeUsersChartData = (data?.activeUsersChartData || []).map((d) => ({
     ...d,
-    freePower: (d.freePower5 || 0) + (d.freePowerGt5 || 0),
-    trialPower: (d.trialPower5 || 0) + (d.trialPowerGt5 || 0),
-    proPower: (d.proPower5 || 0) + (d.proPowerGt5 || 0),
+    // Granular fields for dual texture
+    freeLt5: d.freeLt5 || 0,
+    freeGe5: d.freeGe5 || 0,
+    trialLt5: d.trialLt5 || 0,
+    trialGe5: d.trialGe5 || 0,
+    proLt5: d.proLt5 || 0,
+    proGe5: d.proGe5 || 0,
   }));
 
   const dailyHabitTrendData = dailyHabitData?.dailyTrend || [];
@@ -218,25 +224,116 @@ export default function RetentionPage() {
             subtitle="Overall Retention"
             icon={Repeat}
             color={COLORS.primary}
-            tooltip="Retention Rate (%). Percentage of unique users who were active on more than one distinct day within the selected period."
+            tooltip="Retention Rate (%). Percentage of unique users who were active on more than one distinct day within the selected period. The chart shows Day 1, Day 3, and Day 7 retention."
             chart={
-              dailyActivity.length > 0 ? (
-                <SparklineV2
-                  data={dailyActivity}
-                  dataKey="retentionRate"
-                  color={COLORS.primary}
-                />
-              ) : null
+              <RetentionDropOffSparkline
+                data={[
+                  {
+                    name: "D1",
+                    val: metrics?.retentionMetrics?.d1 || 0,
+                    Free: metrics?.retentionMetrics?.bySegment?.d1?.Free || 0,
+                    FreeCount:
+                      metrics?.retentionMetrics?.bySegment?.d1?.FreeCount || 0,
+                    Freetrial:
+                      metrics?.retentionMetrics?.bySegment?.d1?.Freetrial || 0,
+                    FreetrialCount:
+                      metrics?.retentionMetrics?.bySegment?.d1
+                        ?.FreetrialCount || 0,
+                    Pro: metrics?.retentionMetrics?.bySegment?.d1?.Pro || 0,
+                    ProCount:
+                      metrics?.retentionMetrics?.bySegment?.d1?.ProCount || 0,
+                    totalCount: metrics?.retentionMetrics?.d1Count || 0,
+                  },
+                  {
+                    name: "D3",
+                    val: metrics?.retentionMetrics?.d3 || 0,
+                    Free: metrics?.retentionMetrics?.bySegment?.d3?.Free || 0,
+                    FreeCount:
+                      metrics?.retentionMetrics?.bySegment?.d3?.FreeCount || 0,
+                    Freetrial:
+                      metrics?.retentionMetrics?.bySegment?.d3?.Freetrial || 0,
+                    FreetrialCount:
+                      metrics?.retentionMetrics?.bySegment?.d3
+                        ?.FreetrialCount || 0,
+                    Pro: metrics?.retentionMetrics?.bySegment?.d3?.Pro || 0,
+                    ProCount:
+                      metrics?.retentionMetrics?.bySegment?.d3?.ProCount || 0,
+                    totalCount: metrics?.retentionMetrics?.d3Count || 0,
+                  },
+                  {
+                    name: "D7",
+                    val: metrics?.retentionMetrics?.d7 || 0,
+                    Free: metrics?.retentionMetrics?.bySegment?.d7?.Free || 0,
+                    FreeCount:
+                      metrics?.retentionMetrics?.bySegment?.d7?.FreeCount || 0,
+                    Freetrial:
+                      metrics?.retentionMetrics?.bySegment?.d7?.Freetrial || 0,
+                    FreetrialCount:
+                      metrics?.retentionMetrics?.bySegment?.d7
+                        ?.FreetrialCount || 0,
+                    Pro: metrics?.retentionMetrics?.bySegment?.d7?.Pro || 0,
+                    ProCount:
+                      metrics?.retentionMetrics?.bySegment?.d7?.ProCount || 0,
+                    totalCount: metrics?.retentionMetrics?.d7Count || 0,
+                  },
+                ]}
+                color={COLORS.primary}
+              />
             }
             detailedChart={
-              dailyActivity.length > 0 ? (
-                <DetailedChartV2
-                  data={dailyActivity}
-                  dataKey="retentionRate"
-                  color={COLORS.primary}
-                  title="Daily Retention Rate (%)"
-                />
-              ) : null
+              <RetentionDetailedChart
+                data={[
+                  {
+                    name: "Day 1",
+                    val: metrics?.retentionMetrics?.d1 || 0,
+                    Free: metrics?.retentionMetrics?.bySegment?.d1?.Free || 0,
+                    FreeCount:
+                      metrics?.retentionMetrics?.bySegment?.d1?.FreeCount || 0,
+                    Freetrial:
+                      metrics?.retentionMetrics?.bySegment?.d1?.Freetrial || 0,
+                    FreetrialCount:
+                      metrics?.retentionMetrics?.bySegment?.d1
+                        ?.FreetrialCount || 0,
+                    Pro: metrics?.retentionMetrics?.bySegment?.d1?.Pro || 0,
+                    ProCount:
+                      metrics?.retentionMetrics?.bySegment?.d1?.ProCount || 0,
+                    totalCount: metrics?.retentionMetrics?.d1Count || 0,
+                  },
+                  {
+                    name: "Day 3",
+                    val: metrics?.retentionMetrics?.d3 || 0,
+                    Free: metrics?.retentionMetrics?.bySegment?.d3?.Free || 0,
+                    FreeCount:
+                      metrics?.retentionMetrics?.bySegment?.d3?.FreeCount || 0,
+                    Freetrial:
+                      metrics?.retentionMetrics?.bySegment?.d3?.Freetrial || 0,
+                    FreetrialCount:
+                      metrics?.retentionMetrics?.bySegment?.d3
+                        ?.FreetrialCount || 0,
+                    Pro: metrics?.retentionMetrics?.bySegment?.d3?.Pro || 0,
+                    ProCount:
+                      metrics?.retentionMetrics?.bySegment?.d3?.ProCount || 0,
+                    totalCount: metrics?.retentionMetrics?.d3Count || 0,
+                  },
+                  {
+                    name: "Day 7",
+                    val: metrics?.retentionMetrics?.d7 || 0,
+                    Free: metrics?.retentionMetrics?.bySegment?.d7?.Free || 0,
+                    FreeCount:
+                      metrics?.retentionMetrics?.bySegment?.d7?.FreeCount || 0,
+                    Freetrial:
+                      metrics?.retentionMetrics?.bySegment?.d7?.Freetrial || 0,
+                    FreetrialCount:
+                      metrics?.retentionMetrics?.bySegment?.d7
+                        ?.FreetrialCount || 0,
+                    Pro: metrics?.retentionMetrics?.bySegment?.d7?.Pro || 0,
+                    ProCount:
+                      metrics?.retentionMetrics?.bySegment?.d7?.ProCount || 0,
+                    totalCount: metrics?.retentionMetrics?.d7Count || 0,
+                  },
+                ]}
+                color={COLORS.primary}
+              />
             }
           />
           <MetricCard
@@ -314,7 +411,7 @@ export default function RetentionPage() {
             }
             detailedChart={
               dailyHabitTrendData.length > 0 ? (
-                <div className="h-[200px] w-full">
+                <div className="h-full w-full">
                   <ChartContainer
                     config={{
                       free: { label: "Free", color: COLORS.success },
@@ -393,12 +490,12 @@ export default function RetentionPage() {
             }
           />
           <MetricCard
-            title="Stickiness"
+            title="Period Stickiness"
             value={`${(metrics?.stickiness || 0).toFixed(1)}%`}
-            subtitle="DAU / MAU"
+            subtitle="DAU / Active Users"
             icon={TrendingUp}
             color={COLORS.info}
-            tooltip="Stickiness (%). Ratio of Daily Active Users (DAU) to Monthly Active Users (MAU). Calculated as (DAU / MAU) * 100."
+            tooltip="Period Stickiness (%). Ratio of average Daily Active Users to total unique users in the selected period. Formula: (Avg DAU / Period Active Users) × 100. Note: For shorter date filters (e.g. 7 days), this represents DAU/WAU rather than traditional DAU/MAU."
             chart={
               stickinessTrend.length > 0 ? (
                 <SparklineV2
@@ -435,9 +532,9 @@ export default function RetentionPage() {
           >
             <ChartContainer
               config={{
-                Free: { label: "Free", color: "#818cf8" }, // Indigo 400
-                Freetrial: { label: "Trial", color: "#c084fc" }, // Purple 400
-                Pro: { label: "Pro", color: "#34d399" }, // Emerald 400
+                Free: { label: "Free", color: "#60a5fa" }, // Light Blue
+                Freetrial: { label: "Trial", color: COLORS.warning },
+                Pro: { label: "Pro", color: COLORS.success },
               }}
               className="h-[200px] sm:h-[220px] md:h-[250px] w-full"
             >
@@ -456,7 +553,11 @@ export default function RetentionPage() {
                     Pro: metrics?.retentionMetrics?.bySegment?.d1?.Pro || 0,
                     ProCount:
                       metrics?.retentionMetrics?.bySegment?.d1?.ProCount || 0,
-                    total: metrics?.retentionMetrics?.d1 || 0,
+                    total:
+                      (metrics?.retentionMetrics?.bySegment?.d1?.Free || 0) +
+                      (metrics?.retentionMetrics?.bySegment?.d1?.Freetrial ||
+                        0) +
+                      (metrics?.retentionMetrics?.bySegment?.d1?.Pro || 0),
                     totalCount: metrics?.retentionMetrics?.d1Count || 0,
                     denominator: metrics?.retentionMetrics?.d1Total || 0,
                   },
@@ -473,7 +574,11 @@ export default function RetentionPage() {
                     Pro: metrics?.retentionMetrics?.bySegment?.d3?.Pro || 0,
                     ProCount:
                       metrics?.retentionMetrics?.bySegment?.d3?.ProCount || 0,
-                    total: metrics?.retentionMetrics?.d3 || 0,
+                    total:
+                      (metrics?.retentionMetrics?.bySegment?.d3?.Free || 0) +
+                      (metrics?.retentionMetrics?.bySegment?.d3?.Freetrial ||
+                        0) +
+                      (metrics?.retentionMetrics?.bySegment?.d3?.Pro || 0),
                     totalCount: metrics?.retentionMetrics?.d3Count || 0,
                     denominator: metrics?.retentionMetrics?.d3Total || 0,
                   },
@@ -490,7 +595,11 @@ export default function RetentionPage() {
                     Pro: metrics?.retentionMetrics?.bySegment?.d7?.Pro || 0,
                     ProCount:
                       metrics?.retentionMetrics?.bySegment?.d7?.ProCount || 0,
-                    total: metrics?.retentionMetrics?.d7 || 0,
+                    total:
+                      (metrics?.retentionMetrics?.bySegment?.d7?.Free || 0) +
+                      (metrics?.retentionMetrics?.bySegment?.d7?.Freetrial ||
+                        0) +
+                      (metrics?.retentionMetrics?.bySegment?.d7?.Pro || 0),
                     totalCount: metrics?.retentionMetrics?.d7Count || 0,
                     denominator: metrics?.retentionMetrics?.d7Total || 0,
                   },
@@ -517,30 +626,31 @@ export default function RetentionPage() {
                 <Bar
                   dataKey="Free"
                   stackId="a"
-                  fill="#818cf8" // Indigo
+                  fill="#60a5fa" // Light Blue
                   radius={[0, 0, 0, 0]}
                 />
                 <Bar
                   dataKey="Freetrial"
                   stackId="a"
-                  fill="#c084fc" // Purple
+                  fill={COLORS.warning}
                   radius={[0, 0, 0, 0]}
                 />
                 <Bar
                   dataKey="Pro"
                   stackId="a"
-                  fill="#34d399" // Emerald
+                  fill={COLORS.success}
                   radius={[4, 4, 0, 0]}
                   label={(props) => {
-                    const { x, y, width, payload } = props;
+                    const { x, y, width, height, value, payload } = props;
                     if (!payload) return null;
                     return (
                       <text
                         x={x + width / 2}
-                        y={y - 10}
+                        y={y - 12}
                         fill="#666"
                         textAnchor="middle"
                         fontSize={10}
+                        fontWeight="bold"
                       >
                         {(payload.total || 0).toFixed(1)}%
                       </text>

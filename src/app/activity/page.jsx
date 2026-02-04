@@ -143,12 +143,9 @@ export default function ActivityPage() {
   const timeAnalysis = data?.timeAnalysis;
   const growth = data?.growth;
   const distributions = data?.distributions;
-  const installationMetrics = data?.installationMetrics;
-
   const isChatOnly = sourceFilter === "Chat";
   const timeSavedHours = metrics?.totalTimeSavedHours || 0;
   const dailyActivity = timeAnalysis?.dailyActivity || [];
-  const dailyInstallationMetrics = data?.dailyInstallationMetrics || [];
 
   const promptsPerUser = growth?.activeUsers
     ? (metrics?.total || 0) / growth.activeUsers
@@ -163,6 +160,8 @@ export default function ActivityPage() {
   };
 
   const activeUsersChartData = data?.activeUsersChartData || [];
+  const installationMetrics = data?.installationMetrics || {};
+  const dailyInstallationMetrics = data?.dailyInstallationMetrics || [];
   return (
     <div className="space-y-6 md:space-y-8">
       {/* Header with Filters */}
@@ -381,31 +380,36 @@ export default function ActivityPage() {
           />
           <MetricCard
             title="Total Uninstalls"
-            value={
-              isChatOnly
-                ? "--"
-                : installationMetrics?.total_uninstalls?.toLocaleString() || "0"
-            }
+            value="N/A"
             subtitle="Previously Used"
             icon={MonitorOff}
             color={COLORS.danger}
-            tooltip="Total Uninstalls (Count). Calculated as users with installed = false who have prior prompt history in save_enhance_prompt."
+            className="opacity-40 pointer-events-none shadow-none border-dashed"
+            tooltip="Total Uninstalls (Count). This metric is currently disabled."
             chart={
               !isChatOnly && dailyInstallationMetrics.length > 0 ? (
                 <SparklineV2
-                  data={dailyInstallationMetrics}
+                  data={dailyInstallationMetrics.map((d) => ({
+                    ...d,
+                    uninstalls: 0,
+                  }))}
                   dataKey="uninstalls"
                   color={COLORS.danger}
+                  isAnimationActive={false}
                 />
               ) : null
             }
             detailedChart={
               !isChatOnly && dailyInstallationMetrics.length > 0 ? (
                 <DetailedChartV2
-                  data={dailyInstallationMetrics}
+                  data={dailyInstallationMetrics.map((d) => ({
+                    ...d,
+                    uninstalls: 0,
+                  }))}
                   dataKey="uninstalls"
                   color={COLORS.danger}
                   title="Daily Uninstalls"
+                  isAnimationActive={false}
                 />
               ) : null
             }
@@ -688,6 +692,7 @@ export default function ActivityPage() {
                   type="category"
                   width={80}
                   tick={{ fontSize: 11 }}
+                  interval={0}
                   axisLine={false}
                   tickLine={false}
                 />

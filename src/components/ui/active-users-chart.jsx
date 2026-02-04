@@ -38,8 +38,7 @@ export const PowerUserBar = (props) => {
     payload,
     dataKey,
     patternId,
-    patternId5,
-    patternIdGt5,
+    patternIdGe5,
   } = props;
 
   // Legacy mode (single texture)
@@ -96,16 +95,13 @@ export const PowerUserBar = (props) => {
     );
   }
 
-  // Multi-texture mode
-  const power5Key = `${dataKey}Power5`;
-  const powerGt5Key = `${dataKey}PowerGt5`;
+  // Multi-texture mode (>=5 only)
+  const ge5Key = `${dataKey}Ge5`;
 
-  const count5 = payload?.[power5Key] || 0;
-  const countGt5 = payload?.[powerGt5Key] || 0;
+  const countGe5 = payload?.[ge5Key] || 0;
   const totalCount = payload?.[dataKey] || 0;
 
-  const h5 = totalCount > 0 ? height * (count5 / totalCount) : 0;
-  const hGt5 = totalCount > 0 ? height * (countGt5 / totalCount) : 0;
+  const hGe5 = totalCount > 0 ? height * (countGe5 / totalCount) : 0;
 
   return (
     <g>
@@ -120,13 +116,13 @@ export const PowerUserBar = (props) => {
         ry={2}
       />
 
-      {/* Gt5 Overlay (Bottom) */}
-      {hGt5 > 0 && patternIdGt5 && (
+      {/* Ge5 Overlay (Bottom) - More than or equal to 5 */}
+      {hGe5 > 0 && patternIdGe5 && (
         <>
           <defs>
-            {/* Dense Crosshatch for >5 */}
+            {/* Dense Crosshatch for >= 5 */}
             <pattern
-              id={patternIdGt5}
+              id={patternIdGe5}
               patternUnits="userSpaceOnUse"
               width="4"
               height="4"
@@ -135,56 +131,22 @@ export const PowerUserBar = (props) => {
               <path
                 d="M0 0h4v4h-4z"
                 fill="none"
-                stroke="rgba(255,255,255,0.5)"
-                strokeWidth="1"
+                stroke="rgba(255,255,255,0.6)"
+                strokeWidth="1.2"
               />
               <path
                 d="M0 4L4 0"
-                stroke="rgba(255,255,255,0.5)"
-                strokeWidth="1"
+                stroke="rgba(255,255,255,0.6)"
+                strokeWidth="1.2"
               />
             </pattern>
           </defs>
           <rect
             x={x}
-            y={y + height - hGt5}
+            y={y + height - hGe5}
             width={width}
-            height={hGt5}
-            fill={`url(#${patternIdGt5})`}
-            rx={2}
-            ry={2}
-          />
-        </>
-      )}
-
-      {/* 5 Overlay (Above Gt5) */}
-      {h5 > 0 && patternId5 && (
-        <>
-          <defs>
-            {/* Lighter Stripes for =5 */}
-            <pattern
-              id={patternId5}
-              patternUnits="userSpaceOnUse"
-              width="6"
-              height="6"
-              patternTransform="rotate(-45)"
-            >
-              <line
-                x1="0"
-                y1="0"
-                x2="0"
-                y2="6"
-                stroke="rgba(255,255,255,0.3)"
-                strokeWidth="2"
-              />
-            </pattern>
-          </defs>
-          <rect
-            x={x}
-            y={y + height - hGt5 - h5}
-            width={width}
-            height={h5}
-            fill={`url(#${patternId5})`}
+            height={hGe5}
+            fill={`url(#${patternIdGe5})`}
             rx={2}
             ry={2}
           />

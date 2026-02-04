@@ -35,6 +35,7 @@ export function FilterBar({
   onSourceFilterChange,
   customDateRange,
   onCustomDateChange,
+  hideAllPlatformFilter = false,
 }) {
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const [tempDateRange, setTempDateRange] = useState(customDateRange);
@@ -80,7 +81,7 @@ export function FilterBar({
       if (customDateRange.to) {
         return `${format(customDateRange.from, "LLL dd")} - ${format(
           customDateRange.to,
-          "LLL dd"
+          "LLL dd",
         )}`;
       }
       return format(customDateRange.from, "LLL dd, y");
@@ -97,7 +98,7 @@ export function FilterBar({
             variant="outline"
             className={cn(
               "w-full sm:w-[240px] justify-start text-left font-normal",
-              !dateFilter && "text-muted-foreground"
+              !dateFilter && "text-muted-foreground",
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
@@ -166,14 +167,16 @@ export function FilterBar({
           }}
           className="gap-1 flex flex-wrap"
         >
-          <ToggleGroupItem
-            value="All"
-            aria-label="All Platforms"
-            className="h-7 px-2 text-xs data-[state=on]:bg-background data-[state=on]:shadow-sm"
-          >
-            <Layers className="h-3.5 w-3.5 mr-1.5" />
-            All
-          </ToggleGroupItem>
+          {!hideAllPlatformFilter && (
+            <ToggleGroupItem
+              value="All"
+              aria-label="All Platforms"
+              className="h-7 px-2 text-xs data-[state=on]:bg-background data-[state=on]:shadow-sm"
+            >
+              <Layers className="h-3.5 w-3.5 mr-1.5" />
+              All
+            </ToggleGroupItem>
+          )}
           <ToggleGroupItem
             value="Chat"
             aria-label="Chat Only"

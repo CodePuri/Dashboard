@@ -93,9 +93,13 @@ export default function EngagementPage() {
 
   const activeUsersChartData = (data?.activeUsersChartData || []).map((d) => ({
     ...d,
-    freePower: (d.freePower5 || 0) + (d.freePowerGt5 || 0),
-    trialPower: (d.trialPower5 || 0) + (d.trialPowerGt5 || 0),
-    proPower: (d.proPower5 || 0) + (d.proPowerGt5 || 0),
+    // Granular fields for dual texture
+    freeLt5: d.freeLt5 || 0,
+    freeGe5: d.freeGe5 || 0,
+    trialLt5: d.trialLt5 || 0,
+    trialGe5: d.trialGe5 || 0,
+    proLt5: d.proLt5 || 0,
+    proGe5: d.proGe5 || 0,
   }));
 
   const powerUsersChartData = activeUsersChartData.map((d) => ({
@@ -184,7 +188,7 @@ export default function EngagementPage() {
             color={COLORS.warning}
             tooltip="Power Rate (%). Percentage of active users who have sent 5 or more prompts. Calculated as (Power Users / Total Active Users) * 100."
             chart={
-              powerUsersChartData.length > 0 ? (
+              activeUsersChartData.length > 0 ? (
                 <div className="h-full w-full">
                   <ChartContainer
                     config={{
@@ -195,7 +199,7 @@ export default function EngagementPage() {
                     className="h-full w-full"
                   >
                     <ComposedChart
-                      data={powerUsersChartData}
+                      data={activeUsersChartData}
                       margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
                       barGap={0}
                       barCategoryGap="10%"
@@ -220,10 +224,7 @@ export default function EngagementPage() {
                         stackId="users"
                         fill="#8b5cf6"
                         shape={
-                          <PowerUserBar
-                            patternId5="stripe-pr-5-mini"
-                            patternIdGt5="stripe-pr-gt5-mini"
-                          />
+                          <PowerUserBar patternIdGe5="stripe-pr-ge5-mini" />
                         }
                         radius={[0, 0, 0, 0]}
                       />
@@ -232,10 +233,7 @@ export default function EngagementPage() {
                         stackId="users"
                         fill="#d946ef"
                         shape={
-                          <PowerUserBar
-                            patternId5="stripe-pr-5-mini"
-                            patternIdGt5="stripe-pr-gt5-mini"
-                          />
+                          <PowerUserBar patternIdGe5="stripe-pr-ge5-mini" />
                         }
                         radius={[0, 0, 0, 0]}
                       />
@@ -244,10 +242,7 @@ export default function EngagementPage() {
                         stackId="users"
                         fill="#f43f5e"
                         shape={
-                          <PowerUserBar
-                            patternId5="stripe-pr-5-mini"
-                            patternIdGt5="stripe-pr-gt5-mini"
-                          />
+                          <PowerUserBar patternIdGe5="stripe-pr-ge5-mini" />
                         }
                         radius={[2, 2, 0, 0]}
                       />
@@ -257,7 +252,7 @@ export default function EngagementPage() {
               ) : null
             }
             detailedChart={
-              powerUsersChartData.length > 0 ? (
+              activeUsersChartData.length > 0 ? (
                 <div className="h-[300px] w-full p-4">
                   <ChartContainer
                     config={{
@@ -268,7 +263,7 @@ export default function EngagementPage() {
                     className="h-full w-full"
                   >
                     <ComposedChart
-                      data={powerUsersChartData}
+                      data={activeUsersChartData}
                       margin={{ top: 20, right: 30, left: 10, bottom: 20 }}
                       barGap={0}
                       barCategoryGap="15%"
@@ -303,10 +298,7 @@ export default function EngagementPage() {
                         stackId="users"
                         fill="#8b5cf6"
                         shape={
-                          <PowerUserBar
-                            patternId5="stripe-pr-5-detailed"
-                            patternIdGt5="stripe-pr-gt5-detailed"
-                          />
+                          <PowerUserBar patternIdGe5="stripe-pr-ge5-detailed" />
                         }
                         radius={[0, 0, 0, 0]}
                       />
@@ -315,10 +307,7 @@ export default function EngagementPage() {
                         stackId="users"
                         fill="#d946ef"
                         shape={
-                          <PowerUserBar
-                            patternId5="stripe-pr-5-detailed"
-                            patternIdGt5="stripe-pr-gt5-detailed"
-                          />
+                          <PowerUserBar patternIdGe5="stripe-pr-ge5-detailed" />
                         }
                         radius={[0, 0, 0, 0]}
                       />
@@ -327,10 +316,7 @@ export default function EngagementPage() {
                         stackId="users"
                         fill="#f43f5e"
                         shape={
-                          <PowerUserBar
-                            patternId5="stripe-pr-5-detailed"
-                            patternIdGt5="stripe-pr-gt5-detailed"
-                          />
+                          <PowerUserBar patternIdGe5="stripe-pr-ge5-detailed" />
                         }
                         radius={[4, 4, 0, 0]}
                       />
@@ -419,9 +405,9 @@ export default function EngagementPage() {
             Monetization & Segmentation
           </h2>
           <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
-            {/* Chart 1: Value Captured */}
+            {/* Chart 1: Value Provided */}
             <ChartCard
-              title="Value Captured per User"
+              title="Value Provided per User"
               tooltip="Average Time Saved (Hours). Estimated economic value delivered per user. Calculated as Sum of (Extra Words / 40 wpm) * Complexity Multiplier. Multipliers: Low=1.0, Medium=1.2, High=1.4. Guardrails: Capped at 6 minutes per prompt. for each plan tier."
             >
               <ChartContainer
@@ -643,7 +629,7 @@ export default function EngagementPage() {
 }
 
 const TooltipRow = ({ color, label, value, subValue }) => (
-  <div className="flex justify-between items-center text-xs">
+  <div className="flex justify-between items-center text-xs gap-4">
     <div className="flex items-center gap-2">
       <div className="w-2.5 h-2.5 rounded-sm" style={{ background: color }} />
       <span>{label}</span>
@@ -661,10 +647,9 @@ const PowerRateTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     const total = (data.free || 0) + (data.trial || 0) + (data.pro || 0);
-    const formatBreakdown = (p5, pGt5) => `(${p5} =5, ${pGt5} >5)`;
 
     return (
-      <div className="rounded-lg border bg-background/95 p-3 shadow-xl backdrop-blur-md border-border/50 min-w-[180px]">
+      <div className="rounded-lg border bg-background/95 p-3 shadow-xl backdrop-blur-md border-border/50 min-w-[220px]">
         <div className="text-xs font-semibold text-foreground mb-2">
           {new Date(label).toLocaleDateString("en-US", {
             month: "short",
@@ -676,32 +661,26 @@ const PowerRateTooltip = ({ active, payload, label }) => {
             color="#8b5cf6"
             label="Free"
             value={data.free || 0}
-            subValue={formatBreakdown(
-              data.freePower5 || 0,
-              data.freePowerGt5 || 0,
-            )}
+            subValue={`(<5: ${data.freeLt5 || 0}, ≥5: ${data.freeGe5 || 0})`}
           />
           <TooltipRow
             color="#d946ef"
             label="Trial"
             value={data.trial || 0}
-            subValue={formatBreakdown(
-              data.trialPower5 || 0,
-              data.trialPowerGt5 || 0,
-            )}
+            subValue={`(<5: ${data.trialLt5 || 0}, ≥5: ${data.trialGe5 || 0})`}
           />
           <TooltipRow
             color="#f43f5e"
             label="Pro"
             value={data.pro || 0}
-            subValue={formatBreakdown(
-              data.proPower5 || 0,
-              data.proPowerGt5 || 0,
-            )}
+            subValue={`(<5: ${data.proLt5 || 0}, ≥5: ${data.proGe5 || 0})`}
           />
           <div className="border-t border-border/50 pt-1.5 mt-1.5 flex justify-between items-center text-xs">
-            <span className="font-medium">Total Power Users</span>
+            <span className="font-medium">Total Active Users</span>
             <span className="font-mono font-bold">{total}</span>
+          </div>
+          <div className="text-[10px] text-muted-foreground italic mt-1.5">
+            Striped = Power Users (5+ prompts)
           </div>
         </div>
       </div>

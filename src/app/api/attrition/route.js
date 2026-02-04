@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { getUserAttritionData } from "@/lib/db";
+import { getUserAttritionData, getActiveUserIds } from "@/lib/db";
+import { getDateRange } from "@/lib/date-utils";
 
 // Metrics logic here to keep DB logic pure
-function processAttrition(rawData) {
-  const now = new Date();
+function processAttrition(rawData, endDate) {
+  const refDate = endDate ? new Date(endDate) : new Date();
   // IST adjustment for "now" isn't strictly necessary if comparing relative days,
   // but consistency is good. rawData times are likely UTC strings.
 
@@ -15,7 +16,7 @@ function processAttrition(rawData) {
 
       // Days since last active (Churn detector)
       const daysSinceLastActive =
-        (now.getTime() - lastActive.getTime()) / (1000 * 60 * 60 * 24);
+        (refDate.getTime() - lastActive.getTime()) / (1000 * 60 * 60 * 24);
 
       // Lifespan (Days)
       const lifespanDays =
@@ -48,76 +49,6 @@ function processAttrition(rawData) {
   return processed;
 }
 
-// Helper to calculate date ranges (Duplicated from analytics route for now)
-// Ideally move to shared lib
-function getDateRange(filter) {
-  const now = new Date();
-
-  // Create dates in IST (UTC+5:30)
-  // We want "Today" to range from 00:00:00 IST to 23:59:59 IST
-  const getISTDate = (d) => {
-    const utc = d.getTime() + d.getTimezoneOffset() * 60000;
-    return new Date(utc + 3600000 * 5.5);
-  };
-
-  // Helper to set time to end of day
-  const endOfDay = (d) => {
-    d.setHours(23, 59, 59, 999);
-    return d;
-  };
-
-  const startOfDay = (d) => {
-    d.setHours(0, 0, 0, 0);
-    return d;
-  };
-
-  let startDate = new Date(); // Defaults
-  let endDate = new Date();
-
-  // Reset to start/end of current day in local/server time (approximation if not using strict IST lib)
-  // For simplicity in this route, we will use standard Date manipulation relative to now
-  // Assuming server time or UTC.
-
-  endDate = endOfDay(new Date());
-
-  switch (filter) {
-    case "Today":
-      startDate = startOfDay(new Date());
-      break;
-    case "Yesterday":
-      startDate = startOfDay(new Date(now.setDate(now.getDate() - 1)));
-      endDate = endOfDay(new Date(startDate));
-      break;
-    case "Last 7 Days":
-      startDate = startOfDay(new Date(now.setDate(now.getDate() - 7)));
-      break;
-    case "Last 30 Days":
-      startDate = startOfDay(new Date(now.setDate(now.getDate() - 30)));
-      break;
-    case "This Month":
-      startDate = startOfDay(new Date(now.getFullYear(), now.getMonth(), 1));
-      break;
-    case "Last Month":
-      startDate = startOfDay(
-        new Date(now.getFullYear(), now.getMonth() - 1, 1),
-      );
-      endDate = endOfDay(new Date(now.getFullYear(), now.getMonth(), 0));
-      break;
-    case "Last 3 Months":
-      startDate = startOfDay(new Date(now.setDate(now.getDate() - 90)));
-      break;
-    case "All Time":
-      return { startDate: null, endDate: null };
-    default:
-      // Default to Last 30 Days if unknown
-      startDate = startOfDay(new Date(now.setDate(now.getDate() - 30)));
-  }
-
-  return { startDate, endDate };
-}
-
-const TEST_USER_IDS = [329];
-
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -129,50 +60,79 @@ export async function GET(request) {
     // Calculate previous period for trend analysis
     let prevStartDate = null;
     let prevEndDate = null;
+    let prev2StartDate = null;
+    let prev2EndDate = null;
+
     if (startDate && endDate) {
       const durationMs = endDate.getTime() - startDate.getTime();
       prevEndDate = new Date(startDate.getTime() - 1);
       prevStartDate = new Date(startDate.getTime() - durationMs - 1);
+
+      prev2EndDate = new Date(prevStartDate.getTime() - 1);
+      prev2StartDate = new Date(prevStartDate.getTime() - durationMs - 1);
     }
 
-    const [rawData, prevRawData] = await Promise.all([
-      getUserAttritionData(startDate, endDate, sourceFilter, TEST_USER_IDS),
-      prevStartDate && prevEndDate
-        ? getUserAttritionData(
-            prevStartDate,
-            prevEndDate,
-            sourceFilter,
-            TEST_USER_IDS,
-          )
-        : Promise.resolve([]),
-    ]);
+    const [rawData, prevRawData, currActiveIds, prevActiveIds, prev2ActiveIds] =
+      await Promise.all([
+        getUserAttritionData(startDate, endDate, sourceFilter),
+        prevStartDate && prevEndDate
+          ? getUserAttritionData(prevStartDate, prevEndDate, sourceFilter)
+          : Promise.resolve([]),
+        // IDs for Rolling Churn
+        getActiveUserIds(startDate, endDate, sourceFilter),
+        prevStartDate && prevEndDate
+          ? getActiveUserIds(prevStartDate, prevEndDate, sourceFilter)
+          : Promise.resolve([]),
+        prev2StartDate && prev2EndDate
+          ? getActiveUserIds(prev2StartDate, prev2EndDate, sourceFilter)
+          : Promise.resolve([]),
+      ]);
 
-    const data = processAttrition(rawData);
-    const prevProcessed = processAttrition(prevRawData);
+    const data = processAttrition(rawData, endDate);
+    // Note: processAttrition logic might not be relevant for churn RATE anymore if we use Rolling Churn,
+    // but the list of users is still used for the table.
 
-    const calculateRate = (list) => {
-      const total = list.length;
-      const churned = list.filter((u) => u.isChurned).length;
-      return total > 0 ? (churned / total) * 100 : 0;
+    // Calculate Rolling Churn Rate
+    // Churned = Users active in Prev Period who are NOT active in Curr Period
+    const calculateRollingChurn = (activePrev, activeCurr) => {
+      if (!activePrev || activePrev.length === 0) return 0;
+      // Convert to Set for O(1) lookup? IDs are strings/numbers.
+      const currSet = new Set(activeCurr.map(String));
+      const lostCount = activePrev.filter(
+        (id) => !currSet.has(String(id)),
+      ).length;
+      return (lostCount / activePrev.length) * 100;
     };
 
-    const currentRate = calculateRate(data);
-    const previousRate = calculateRate(prevProcessed);
+    const currentRate = calculateRollingChurn(prevActiveIds, currActiveIds);
+    const previousRate = calculateRollingChurn(prev2ActiveIds, prevActiveIds);
 
     let trend = null;
-    if (prevRawData && prevRawData.length > 0) {
-      if (previousRate > 0) {
-        trend = ((currentRate - previousRate) / previousRate) * 100;
-      } else {
-        trend = currentRate > 0 ? 100 : 0;
-      }
+    if (previousRate > 0) {
+      trend = ((currentRate - previousRate) / previousRate) * 100;
+    } else if (currentRate > 0) {
+      trend = 100;
+    } else {
+      trend = 0;
     }
 
     // Calculate Daily Trends
     const dailyTrends = {};
     data.forEach((u) => {
+      // Use existing logic for daily trends?
+      // existing logic used u.isChurned based on 7 days inactivity.
+      // We should arguably stick to "Attrition Table" logic for WHO is listed,
+      // but ensure the aggregate RATE matches the Rolling definition.
+      // Or align them?
+      // Since "churned" status in table is useful for spotting individuals, we keep it based on threshold.
       if (!u.isChurned) return;
-      const date = new Date(u.lastActiveDate).toISOString().split("T")[0];
+
+      const lastActiveStr =
+        u.lastActiveDate instanceof Date
+          ? u.lastActiveDate.toISOString()
+          : String(u.lastActiveDate);
+      const date = lastActiveStr.split("T")[0];
+
       if (!dailyTrends[date]) {
         dailyTrends[date] = {
           date,

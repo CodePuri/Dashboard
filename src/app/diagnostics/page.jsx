@@ -66,24 +66,6 @@ const chartConfig = {
     label: "API Error",
     color: PIE_COLORS[1],
   },
-  Free: {
-    label: "Free",
-    color: "#fdba74", // Orange 300
-  },
-  Freetrial: {
-    label: "Free Trial",
-    color: "#f97316", // Orange 500
-  },
-  Pro: {
-    label: "Pro",
-    color: "#ea580c", // Orange 600
-  },
-};
-
-const SEGMENT_COLORS = {
-  Free: "#fdba74", // Light Orange
-  Freetrial: "#f97316", // Orange
-  Pro: "#ea580c", // Dark Orange
 };
 
 export default function DiagnosticsPage() {
@@ -447,45 +429,15 @@ export default function DiagnosticsPage() {
                   />
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Bar
-                    dataKey="Free"
-                    stackId="a"
-                    fill={SEGMENT_COLORS.Free}
-                    radius={[0, 0, 0, 0]}
-                    barSize={24}
-                  />
-                  <Bar
-                    dataKey="Freetrial"
-                    stackId="a"
-                    fill={SEGMENT_COLORS.Freetrial}
-                    radius={[0, 0, 0, 0]}
-                    barSize={24}
-                  />
-                  <Bar
-                    dataKey="Pro"
-                    stackId="a"
-                    fill={SEGMENT_COLORS.Pro}
+                    dataKey="count"
+                    fill={chartConfig.count.color}
                     radius={[0, 4, 4, 0]}
                     barSize={24}
-                    label={(props) => {
-                      const { x, y, width, height, value, payload } = props;
-                      if (!payload) return null;
-                      const total =
-                        (payload.Free || 0) +
-                        (payload.Freetrial || 0) +
-                        (payload.Pro || 0);
-                      return (
-                        <text
-                          x={x + width + 5}
-                          y={y + height / 2 + 1}
-                          fill="#6b7280"
-                          textAnchor="start"
-                          dominantBaseline="middle"
-                          fontSize={11}
-                          fontWeight={600}
-                        >
-                          {total}
-                        </text>
-                      );
+                    label={{
+                      position: "right",
+                      fontSize: 11,
+                      fontWeight: 600,
+                      fill: "#6b7280",
                     }}
                   />
                 </BarChart>

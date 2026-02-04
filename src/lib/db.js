@@ -1,17 +1,10 @@
 import { Pool } from "pg";
+import { TEST_USER_IDS } from "./constants";
 
 // Decode URL-encoded password (e.g., %40 -> @)
 const password = process.env.DB_PASSWORD
   ? decodeURIComponent(process.env.DB_PASSWORD)
   : undefined;
-
-console.log("Database config:", {
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  port: process.env.DB_PORT,
-  database: process.env.DB_NAME,
-  passwordProvided: !!password,
-});
 
 // Database connection pool
 const pool = new Pool({
@@ -55,7 +48,7 @@ export async function getAnalyticsData(
   startDate,
   endDate,
   source = "All",
-  excludeUsers = [],
+  excludeUsers = TEST_USER_IDS,
 ) {
   // Using correct table names from database schema:
   // - user_prompts: Original user prompts
@@ -119,8 +112,11 @@ export async function getAnalyticsData(
 
   // Exclude test users by ID
   if (excludeUsers.length > 0) {
-    const ids = excludeUsers.join(", ");
-    conditions.push(`u.user_id NOT IN (${ids})`);
+    const placeholders = excludeUsers.map(
+      (_, i) => `$${params.length + i + 1}`,
+    );
+    excludeUsers.forEach((id) => params.push(String(id)));
+    conditions.push(`u.user_id::text NOT IN (${placeholders.join(", ")})`);
   }
 
   if (conditions.length > 0) {
@@ -145,7 +141,7 @@ export async function getAnalyticsData(
 export async function getTotalPaidUsersByDate(
   startDate,
   endDate,
-  excludeUsers = [],
+  excludeUsers = TEST_USER_IDS,
 ) {
   const params = [];
   const conditions = [];
@@ -155,8 +151,11 @@ export async function getTotalPaidUsersByDate(
 
   // Exclude test users by ID
   if (excludeUsers.length > 0) {
-    const ids = excludeUsers.join(", ");
-    conditions.push(`u.user_id NOT IN (${ids})`);
+    const placeholders = excludeUsers.map(
+      (_, i) => `$${params.length + i + 1}`,
+    );
+    excludeUsers.forEach((id) => params.push(String(id)));
+    conditions.push(`u.user_id::text NOT IN (${placeholders.join(", ")})`);
   }
 
   // Get all paid users with their creation date
@@ -179,7 +178,7 @@ export async function getTotalPaidUsersByDate(
 export async function getPriorPaidUsers(
   beforeDate,
   source = "All",
-  excludeUsers = [],
+  excludeUsers = TEST_USER_IDS,
 ) {
   if (!beforeDate) return [];
 
@@ -209,8 +208,11 @@ export async function getPriorPaidUsers(
 
   // Exclude test users by ID
   if (excludeUsers.length > 0) {
-    const ids = excludeUsers.join(", ");
-    conditions.push(`u.user_id NOT IN (${ids})`);
+    const placeholders = excludeUsers.map(
+      (_, i) => `$${params.length + i + 1}`,
+    );
+    excludeUsers.forEach((id) => params.push(String(id)));
+    conditions.push(`u.user_id::text NOT IN (${placeholders.join(", ")})`);
   }
 
   const query = `
@@ -229,15 +231,20 @@ export async function getUserAttritionData(
   startDate,
   endDate,
   source = "All",
-  excludeUsers = [],
+  excludeUsers = TEST_USER_IDS,
 ) {
   const params = [];
   const sourceConditions = [];
 
   // Exclude test users by ID
   if (excludeUsers.length > 0) {
-    const ids = excludeUsers.map((id) => `'${id}'`).join(", ");
-    sourceConditions.push(`up.user_id::text NOT IN (${ids})`);
+    const placeholders = excludeUsers.map(
+      (_, i) => `$${params.length + i + 1}`,
+    );
+    excludeUsers.forEach((id) => params.push(String(id)));
+    sourceConditions.push(
+      `up.user_id::text NOT IN (${placeholders.join(", ")})`,
+    );
   }
 
   // Source filtering conditions (applied to prompts before aggregation)
@@ -336,8 +343,11 @@ export async function getConversionMetrics(
 
   // Exclude test users by ID
   if (excludeUsers.length > 0) {
-    const ids = excludeUsers.join(", ");
-    conditions.push(`u.user_id NOT IN (${ids})`);
+    const placeholders = excludeUsers.map(
+      (_, i) => `$${params.length + i + 1}`,
+    );
+    excludeUsers.forEach((id) => params.push(String(id)));
+    conditions.push(`u.user_id::text NOT IN (${placeholders.join(", ")})`);
   }
 
   // Source filtering logic
@@ -567,8 +577,11 @@ export async function getInstallationMetrics(
   }
 
   if (excludeUsers.length > 0) {
-    const ids = excludeUsers.join(", ");
-    whereConditions.push(`u.user_id NOT IN (${ids})`);
+    const placeholders = excludeUsers.map(
+      (_, i) => `$${params.length + i + 1}`,
+    );
+    excludeUsers.forEach((id) => params.push(String(id)));
+    whereConditions.push(`u.user_id::text NOT IN (${placeholders.join(", ")})`);
   }
 
   const whereClause =
@@ -611,8 +624,11 @@ export async function getDailyInstallationMetrics(
   }
 
   if (excludeUsers.length > 0) {
-    const ids = excludeUsers.join(", ");
-    whereConditions.push(`u.user_id NOT IN (${ids})`);
+    const placeholders = excludeUsers.map(
+      (_, i) => `$${params.length + i + 1}`,
+    );
+    excludeUsers.forEach((id) => params.push(String(id)));
+    whereConditions.push(`u.user_id::text NOT IN (${placeholders.join(", ")})`);
   }
 
   const whereClause =
@@ -790,39 +806,48 @@ export async function getActiveUsersBreakdown(
   startDate,
   endDate,
   source = "All",
-  excludeUsers = [],
+  excludeUsers = TEST_USER_IDS,
 ) {
   const params = [];
-  const conditions = ["1=1"];
+  const conditions = [];
 
   // Exclude test users
   if (excludeUsers.length > 0) {
-    const ids = excludeUsers.map((id) => `'${id}'`).join(", ");
-    conditions.push(`up.user_id::text NOT IN (${ids})`);
+    const placeholders = excludeUsers.map(
+      (_, i) => `$${params.length + i + 1}`,
+    );
+    excludeUsers.forEach((id) => params.push(String(id)));
+    conditions.push(`up.user_id::text NOT IN (${placeholders.join(", ")})`);
   }
 
   // Date filtering
-  let dateCondition = "";
   if (startDate) {
-    dateCondition += ` AND up.created_at >= '${startDate.toISOString()}'`;
+    params.push(startDate.toISOString());
+    conditions.push(`up.created_at >= $${params.length}`);
   }
   if (endDate) {
-    dateCondition += ` AND up.created_at <= '${endDate.toISOString()}'`;
+    params.push(endDate.toISOString());
+    conditions.push(`up.created_at <= $${params.length}`);
   }
 
   // Source filtering
-  let sourceCondition = "";
   let sourceJoin = "";
   if (source === "Chat" || source === "Extension") {
     sourceJoin =
       "LEFT JOIN save_enhance_prompt sep ON up.prompt_id = sep.prompt_id";
     if (source === "Chat") {
-      sourceCondition = " AND sep.llm_used ILIKE 'velocity'";
+      params.push("velocity");
+      conditions.push(`sep.llm_used ILIKE $${params.length}`);
     } else {
-      sourceCondition =
-        " AND (sep.llm_used NOT ILIKE 'velocity' OR sep.llm_used IS NULL)";
+      params.push("velocity");
+      conditions.push(
+        `(sep.llm_used NOT ILIKE $${params.length} OR sep.llm_used IS NULL)`,
+      );
     }
   }
+
+  const whereClause =
+    conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
   // Query: Group by date and user, then aggregate by plan
   const query = `
@@ -835,7 +860,7 @@ export async function getActiveUsersBreakdown(
       FROM user_prompts up
       LEFT JOIN userstatus us ON up.user_id = us.user_id
       ${sourceJoin}
-      WHERE ${conditions.join(" AND ")} ${dateCondition} ${sourceCondition}
+      ${whereClause}
       GROUP BY DATE(up.created_at), up.user_id, us.status
     )
     SELECT 
@@ -843,12 +868,12 @@ export async function getActiveUsersBreakdown(
       SUM(CASE WHEN LOWER(plan) = 'free' THEN 1 ELSE 0 END) as free_users,
       SUM(CASE WHEN LOWER(plan) LIKE '%trial%' THEN 1 ELSE 0 END) as trial_users,
       SUM(CASE WHEN LOWER(plan) = 'pro' OR LOWER(plan) = 'paid' OR LOWER(plan) = 'premium' THEN 1 ELSE 0 END) as pro_users,
-      SUM(CASE WHEN LOWER(plan) = 'free' AND prompt_count = 5 THEN 1 ELSE 0 END) as free_power_5,
-      SUM(CASE WHEN LOWER(plan) = 'free' AND prompt_count > 5 THEN 1 ELSE 0 END) as free_power_gt_5,
-      SUM(CASE WHEN LOWER(plan) LIKE '%trial%' AND prompt_count = 5 THEN 1 ELSE 0 END) as trial_power_5,
-      SUM(CASE WHEN LOWER(plan) LIKE '%trial%' AND prompt_count > 5 THEN 1 ELSE 0 END) as trial_power_gt_5,
-      SUM(CASE WHEN (LOWER(plan) = 'pro' OR LOWER(plan) = 'paid' OR LOWER(plan) = 'premium') AND prompt_count = 5 THEN 1 ELSE 0 END) as pro_power_5,
-      SUM(CASE WHEN (LOWER(plan) = 'pro' OR LOWER(plan) = 'paid' OR LOWER(plan) = 'premium') AND prompt_count > 5 THEN 1 ELSE 0 END) as pro_power_gt_5,
+      SUM(CASE WHEN LOWER(plan) = 'free' AND prompt_count < 5 THEN 1 ELSE 0 END) as free_lt_5,
+      SUM(CASE WHEN LOWER(plan) = 'free' AND prompt_count >= 5 THEN 1 ELSE 0 END) as free_ge_5,
+      SUM(CASE WHEN LOWER(plan) LIKE '%trial%' AND prompt_count < 5 THEN 1 ELSE 0 END) as trial_lt_5,
+      SUM(CASE WHEN LOWER(plan) LIKE '%trial%' AND prompt_count >= 5 THEN 1 ELSE 0 END) as trial_ge_5,
+      SUM(CASE WHEN (LOWER(plan) = 'pro' OR LOWER(plan) = 'paid' OR LOWER(plan) = 'premium') AND prompt_count < 5 THEN 1 ELSE 0 END) as pro_lt_5,
+      SUM(CASE WHEN (LOWER(plan) = 'pro' OR LOWER(plan) = 'paid' OR LOWER(plan) = 'premium') AND prompt_count >= 5 THEN 1 ELSE 0 END) as pro_ge_5,
       COUNT(*) as total_users
     FROM daily_user_prompts
     GROUP BY activity_date
@@ -856,6 +881,62 @@ export async function getActiveUsersBreakdown(
   `;
 
   return executeQuery(query, params);
+}
+
+// Get distinct active user IDs in a period
+export async function getActiveUserIds(
+  startDate,
+  endDate,
+  source = "All",
+  excludeUsers = TEST_USER_IDS,
+) {
+  const params = [];
+  const conditions = [];
+
+  if (excludeUsers.length > 0) {
+    const placeholders = excludeUsers.map(
+      (_, i) => `$${params.length + i + 1}`,
+    );
+    excludeUsers.forEach((id) => params.push(String(id)));
+    conditions.push(`up.user_id::text NOT IN (${placeholders.join(", ")})`);
+  }
+
+  if (startDate) {
+    params.push(startDate.toISOString());
+    conditions.push(`up.created_at >= $${params.length}`);
+  }
+  if (endDate) {
+    params.push(endDate.toISOString());
+    conditions.push(`up.created_at <= $${params.length}`);
+  }
+
+  let sourceJoin = "";
+  if (source === "Chat" || source === "Extension") {
+    sourceJoin =
+      "LEFT JOIN save_enhance_prompt sep ON up.prompt_id = sep.prompt_id";
+    if (source === "Chat") {
+      params.push("velocity");
+      conditions.push(`sep.llm_used ILIKE $${params.length}`);
+    } else {
+      params.push("velocity");
+      conditions.push(
+        `(sep.llm_used NOT ILIKE $${params.length} OR sep.llm_used IS NULL)`,
+      );
+    }
+  }
+
+  const whereClause =
+    conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+
+  const query = `
+    SELECT DISTINCT up.user_id
+    FROM user_prompts up
+    ${sourceJoin}
+    ${whereClause}
+  `;
+
+  const rows = await executeQuery(query, params);
+  return rows.map((r) => r.user_id);
 }
 
 // Close pool on exit

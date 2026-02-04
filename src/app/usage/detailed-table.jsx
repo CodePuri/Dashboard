@@ -16,8 +16,31 @@ import { cn } from "@/lib/utils";
 
 export function UsageDetailedTable({ data = [], columns = [] }) {
   const [search, setSearch] = useState("");
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
 
-  const filteredData = data.filter((row) =>
+  const handleSort = (key) => {
+    let direction = "asc";
+    if (sortConfig.key === key && sortConfig.direction === "asc") {
+      direction = "desc";
+    } else if (sortConfig.key === key && sortConfig.direction === "desc") {
+      direction = null;
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedData = [...data].sort((a, b) => {
+    if (!sortConfig.key || !sortConfig.direction) return 0;
+
+    const aVal = a[sortConfig.key];
+    const bVal = b[sortConfig.key];
+
+    if (aVal === bVal) return 0;
+
+    const result = aVal < bVal ? -1 : 1;
+    return sortConfig.direction === "asc" ? result : -result;
+  });
+
+  const filteredData = sortedData.filter((row) =>
     Object.values(row).some((val) =>
       String(val || "")
         .toLowerCase()
@@ -47,8 +70,12 @@ export function UsageDetailedTable({ data = [], columns = [] }) {
                   <TableHead
                     key={col.key}
                     className="text-[9px] uppercase tracking-[0.15em] font-extrabold text-muted-foreground/70 h-9 px-4"
+                    sortDirection={
+                      sortConfig.key === col.key ? sortConfig.direction : null
+                    }
+                    onSort={() => handleSort(col.key)}
                   >
-                    <div className="flex items-center gap-1.5">{col.label}</div>
+                    <span>{col.label}</span>
                   </TableHead>
                 ))}
               </TableRow>

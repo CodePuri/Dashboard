@@ -62,7 +62,7 @@ const VARIETY_COLORS = [
 
 export default function ReachPage() {
   const [dateFilter, setDateFilter] = useState("Last 7 Days");
-  const [sourceFilter, setSourceFilter] = useState("All");
+  const [sourceFilter, setSourceFilter] = useState("Chat");
   const [customDateRange, setCustomDateRange] = useState();
   // const { data, isLoading: isAnalyticsLoading } = useAnalyticsData(
   //   dateFilter,
@@ -74,7 +74,7 @@ export default function ReachPage() {
     isLoading: shortIoLoading,
     configured: shortIoConfigured,
     needsDomainId: shortIoNeedsDomainId,
-  } = useShortIoData(dateFilter, customDateRange);
+  } = useShortIoData(dateFilter, customDateRange, sourceFilter);
 
   // if ((isAnalyticsLoading || !data) && !shortIoConfigured) {
   //   return (
@@ -114,9 +114,11 @@ export default function ReachPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Reach</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Impression</h1>
           <p className="text-muted-foreground">
-            Short link traffic and click metrics (Short.io)
+            {shortIoData?.filteredLinkUrl
+              ? `Statistics for: ${shortIoData.filteredLinkUrl}`
+              : "Short link traffic and click metrics (Short.io)"}
           </p>
         </div>
         <FilterBar
@@ -126,6 +128,7 @@ export default function ReachPage() {
           onSourceFilterChange={setSourceFilter}
           customDateRange={customDateRange}
           onCustomDateChange={setCustomDateRange}
+          hideAllPlatformFilter={true}
         />
       </div>
 
@@ -315,14 +318,6 @@ export default function ReachPage() {
                     />
                   }
                 />
-                <MetricCard
-                  title="Links Tracked"
-                  value={shortIoData.linkCount.toLocaleString()}
-                  subtitle="Short links in domain"
-                  icon={Link2}
-                  color={COLORS.info}
-                  tooltip="Number of short links in your Short.io domain"
-                />
               </>
             )}
           </div>
@@ -369,47 +364,7 @@ export default function ReachPage() {
               </ChartContainer>
             </ChartCard>
           )}
-          {!shortIoLoading && shortIoData.topLinks?.length > 0 && (
-            <ChartCard
-              title="Top Short Links by Clicks"
-              tooltip="Most clicked short links in the period"
-            >
-              <div className="space-y-2 max-h-[280px] overflow-y-auto">
-                {shortIoData.topLinks.map((link, i) => (
-                  <div
-                    key={link.path ?? i}
-                    className="flex items-center justify-between gap-4 rounded-lg border bg-card px-4 py-3 text-card-foreground"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium text-sm">
-                        {link.title || link.path}
-                      </p>
-                      <a
-                        href={link.shortURL}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="truncate text-xs text-muted-foreground hover:underline block"
-                      >
-                        {link.shortURL}
-                      </a>
-                    </div>
-                    <div className="flex shrink-0 gap-4 text-sm items-center">
-                      {(link.totalClicks ?? 0) > 0 && (
-                        <span className="text-muted-foreground">
-                          {link.totalClicks.toLocaleString()} clicks
-                        </span>
-                      )}
-                      {(link.humanClicks ?? 0) > 0 && (
-                        <span className="text-muted-foreground">
-                          {link.humanClicks.toLocaleString()} human
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </ChartCard>
-          )}
+
           {!shortIoLoading &&
             (shortIoData.country?.length > 0 ||
               shortIoData.browser?.length > 0) && (
@@ -450,6 +405,7 @@ export default function ReachPage() {
                           axisLine={false}
                           width={80}
                           tick={{ fontSize: 11 }}
+                          interval={0}
                         />
                         <ChartTooltip content={<ChartTooltipContent />} />
                         {(shortIoData.activeLinks || []).map((linkPath, i) => (
@@ -571,6 +527,7 @@ export default function ReachPage() {
                             axisLine={false}
                             width={90}
                             tick={{ fontSize: 11 }}
+                            interval={0}
                           />
                           <ChartTooltip content={<ChartTooltipContent />} />
                           {(shortIoData.activeLinks || []).map(
@@ -633,6 +590,7 @@ export default function ReachPage() {
                             axisLine={false}
                             width={90}
                             tick={{ fontSize: 11 }}
+                            interval={0}
                           />
                           <ChartTooltip content={<ChartTooltipContent />} />
                           {(shortIoData.activeLinks || []).map(
@@ -753,6 +711,7 @@ export default function ReachPage() {
                             axisLine={false}
                             width={90}
                             tick={{ fontSize: 11 }}
+                            interval={0}
                           />
                           <ChartTooltip content={<ChartTooltipContent />} />
                           {(shortIoData.activeLinks || []).map(
@@ -803,6 +762,7 @@ export default function ReachPage() {
                             axisLine={false}
                             fontSize={11}
                             width={55}
+                            interval={0}
                           />
                           <ChartTooltip content={<ChartTooltipContent />} />
                           {(shortIoData.activeLinks || []).map(
@@ -853,6 +813,7 @@ export default function ReachPage() {
                             axisLine={false}
                             fontSize={11}
                             width={55}
+                            interval={0}
                           />
                           <ChartTooltip content={<ChartTooltipContent />} />
                           {(shortIoData.activeLinks || []).map(
@@ -903,6 +864,7 @@ export default function ReachPage() {
                             axisLine={false}
                             fontSize={11}
                             width={55}
+                            interval={0}
                           />
                           <ChartTooltip content={<ChartTooltipContent />} />
                           {(shortIoData.activeLinks || []).map(

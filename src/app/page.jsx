@@ -9,9 +9,11 @@ import {
   COLORS,
   SparklineV2,
   DetailedChartV2,
+  RetentionDropOffSparkline,
+  RetentionDetailedChart,
 } from "@/components/ui/metric-card";
 import { FilterBar } from "@/components/ui/filter-bar";
-import { Users, Zap, Clock, UserMinus, MousePointerClick } from "lucide-react";
+import { Users, Clock, MessageSquare, UserMinus } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -104,12 +106,59 @@ export default function OverviewPage() {
   const { data: analytics, isLoading: isAnalyticsLoading } = useAnalyticsData(
     dateFilter,
     sourceFilter,
-    customDateRange
+    customDateRange,
   );
+
+  const [columnWidths, setColumnWidths] = useState({
+    name: 120,
+    email: 180,
+    prompt: 250,
+    enhancedPrompt: 250,
+    intent: 100,
+    domain: 100,
+    platform: 80,
+    plan: 80,
+    totalPrompts: 100,
+    processingTime: 100,
+    createdAt: 120,
+  });
+
+  const handleResize = (key, newWidth) => {
+    setColumnWidths((prev) => ({ ...prev, [key]: newWidth }));
+  };
+
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
+
+  const handleSort = (key) => {
+    let direction = "asc";
+    if (sortConfig.key === key && sortConfig.direction === "asc") {
+      direction = "desc";
+    } else if (sortConfig.key === key && sortConfig.direction === "desc") {
+      direction = null;
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const rawLatestPrompts = analytics?.latestPrompts || [];
+  const latestPrompts = [...rawLatestPrompts].sort((a, b) => {
+    if (!sortConfig.key || !sortConfig.direction) return 0;
+
+    let aVal = a[sortConfig.key];
+    let bVal = b[sortConfig.key];
+
+    // Handle case sensitivity for strings
+    if (typeof aVal === "string") aVal = aVal.toLowerCase();
+    if (typeof bVal === "string") bVal = bVal.toLowerCase();
+
+    if (aVal === bVal) return 0;
+    const result = aVal < bVal ? -1 : 1;
+    return sortConfig.direction === "asc" ? result : -result;
+  });
+
   const { data: attrition, isLoading: isAttritionLoading } = useAttritionData(
     dateFilter,
     sourceFilter,
-    customDateRange // Assuming useAttritionData also needs update
+    customDateRange,
   );
 
   const isLoading = isAnalyticsLoading || isAttritionLoading;
@@ -126,7 +175,6 @@ export default function OverviewPage() {
     totalUsersLifetime > 0 ? (churnedUsers / totalUsersLifetime) * 100 : 0;
   const churnTrend = attrition?.metrics?.trend;
   const dailyTrend = analytics?.timeAnalysis?.dailyActivity || [];
-  const latestPrompts = analytics?.latestPrompts || [];
   const dateLabel = getDateLabel(dateFilter);
 
   // Additional metrics for event flags
@@ -150,7 +198,7 @@ export default function OverviewPage() {
   const powerUserThreshold = 20;
   const churnedUsersList = attrition?.list?.filter((u) => u.isChurned) || [];
   const regrettableChurn = churnedUsersList.filter(
-    (u) => u.promptCount >= powerUserThreshold
+    (u) => u.promptCount >= powerUserThreshold,
   ).length;
 
   // Build event flag statements
@@ -174,11 +222,7 @@ export default function OverviewPage() {
           <span className="text-foreground font-bold">
             {powerUserRate.toFixed(1)}%
           </span>{" "}
-          of users are Power Users with 5+ prompts, showing{" "}
-          <span className="text-foreground font-bold">
-            strong product adoption
-          </span>
-          .
+          of users are Power Users with 5+ prompts.
         </>
       ),
     },
@@ -189,8 +233,7 @@ export default function OverviewPage() {
           <span className="text-foreground font-bold">
             {d7Retention.toFixed(1)}%
           </span>{" "}
-          of users return on Day 7, indicating{" "}
-          <span className="text-foreground font-bold">healthy retention</span>.
+          of users return on Day 7.
         </>
       ),
     },
@@ -207,30 +250,30 @@ export default function OverviewPage() {
         </>
       ),
     },
-    {
-      source: "Conversion",
-      content: (
-        <>
-          <span className="text-foreground font-bold">
-            {enhancementRate.toFixed(1)}%
-          </span>{" "}
-          of prompts were successfully enhanced {dateLabel}.
-        </>
-      ),
-    },
-    {
-      source: "Prompts",
-      content: (
-        <>
-          Prompts are expanded by{" "}
-          <span className="text-foreground font-bold">
-            {expansionRatio.toFixed(1)}x
-          </span>{" "}
-          on average ({avgUserWords.toFixed(0)} → {avgEnhancedWords.toFixed(0)}{" "}
-          words).
-        </>
-      ),
-    },
+    // {
+    //   source: "Conversion",
+    //   content: (
+    //     <>
+    //       <span className="text-foreground font-bold">
+    //         {enhancementRate.toFixed(1)}%
+    //       </span>{" "}
+    //       of prompts were successfully enhanced {dateLabel}.
+    //     </>
+    //   ),
+    // },
+    // {
+    //   source: "Prompts",
+    //   content: (
+    //     <>
+    //       Prompts are expanded by{" "}
+    //       <span className="text-foreground font-bold">
+    //         {expansionRatio.toFixed(1)}x
+    //       </span>{" "}
+    //       on average ({avgUserWords.toFixed(0)} → {avgEnhancedWords.toFixed(0)}{" "}
+    //       words).
+    //     </>
+    //   ),
+    // },
   ];
 
   // Add attrition statement only if there's regrettable churn
@@ -240,7 +283,7 @@ export default function OverviewPage() {
       content: (
         <>
           <span className="text-foreground font-bold">{regrettableChurn}</span>{" "}
-          power users have churned — high-value loss requiring attention.
+          power users have churned.
         </>
       ),
     });
@@ -272,11 +315,11 @@ export default function OverviewPage() {
       source: "Engagement",
       content: (
         <>
-          Product stickiness is at{" "}
+          Period stickiness is at{" "}
           <span className="text-foreground font-bold">
             {stickiness.toFixed(1)}%
           </span>{" "}
-          DAU/MAU ratio {dateLabel}.
+          (DAU / active users in period) {dateLabel}.
         </>
       ),
     });
@@ -347,6 +390,7 @@ export default function OverviewPage() {
           title="Total Prompts"
           value={totalPrompts.toLocaleString()}
           color={COLORS.primary}
+          icon={MessageSquare}
           change={analytics?.metrics?.trends?.prompts ?? undefined}
           tooltip="Total Prompts (Count). Calculated by summing prompt entries in save_enhance_prompt for the selected period."
           chart={
@@ -368,6 +412,7 @@ export default function OverviewPage() {
           title="Active Users"
           value={activeUsers.toLocaleString()}
           color={COLORS.info}
+          icon={Users}
           change={analytics?.metrics?.trends?.users ?? undefined}
           tooltip="Active Users (Unique Count). Calculated by counting distinct user_ids from save_enhance_prompt in the selected period."
           chart={
@@ -378,11 +423,197 @@ export default function OverviewPage() {
           }
         />
         <MetricCard
+          title="Retention Rate"
+          value={`${d1Retention.toFixed(1)}%`}
+          subtitle="D1 Retention"
+          icon={Users}
+          color={COLORS.pink}
+          change={analytics?.metrics?.trends?.retention ?? undefined}
+          tooltip="Retention Rate (%). Percentage of users returning on Day 1, Day 3, and Day 7."
+          chart={
+            <RetentionDropOffSparkline
+              data={[
+                {
+                  name: "D1",
+                  val:
+                    (analytics?.metrics?.retentionMetrics?.bySegment?.d1
+                      ?.Free || 0) +
+                    (analytics?.metrics?.retentionMetrics?.bySegment?.d1
+                      ?.Freetrial || 0) +
+                    (analytics?.metrics?.retentionMetrics?.bySegment?.d1?.Pro ||
+                      0),
+                  Free:
+                    analytics?.metrics?.retentionMetrics?.bySegment?.d1?.Free ||
+                    0,
+                  FreeCount:
+                    analytics?.metrics?.retentionMetrics?.bySegment?.d1
+                      ?.FreeCount || 0,
+                  Freetrial:
+                    analytics?.metrics?.retentionMetrics?.bySegment?.d1
+                      ?.Freetrial || 0,
+                  FreetrialCount:
+                    analytics?.metrics?.retentionMetrics?.bySegment?.d1
+                      ?.FreetrialCount || 0,
+                  Pro:
+                    analytics?.metrics?.retentionMetrics?.bySegment?.d1?.Pro ||
+                    0,
+                  ProCount:
+                    analytics?.metrics?.retentionMetrics?.bySegment?.d1
+                      ?.ProCount || 0,
+                  totalCount:
+                    analytics?.metrics?.retentionMetrics?.d1Count || 0,
+                },
+                {
+                  name: "D3",
+                  val:
+                    (analytics?.metrics?.retentionMetrics?.bySegment?.d3
+                      ?.Free || 0) +
+                    (analytics?.metrics?.retentionMetrics?.bySegment?.d3
+                      ?.Freetrial || 0) +
+                    (analytics?.metrics?.retentionMetrics?.bySegment?.d3?.Pro ||
+                      0),
+                  Free:
+                    analytics?.metrics?.retentionMetrics?.bySegment?.d3?.Free ||
+                    0,
+                  FreeCount:
+                    analytics?.metrics?.retentionMetrics?.bySegment?.d3
+                      ?.FreeCount || 0,
+                  Freetrial:
+                    analytics?.metrics?.retentionMetrics?.bySegment?.d3
+                      ?.Freetrial || 0,
+                  FreetrialCount:
+                    analytics?.metrics?.retentionMetrics?.bySegment?.d3
+                      ?.FreetrialCount || 0,
+                  Pro:
+                    analytics?.metrics?.retentionMetrics?.bySegment?.d3?.Pro ||
+                    0,
+                  ProCount:
+                    analytics?.metrics?.retentionMetrics?.bySegment?.d3
+                      ?.ProCount || 0,
+                  totalCount:
+                    analytics?.metrics?.retentionMetrics?.d3Count || 0,
+                },
+                {
+                  name: "D7",
+                  val:
+                    (analytics?.metrics?.retentionMetrics?.bySegment?.d7
+                      ?.Free || 0) +
+                    (analytics?.metrics?.retentionMetrics?.bySegment?.d7
+                      ?.Freetrial || 0) +
+                    (analytics?.metrics?.retentionMetrics?.bySegment?.d7?.Pro ||
+                      0),
+                  Free:
+                    analytics?.metrics?.retentionMetrics?.bySegment?.d7?.Free ||
+                    0,
+                  FreeCount:
+                    analytics?.metrics?.retentionMetrics?.bySegment?.d7
+                      ?.FreeCount || 0,
+                  Freetrial:
+                    analytics?.metrics?.retentionMetrics?.bySegment?.d7
+                      ?.Freetrial || 0,
+                  FreetrialCount:
+                    analytics?.metrics?.retentionMetrics?.bySegment?.d7
+                      ?.FreetrialCount || 0,
+                  Pro:
+                    analytics?.metrics?.retentionMetrics?.bySegment?.d7?.Pro ||
+                    0,
+                  ProCount:
+                    analytics?.metrics?.retentionMetrics?.bySegment?.d7
+                      ?.ProCount || 0,
+                  totalCount:
+                    analytics?.metrics?.retentionMetrics?.d7Count || 0,
+                },
+              ]}
+              color={COLORS.pink}
+            />
+          }
+          detailedChart={
+            <RetentionDetailedChart
+              data={[
+                {
+                  name: "Day 1",
+                  val: d1Retention,
+                  Free:
+                    analytics?.metrics?.retentionMetrics?.bySegment?.d1?.Free ||
+                    0,
+                  FreeCount:
+                    analytics?.metrics?.retentionMetrics?.bySegment?.d1
+                      ?.FreeCount || 0,
+                  Freetrial:
+                    analytics?.metrics?.retentionMetrics?.bySegment?.d1
+                      ?.Freetrial || 0,
+                  FreetrialCount:
+                    analytics?.metrics?.retentionMetrics?.bySegment?.d1
+                      ?.FreetrialCount || 0,
+                  Pro:
+                    analytics?.metrics?.retentionMetrics?.bySegment?.d1?.Pro ||
+                    0,
+                  ProCount:
+                    analytics?.metrics?.retentionMetrics?.bySegment?.d1
+                      ?.ProCount || 0,
+                  totalCount:
+                    analytics?.metrics?.retentionMetrics?.d1Count || 0,
+                },
+                {
+                  name: "Day 3",
+                  val: analytics?.metrics?.retentionMetrics?.d3 || 0,
+                  Free:
+                    analytics?.metrics?.retentionMetrics?.bySegment?.d3?.Free ||
+                    0,
+                  FreeCount:
+                    analytics?.metrics?.retentionMetrics?.bySegment?.d3
+                      ?.FreeCount || 0,
+                  Freetrial:
+                    analytics?.metrics?.retentionMetrics?.bySegment?.d3
+                      ?.Freetrial || 0,
+                  FreetrialCount:
+                    analytics?.metrics?.retentionMetrics?.bySegment?.d3
+                      ?.FreetrialCount || 0,
+                  Pro:
+                    analytics?.metrics?.retentionMetrics?.bySegment?.d3?.Pro ||
+                    0,
+                  ProCount:
+                    analytics?.metrics?.retentionMetrics?.bySegment?.d3
+                      ?.ProCount || 0,
+                  totalCount:
+                    analytics?.metrics?.retentionMetrics?.d3Count || 0,
+                },
+                {
+                  name: "Day 7",
+                  val: d7Retention,
+                  Free:
+                    analytics?.metrics?.retentionMetrics?.bySegment?.d7?.Free ||
+                    0,
+                  FreeCount:
+                    analytics?.metrics?.retentionMetrics?.bySegment?.d7
+                      ?.FreeCount || 0,
+                  Freetrial:
+                    analytics?.metrics?.retentionMetrics?.bySegment?.d7
+                      ?.Freetrial || 0,
+                  FreetrialCount:
+                    analytics?.metrics?.retentionMetrics?.bySegment?.d7
+                      ?.FreetrialCount || 0,
+                  Pro:
+                    analytics?.metrics?.retentionMetrics?.bySegment?.d7?.Pro ||
+                    0,
+                  ProCount:
+                    analytics?.metrics?.retentionMetrics?.bySegment?.d7
+                      ?.ProCount || 0,
+                  totalCount:
+                    analytics?.metrics?.retentionMetrics?.d7Count || 0,
+                },
+              ]}
+              color={COLORS.pink}
+            />
+          }
+        />
+        <MetricCard
           title="Total Time Saved"
           value={`${timeSaved.toFixed(1)}h`}
           color={COLORS.success}
+          icon={Clock}
           change={analytics?.metrics?.trends?.timeSaved ?? undefined}
-          tooltip="Velocity Time Saved (Hours). Calculated as Sum of (Extra Words / 40 wpm) * Complexity Multiplier. Multipliers: Low=1.0, Medium=1.2, High=1.4. Guardrails: Capped at 6 minutes per prompt."
+          tooltip="Estimated Time Saved (Hours). Methodology: Sum of (Additional Words / 40 wpm) × Complexity Multiplier. Multipliers: Low=1.0, Medium=1.2, High=1.4. Capped at 6 min/prompt. This is an estimate based on word expansion; actual time saved may vary."
           chart={
             <SparklineV2
               data={dailyTrend}
@@ -395,6 +626,29 @@ export default function OverviewPage() {
               data={dailyTrend}
               dataKey="timeSavedHours"
               color={COLORS.success}
+            />
+          }
+        />
+        <MetricCard
+          title="Churn Rate"
+          value={`${churnRate.toFixed(1)}%`}
+          color={COLORS.danger}
+          icon={UserMinus}
+          change={churnTrend ?? undefined}
+          tooltip="Churn Rate (%). Percentage of users who have been inactive for more than 7 days. Calculated as (Churned Users / Total Users) * 100."
+          chart={
+            <SparklineV2
+              data={attrition?.dailyActivity || []}
+              dataKey="churnCount"
+              color={COLORS.danger}
+            />
+          }
+          detailedChart={
+            <DetailedChartV2
+              data={attrition?.dailyActivity || []}
+              dataKey="churnCount"
+              color={COLORS.danger}
+              title="Daily Churn Count"
             />
           }
         />
@@ -623,37 +877,138 @@ export default function OverviewPage() {
       >
         <div className="rounded-md border overflow-hidden min-w-0 w-full">
           <ScrollArea className="h-[300px] sm:h-[400px] rounded-md w-full">
-            <Table className="min-w-[800px]">
+            <Table className="min-w-[800px] table-fixed">
               <TableHeader className="bg-muted/50 sticky top-0 z-10">
                 <TableRow>
-                  <TableHead className="whitespace-nowrap font-bold text-foreground">
+                  <TableHead
+                    className="font-bold text-foreground"
+                    width={columnWidths.name}
+                    onResize={(w) => handleResize("name", w)}
+                    onSort={() => handleSort("name")}
+                    sortDirection={
+                      sortConfig.key === "name" ? sortConfig.direction : null
+                    }
+                  >
                     NAME
                   </TableHead>
-                  <TableHead className="whitespace-nowrap font-bold text-foreground">
+                  <TableHead
+                    className="font-bold text-foreground"
+                    width={columnWidths.email}
+                    onResize={(w) => handleResize("email", w)}
+                    onSort={() => handleSort("email")}
+                    sortDirection={
+                      sortConfig.key === "email" ? sortConfig.direction : null
+                    }
+                  >
                     EMAIL
                   </TableHead>
-                  <TableHead className="whitespace-nowrap font-bold text-foreground">
+                  <TableHead
+                    className="font-bold text-foreground"
+                    width={columnWidths.prompt}
+                    onResize={(w) => handleResize("prompt", w)}
+                    onSort={() => handleSort("prompt")}
+                    sortDirection={
+                      sortConfig.key === "prompt" ? sortConfig.direction : null
+                    }
+                  >
                     PROMPT
                   </TableHead>
-                  <TableHead className="whitespace-nowrap font-bold text-foreground">
+                  <TableHead
+                    className="font-bold text-foreground"
+                    width={columnWidths.enhancedPrompt}
+                    onResize={(w) => handleResize("enhancedPrompt", w)}
+                    onSort={() => handleSort("enhancedPrompt")}
+                    sortDirection={
+                      sortConfig.key === "enhancedPrompt"
+                        ? sortConfig.direction
+                        : null
+                    }
+                  >
                     ENHANCED PROMPT
                   </TableHead>
-                  <TableHead className="whitespace-nowrap font-bold text-foreground">
+                  <TableHead
+                    className="font-bold text-foreground"
+                    width={columnWidths.intent}
+                    onResize={(w) => handleResize("intent", w)}
+                    onSort={() => handleSort("intent")}
+                    sortDirection={
+                      sortConfig.key === "intent" ? sortConfig.direction : null
+                    }
+                  >
                     INTENT
                   </TableHead>
-                  <TableHead className="whitespace-nowrap font-bold text-foreground">
+                  <TableHead
+                    className="font-bold text-foreground"
+                    width={columnWidths.domain}
+                    onResize={(w) => handleResize("domain", w)}
+                    onSort={() => handleSort("domain")}
+                    sortDirection={
+                      sortConfig.key === "domain" ? sortConfig.direction : null
+                    }
+                  >
                     DOMAIN
                   </TableHead>
-                  <TableHead className="whitespace-nowrap font-bold text-foreground">
+                  <TableHead
+                    className="font-bold text-foreground"
+                    width={columnWidths.platform}
+                    onResize={(w) => handleResize("platform", w)}
+                    onSort={() => handleSort("platform")}
+                    sortDirection={
+                      sortConfig.key === "platform"
+                        ? sortConfig.direction
+                        : null
+                    }
+                  >
                     SOURCE
                   </TableHead>
-                  <TableHead className="whitespace-nowrap font-bold text-foreground">
+                  <TableHead
+                    className="font-bold text-foreground"
+                    width={columnWidths.plan}
+                    onResize={(w) => handleResize("plan", w)}
+                    onSort={() => handleSort("plan")}
+                    sortDirection={
+                      sortConfig.key === "plan" ? sortConfig.direction : null
+                    }
+                  >
                     PLAN
                   </TableHead>
-                  <TableHead className="whitespace-nowrap font-bold text-foreground">
+                  <TableHead
+                    className="font-bold text-foreground"
+                    width={columnWidths.totalPrompts}
+                    onResize={(w) => handleResize("totalPrompts", w)}
+                    onSort={() => handleSort("totalPrompts")}
+                    sortDirection={
+                      sortConfig.key === "totalPrompts"
+                        ? sortConfig.direction
+                        : null
+                    }
+                  >
                     TOTAL PROMPTS
                   </TableHead>
-                  <TableHead className="whitespace-nowrap font-bold text-foreground">
+                  <TableHead
+                    className="font-bold text-foreground"
+                    width={columnWidths.processingTime}
+                    onResize={(w) => handleResize("processingTime", w)}
+                    onSort={() => handleSort("processingTime")}
+                    sortDirection={
+                      sortConfig.key === "processingTime"
+                        ? sortConfig.direction
+                        : null
+                    }
+                  >
+                    PROC TIME
+                  </TableHead>
+                  <TableHead
+                    className="font-bold text-foreground"
+                    width={columnWidths.createdAt}
+                    onResize={(w) => handleResize("createdAt", w)}
+                    onSort={() => handleSort("createdAt")}
+                    sortDirection={
+                      sortConfig.key === "createdAt"
+                        ? sortConfig.direction
+                        : null
+                    }
+                  >
                     LAST PROMPT AT
                   </TableHead>
                 </TableRow>
@@ -666,19 +1021,19 @@ export default function OverviewPage() {
                       className="even:bg-muted/30 hover:bg-muted/50 transition-colors"
                     >
                       <TableCell
-                        className="whitespace-nowrap font-medium py-3 max-w-[120px] truncate"
+                        className="font-medium py-3 truncate"
                         title={row.name}
                       >
                         {row.name}
                       </TableCell>
                       <TableCell
-                        className="whitespace-nowrap font-mono text-xs py-3 text-muted-foreground max-w-[150px] truncate"
+                        className="font-mono text-xs py-3 text-muted-foreground truncate"
                         title={row.email}
                       >
                         {row.email}
                       </TableCell>
                       <TableCell
-                        className="max-w-[215px] truncate font-mono text-xs py-3 cursor-pointer"
+                        className="truncate font-mono text-xs py-3 cursor-pointer"
                         title={`Double click to view full`}
                         onDoubleClick={() =>
                           setSelectedPrompt({
@@ -690,7 +1045,7 @@ export default function OverviewPage() {
                         {row.prompt}
                       </TableCell>
                       <TableCell
-                        className="max-w-[215px] truncate font-mono text-xs py-3 cursor-pointer"
+                        className="truncate font-mono text-xs py-3 cursor-pointer"
                         title={`Double click to view full`}
                         onDoubleClick={() => {
                           if (row.enhancedPrompt) {
@@ -704,37 +1059,42 @@ export default function OverviewPage() {
                         {row.enhancedPrompt || "—"}
                       </TableCell>
                       <TableCell
-                        className="whitespace-nowrap py-3 text-muted-foreground max-w-[100px] truncate"
+                        className="py-3 text-muted-foreground truncate"
                         title={row.intent}
                       >
                         {row.intent}
                       </TableCell>
                       <TableCell
-                        className="whitespace-nowrap py-3 text-muted-foreground max-w-[100px] truncate"
+                        className="py-3 text-muted-foreground truncate"
                         title={row.domain}
                       >
                         {row.domain}
                       </TableCell>
                       <TableCell
-                        className="whitespace-nowrap py-3 text-muted-foreground max-w-[80px] truncate"
+                        className="py-3 text-muted-foreground truncate"
                         title={row.platform}
                       >
                         {row.platform}
                       </TableCell>
                       <TableCell
-                        className="whitespace-nowrap py-3 text-muted-foreground max-w-[80px] truncate"
+                        className="py-3 text-muted-foreground truncate"
                         title={row.plan}
                       >
                         {row.plan}
                       </TableCell>
                       <TableCell
-                        className="text-center font-medium py-3 max-w-[80px] truncate"
+                        className="text-center font-medium py-3 truncate"
                         title={String(row.totalPrompts)}
                       >
                         {row.totalPrompts}
                       </TableCell>
+                      <TableCell className="font-mono text-center py-3 text-muted-foreground truncate">
+                        {row.processingTime
+                          ? `${(row.processingTime / 1000).toFixed(2)}s`
+                          : "—"}
+                      </TableCell>
                       <TableCell
-                        className="whitespace-nowrap py-3 text-xs text-muted-foreground max-w-[90px] truncate"
+                        className="py-3 text-xs text-muted-foreground truncate"
                         title={
                           row.createdAt
                             ? format(new Date(row.createdAt), "MMM d, HH:mm")

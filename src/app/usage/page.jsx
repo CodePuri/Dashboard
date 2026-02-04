@@ -49,18 +49,50 @@ import {
 } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Copy, Check } from "lucide-react";
 
 export default function UsagePage() {
   const [dateFilter, setDateFilter] = useState("Last 30 Days");
   const [sourceFilter, setSourceFilter] = useState("All");
   const [customDateRange, setCustomDateRange] = useState();
   const [expandedCharts, setExpandedCharts] = useState({});
+  const [selectedPrompt, setSelectedPrompt] = useState(null);
+  const [isCopied, setIsCopied] = useState(false);
+
+  const handleCopy = (text) => {
+    navigator.clipboard.writeText(text);
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 2000);
+  };
 
   const { data, isLoading } = useUsageData(
     dateFilter,
     sourceFilter,
     customDateRange,
   );
+
+  const [upgradeSort, setUpgradeSort] = useState({
+    key: null,
+    direction: null,
+  });
+
+  const handleUpgradeSort = (key) => {
+    let direction = "asc";
+    if (upgradeSort.key === key && upgradeSort.direction === "asc") {
+      direction = "desc";
+    } else if (upgradeSort.key === key && upgradeSort.direction === "desc") {
+      direction = null;
+    }
+    setUpgradeSort({ key, direction });
+  };
 
   if (isLoading || !data) {
     return (
@@ -87,9 +119,18 @@ export default function UsagePage() {
   const occupations = data.occupations?.slice(0, 5) || [];
   const complexityData = data.complexityDistribution || [];
 
-  const upgradeRecords = (segments.power?.records || []).filter(
+  const rawUpgradeRecords = (segments.power?.records || []).filter(
     (r) => r.status === "free",
   );
+
+  const upgradeRecords = [...rawUpgradeRecords].sort((a, b) => {
+    if (!upgradeSort.key || !upgradeSort.direction) return 0;
+    const aVal = a[upgradeSort.key];
+    const bVal = b[upgradeSort.key];
+    if (aVal === bVal) return 0;
+    const result = aVal < bVal ? -1 : 1;
+    return upgradeSort.direction === "asc" ? result : -result;
+  });
 
   const upgradeColumns = [
     {
@@ -98,7 +139,10 @@ export default function UsagePage() {
       className: "w-[180px]",
       render: (val, row) => (
         <div className="flex flex-col">
-          <span className="font-bold text-foreground truncate max-w-[160px]">
+          <span
+            className="font-bold text-foreground truncate max-w-[160px]"
+            title={val}
+          >
             {val}
           </span>
           <span className="text-[10px] font-mono text-muted-foreground/60 tracking-tighter">
@@ -112,7 +156,10 @@ export default function UsagePage() {
       key: "email",
       className: "flex-1 min-w-[180px]",
       render: (val) => (
-        <span className="text-[11px] text-muted-foreground/80 truncate block max-w-[200px]">
+        <span
+          className="text-[11px] text-muted-foreground/80 truncate block max-w-[200px]"
+          title={val}
+        >
           {val}
         </span>
       ),
@@ -133,10 +180,16 @@ export default function UsagePage() {
       key: "name",
       render: (_, row) => (
         <div className="flex flex-col gap-0.5 max-w-[180px]">
-          <span className="font-semibold text-foreground truncate">
+          <span
+            className="font-semibold text-foreground truncate"
+            title={row.name}
+          >
             {row.name}
           </span>
-          <span className="text-[10px] text-muted-foreground/60 font-mono truncate">
+          <span
+            className="text-[10px] text-muted-foreground/60 font-mono truncate"
+            title={row.email}
+          >
             {row.email}
           </span>
         </div>
@@ -200,10 +253,16 @@ export default function UsagePage() {
       key: "name",
       render: (_, row) => (
         <div className="flex flex-col gap-0.5 max-w-[180px]">
-          <span className="font-semibold text-foreground truncate">
+          <span
+            className="font-semibold text-foreground truncate"
+            title={row.name}
+          >
             {row.name}
           </span>
-          <span className="text-[10px] text-muted-foreground/60 font-mono truncate">
+          <span
+            className="text-[10px] text-muted-foreground/60 font-mono truncate"
+            title={row.email}
+          >
             {row.email}
           </span>
         </div>
@@ -228,12 +287,12 @@ export default function UsagePage() {
             </div>
           );
         }
-        if (row.isDead) {
+        if (row.isInactive || row.isDead) {
           return (
             <div className="flex flex-col gap-1">
               <Badge
                 variant="outline"
-                className="w-fit text-[9px] px-1.5 h-4 font-black uppercase tracking-widest border-zinc-500/20 bg-zinc-500/5 text-zinc-500 shadow-none"
+                className="w-fit text-[9px] px-1.5 h-4 font-black uppercase tracking-widest border-rose-500/20 bg-rose-500/5 text-rose-500 shadow-none"
               >
                 Inactive
               </Badge>
@@ -290,10 +349,16 @@ export default function UsagePage() {
       key: "name",
       render: (_, row) => (
         <div className="flex flex-col gap-0.5 max-w-[180px]">
-          <span className="font-semibold text-foreground truncate">
+          <span
+            className="font-semibold text-foreground truncate"
+            title={row.name}
+          >
             {row.name}
           </span>
-          <span className="text-[10px] text-muted-foreground/60 font-mono truncate">
+          <span
+            className="text-[10px] text-muted-foreground/60 font-mono truncate"
+            title={row.email}
+          >
             {row.email}
           </span>
         </div>
@@ -354,10 +419,16 @@ export default function UsagePage() {
       key: "name",
       render: (_, row) => (
         <div className="flex flex-col gap-0.5 max-w-[180px]">
-          <span className="font-semibold text-foreground truncate">
+          <span
+            className="font-semibold text-foreground truncate"
+            title={row.name}
+          >
             {row.name}
           </span>
-          <span className="text-[10px] text-muted-foreground/60 font-mono truncate">
+          <span
+            className="text-[10px] text-muted-foreground/60 font-mono truncate"
+            title={row.email}
+          >
             {row.email}
           </span>
         </div>
@@ -414,10 +485,16 @@ export default function UsagePage() {
       key: "name",
       render: (_, row) => (
         <div className="flex flex-col gap-0.5 max-w-[180px]">
-          <span className="font-semibold text-foreground truncate">
+          <span
+            className="font-semibold text-foreground truncate"
+            title={row.name}
+          >
             {row.name}
           </span>
-          <span className="text-[10px] text-muted-foreground/60 font-mono truncate">
+          <span
+            className="text-[10px] text-muted-foreground/60 font-mono truncate"
+            title={row.email}
+          >
             {row.email}
           </span>
         </div>
@@ -472,10 +549,16 @@ export default function UsagePage() {
       key: "name",
       render: (_, row) => (
         <div className="flex flex-col gap-0.5 max-w-[180px]">
-          <span className="font-semibold text-foreground truncate">
+          <span
+            className="font-semibold text-foreground truncate"
+            title={row.name}
+          >
             {row.name}
           </span>
-          <span className="text-[10px] text-muted-foreground/60 font-mono truncate">
+          <span
+            className="text-[10px] text-muted-foreground/60 font-mono truncate"
+            title={row.email}
+          >
             {row.email}
           </span>
         </div>
@@ -523,9 +606,19 @@ export default function UsagePage() {
   const promptColumns = [
     {
       label: "Contributor",
-      key: "userName",
-      render: (val) => (
-        <span className="font-bold text-foreground/80">{val}</span>
+      key: "name",
+      render: (val, row) => (
+        <div className="flex flex-col gap-0.5 max-w-[180px]">
+          <span className="font-bold text-foreground/80 truncate" title={val}>
+            {val}
+          </span>
+          <span
+            className="text-[10px] text-muted-foreground/60 font-mono truncate"
+            title={row.email}
+          >
+            {row.email}
+          </span>
+        </div>
       ),
     },
     {
@@ -533,10 +626,16 @@ export default function UsagePage() {
       key: "content",
       render: (val) => (
         <div
-          className="max-w-[300px] truncate font-mono text-[10px] leading-relaxed opacity-60 hover:opacity-100 transition-opacity"
-          title={val}
+          className="max-w-[300px] truncate font-mono text-[10px] leading-relaxed opacity-60 hover:opacity-100 transition-opacity cursor-pointer flex items-center justify-between group"
+          title="Double click to view full"
+          onDoubleClick={() =>
+            setSelectedPrompt({
+              title: "Prompt Content",
+              content: val,
+            })
+          }
         >
-          {val}
+          <span className="truncate">{val}</span>
         </div>
       ),
     },
@@ -564,7 +663,7 @@ export default function UsagePage() {
   const segmentData = [
     { name: "Power", count: segments.power?.count || 0, fill: "#10b981" }, // Emerald 500
     { name: "Casual", count: segments.casual?.count || 0, fill: "#8b5cf6" }, // Violet 500
-    { name: "Dead", count: segments.dead?.count || 0, fill: "#94a3b8" }, // Zinc 400
+    { name: "Inactive", count: segments.dead?.count || 0, fill: "#fb7185" }, // Rose 400
   ];
 
   const subscriptionData = [
@@ -681,6 +780,12 @@ export default function UsagePage() {
                               "text-[9px] uppercase tracking-[0.15em] font-black text-muted-foreground/70 h-10 px-4",
                               col.className,
                             )}
+                            onSort={() => handleUpgradeSort(col.key)}
+                            sortDirection={
+                              upgradeSort.key === col.key
+                                ? upgradeSort.direction
+                                : null
+                            }
                           >
                             {col.label}
                           </TableHead>
@@ -1158,6 +1263,46 @@ export default function UsagePage() {
           )}
         </ChartCard>
       </div>
+      <Dialog
+        open={!!selectedPrompt}
+        onOpenChange={(open) => !open && setSelectedPrompt(null)}
+      >
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl max-h-[90dvh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>{selectedPrompt?.title}</DialogTitle>
+            <DialogDescription>
+              Full content of the selected prompt
+            </DialogDescription>
+          </DialogHeader>
+          <div className="relative mt-4 min-h-0 flex-1 overflow-hidden flex flex-col">
+            <div className="rounded-md bg-muted p-4 font-mono text-sm whitespace-pre-wrap max-h-[50dvh] overflow-y-auto">
+              {selectedPrompt?.content}
+            </div>
+          </div>
+          <DialogFooter className="sm:justify-between">
+            <Button
+              variant="secondary"
+              onClick={() => handleCopy(selectedPrompt?.content)}
+              className="gap-2"
+            >
+              {isCopied ? (
+                <>
+                  <Check className="h-4 w-4 text-green-500" />
+                  Copied
+                </>
+              ) : (
+                <>
+                  <Copy className="h-4 w-4" />
+                  Copy
+                </>
+              )}
+            </Button>
+            <Button variant="outline" onClick={() => setSelectedPrompt(null)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

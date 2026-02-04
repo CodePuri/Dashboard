@@ -33,11 +33,14 @@ const emptyShortIoData = {
   utmCampaign: [],
   clicksOverTime: [],
   clickStatistics: null,
+  platform: "All",
+  filteredLinkUrl: null,
 };
 
 export function useShortIoData(
   dateFilter = "Last 7 Days",
   customDateRange = null,
+  sourceFilter = "All",
 ) {
   const [data, setData] = useState(emptyShortIoData);
   const [isLoading, setIsLoading] = useState(true);
@@ -54,8 +57,16 @@ export function useShortIoData(
       const period = getShortIoPeriod(dateFilter);
       let url = `/api/shortio?period=${encodeURIComponent(period)}`;
 
+      // Add platform filter if not "All"
+      if (sourceFilter && sourceFilter !== "All") {
+        url += `&platform=${encodeURIComponent(sourceFilter)}`;
+      }
+
       if (dateFilter === "Custom" && customDateRange?.from) {
         url = `/api/shortio?period=custom`;
+        if (sourceFilter && sourceFilter !== "All") {
+          url += `&platform=${encodeURIComponent(sourceFilter)}`;
+        }
         url += `&from=${encodeURIComponent(
           customDateRange.from.toISOString().split("T")[0],
         )}`;
@@ -93,7 +104,7 @@ export function useShortIoData(
     } finally {
       setIsLoading(false);
     }
-  }, [dateFilter, customDateRange]);
+  }, [dateFilter, customDateRange, sourceFilter]);
 
   useEffect(() => {
     fetchData();

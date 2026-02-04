@@ -9,6 +9,14 @@ import {
 const SHORT_IO_API_KEY = process.env.SHORT_IO_API_KEY;
 let SHORT_IO_DOMAIN_ID = process.env.SHORT_IO_DOMAIN_ID;
 
+// Platform to Short.io link original URL mapping
+// These must match the ORIGINAL URLs in Short.io (what the short link redirects TO)
+const PLATFORM_LINK_MAP = {
+  Chat: "https://thinkvelocity.in/chat",
+  Extension:
+    "https://chromewebstore.google.com/detail/ggiecgdncaiedmdnbmgjhpfniflebfpa",
+};
+
 // Configure SDK
 if (SHORT_IO_API_KEY) {
   setApiKey(SHORT_IO_API_KEY);
@@ -75,44 +83,75 @@ export async function GET(request) {
   const period = request.nextUrl.searchParams.get("period") || "last7";
   const from = request.nextUrl.searchParams.get("from");
   const to = request.nextUrl.searchParams.get("to");
+  const platform = request.nextUrl.searchParams.get("platform"); // "Chat", "Extension", or null/"All"
   const tzOffset = -new Date().getTimezoneOffset();
 
   try {
-    // 1. Fetch DOMAIN statistics and LINKS list in parallel
-    let domainStatsUrl = `https://api-v2.short.io/statistics/domain/${SHORT_IO_DOMAIN_ID}?period=${period}&tzOffset=${tzOffset}`;
-    if (period === "custom" && from && to) {
-      const startMillis = new Date(from).getTime();
-      const endMillis = new Date(to).getTime() + 24 * 60 * 60 * 1000 - 1;
-      domainStatsUrl = `https://api-v2.short.io/statistics/domain/${SHORT_IO_DOMAIN_ID}?period=custom&startDate=${startMillis}&endDate=${endMillis}&tzOffset=${tzOffset}`;
-    }
-
-    const [domainStatsRes, linksResponse] = await Promise.all([
-      fetch(domainStatsUrl, {
-        headers: {
-          accept: "*/*",
-          authorization: SHORT_IO_API_KEY,
-        },
-      }),
-      listLinks({
-        query: {
-          domain_id: SHORT_IO_DOMAIN_ID,
-          limit: 50,
-        },
-      }),
-    ]);
-
-    const domainStats = domainStatsRes.ok ? await domainStatsRes.json() : null;
+    // First, fetch the links list to find link IDs
+    const linksResponse = await listLinks({
+      query: {
+        domain_id: SHORT_IO_DOMAIN_ID,
+        limit: 50,
+      },
+    });
     const links = linksResponse.data?.links || [];
 
-    if (!domainStats) {
+    // Check if we need to fetch link-specific statistics
+    const targetOriginalUrl = PLATFORM_LINK_MAP[platform];
+    let targetLinkId = null;
+
+    if (targetOriginalUrl) {
+      // Find the link with matching original URL
+      const targetLink = links.find(
+        (l) =>
+          l.originalURL === targetOriginalUrl ||
+          l.originalURL === targetOriginalUrl.replace(/\/$/, "") ||
+          l.originalURL + "/" === targetOriginalUrl,
+      );
+      if (targetLink) {
+        targetLinkId = targetLink.idString || targetLink.id;
+      }
+    }
+
+    // Build the appropriate stats URL (link-specific or domain-wide)
+    let statsUrl;
+    if (targetLinkId) {
+      // Fetch link-specific statistics
+      statsUrl = `https://statistics.short.io/statistics/link/${targetLinkId}?period=${period}&tz=UTC`;
+      if (period === "custom" && from && to) {
+        statsUrl = `https://statistics.short.io/statistics/link/${targetLinkId}?period=custom&startDate=${from}&endDate=${to}&tz=UTC`;
+      }
+    } else {
+      // Fetch domain-wide statistics
+      statsUrl = `https://api-v2.short.io/statistics/domain/${SHORT_IO_DOMAIN_ID}?period=${period}&tzOffset=${tzOffset}`;
+      if (period === "custom" && from && to) {
+        const startMillis = new Date(from).getTime();
+        const endMillis = new Date(to).getTime() + 24 * 60 * 60 * 1000 - 1;
+        statsUrl = `https://api-v2.short.io/statistics/domain/${SHORT_IO_DOMAIN_ID}?period=custom&startDate=${startMillis}&endDate=${endMillis}&tzOffset=${tzOffset}`;
+      }
+    }
+
+    const statsRes = await fetch(statsUrl, {
+      headers: {
+        accept: "*/*",
+        authorization: SHORT_IO_API_KEY,
+      },
+    });
+
+    const stats = statsRes.ok ? await statsRes.json() : null;
+
+    if (!stats) {
       return NextResponse.json(
         {
           success: false,
-          error: "Failed to fetch domain statistics from Short.io",
+          error: `Failed to fetch ${targetLinkId ? "link" : "domain"} statistics from Short.io`,
         },
         { status: 502 },
       );
     }
+
+    // Alias for backward compatibility with rest of the code
+    const domainStats = stats;
 
     // Helper to process breakdown data into a standard format
     const processBreakdown = (items, keyField) => {
@@ -181,24 +220,42 @@ export async function GET(request) {
     const activeLinks = ["All Traffic"];
 
     // 4. Totals and Changes
-    const totalClicks = Number(domainStats.clicks || 0);
+    // Note: Link Statistics API returns 'totalClicks', Domain Statistics API returns 'clicks'
+    const totalClicks = Number(
+      domainStats.totalClicks || domainStats.clicks || 0,
+    );
     const humanClicks = Number(domainStats.humanClicks || 0);
 
     let totalClicksChange = null;
+    // Link Statistics API returns totalClicksChange directly as a string
     if (
-      domainStats.clicks &&
+      domainStats.totalClicksChange != null &&
+      domainStats.totalClicksChange !== ""
+    ) {
+      totalClicksChange = domainStats.totalClicksChange;
+    } else if (
+      (domainStats.clicks || domainStats.totalClicks) &&
       domainStats.prevClicks &&
       Number(domainStats.prevClicks) > 0
     ) {
+      const currentClicks = Number(
+        domainStats.clicks || domainStats.totalClicks,
+      );
       totalClicksChange = (
-        ((Number(domainStats.clicks) - Number(domainStats.prevClicks)) /
+        ((currentClicks - Number(domainStats.prevClicks)) /
           Number(domainStats.prevClicks)) *
         100
       ).toFixed(1);
     }
 
     let humanClicksChange = null;
+    // Link Statistics API returns humanClicksChange directly as a string
     if (
+      domainStats.humanClicksChange != null &&
+      domainStats.humanClicksChange !== ""
+    ) {
+      humanClicksChange = domainStats.humanClicksChange;
+    } else if (
       domainStats.humanClicks &&
       domainStats.prevHumanClicks &&
       Number(domainStats.prevHumanClicks) > 0
@@ -244,6 +301,9 @@ export async function GET(request) {
           clicksOverTime.length > 0
             ? { datasets: [{ data: clicksOverTime }] }
             : null,
+        // Platform filter info
+        platform: platform || "All",
+        filteredLinkUrl: targetOriginalUrl || null,
       },
     });
   } catch (err) {
