@@ -193,6 +193,14 @@ export function FilterBar({
             <Puzzle className="h-3.5 w-3.5 mr-1.5" />
             Ext
           </ToggleGroupItem>
+          <ToggleGroupItem
+            value="Lander"
+            aria-label="Lander Only"
+            className="h-7 px-2 text-xs data-[state=on]:bg-background data-[state=on]:shadow-sm"
+          >
+            <Layers className="h-3.5 w-3.5 mr-1.5" />
+            Lander
+          </ToggleGroupItem>
         </ToggleGroup>
       </div>
     </div>

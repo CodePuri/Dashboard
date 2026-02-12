@@ -3,6 +3,7 @@
 import { useState } from "react";
 // import { useAnalyticsData } from "@/hooks/use-analytics-data";
 import { useShortIoData } from "@/hooks/use-shortio-data";
+import { usePostHogData } from "@/hooks/use-posthog-data";
 import {
   MetricCard,
   ChartCard,
@@ -11,7 +12,13 @@ import {
   SparklineV2,
   DetailedChartV2,
 } from "@/components/ui/metric-card";
-import { Users, Link2, MousePointerClick, ExternalLink } from "lucide-react";
+import {
+  Users,
+  Link2,
+  MousePointerClick,
+  ExternalLink,
+  Loader2,
+} from "lucide-react";
 import {
   ChartContainer,
   ChartTooltip,
@@ -76,6 +83,15 @@ export default function ReachPage() {
     needsDomainId: shortIoNeedsDomainId,
   } = useShortIoData(dateFilter, customDateRange, sourceFilter);
 
+  const {
+    data: postHogData,
+    isLoading: postHogLoading,
+    isLoadingMore: postHogLoadingMore,
+    configured: postHogConfigured,
+    error: postHogError,
+    loadMore: postHogLoadMore,
+  } = usePostHogData(dateFilter, customDateRange, sourceFilter);
+
   // if ((isAnalyticsLoading || !data) && !shortIoConfigured) {
   //   return (
   //     <div className="space-y-6">
@@ -116,9 +132,7 @@ export default function ReachPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Impression</h1>
           <p className="text-muted-foreground">
-            {shortIoData?.filteredLinkUrl
-              ? `Statistics for: ${shortIoData.filteredLinkUrl}`
-              : "Short link traffic and click metrics (Short.io)"}
+            Clicks and Traffic Data from Short.io and PostHog
           </p>
         </div>
         <FilterBar
@@ -179,7 +193,7 @@ export default function ReachPage() {
       </div> */}
 
       {/* Short.io metrics */}
-      {shortIoConfigured && (
+      {shortIoConfigured && sourceFilter !== "Lander" && (
         <>
           <div className="flex items-center gap-2 pt-4 border-t">
             <Link2 className="h-5 w-5 text-muted-foreground" />
@@ -895,6 +909,490 @@ export default function ReachPage() {
               </>
             )}
         </>
+      )}
+
+      {/* PostHog Events Section */}
+      {postHogConfigured && (
+        <>
+          <div className="flex items-center gap-2 pt-4 border-t">
+            <MousePointerClick className="h-5 w-5 text-muted-foreground" />
+            <h2 className="text-xl font-semibold tracking-tight">
+              PostHog Events Analytics
+            </h2>
+          </div>
+
+          {postHogError && (
+            <div className="rounded-xl border-2 border-dashed border-destructive/30 bg-destructive/5 p-6 text-sm text-muted-foreground">
+              <p className="font-semibold text-foreground mb-1">
+                Error loading PostHog data
+              </p>
+              <p>{postHogError}</p>
+            </div>
+          )}
+
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {postHogLoading ? (
+              [...Array(3)].map((_, i) => (
+                <Skeleton key={i} className="h-32 rounded-xl" />
+              ))
+            ) : (
+              <>
+                <MetricCard
+                  title="Total Events"
+                  value={postHogData.totalEvents.toLocaleString()}
+                  subtitle="Full analysis for period"
+                  icon={MousePointerClick}
+                  color={COLORS.primary}
+                  tooltip={
+                    sourceFilter === "Extension" ? (
+                      <div className="space-y-3 max-h-[350px] overflow-auto pr-2 scrollbar-thin">
+                        <p className="font-bold border-b pb-1 mb-2 text-primary">
+                          All Tracked Extension Events:
+                        </p>
+
+                        <div className="space-y-2">
+                          <div>
+                            <p className="font-semibold text-[10px] text-muted-foreground uppercase tracking-widest mb-1">
+                              API Operations
+                            </p>
+                            <div className="grid grid-cols-1 gap-0.5 opacity-90 font-mono text-[9px]">
+                              <span>api_enhance_error</span>
+                              <span>api_enhance_request</span>
+                              <span>api_enhance_response</span>
+                            </div>
+                          </div>
+
+                          <div>
+                            <p className="font-semibold text-[10px] text-muted-foreground uppercase tracking-widest mb-1">
+                              Injected Buttons
+                            </p>
+                            <div className="grid grid-cols-1 gap-0.5 opacity-90 font-mono text-[9px]">
+                              <span>button_dropdown_option_selected</span>
+                              <span>button_dropdown_toggled</span>
+                              <span>button_enhance_clicked</span>
+                              <span>button_get_pro_clicked</span>
+                              <span>button_quick_action_clicked</span>
+                            </div>
+                          </div>
+
+                          <div>
+                            <p className="font-semibold text-[10px] text-muted-foreground uppercase tracking-widest mb-1">
+                              Browser Extension
+                            </p>
+                            <div className="grid grid-cols-1 gap-0.5 opacity-90 font-mono text-[9px]">
+                              <span>
+                                extension_copy_improved_button_clicked
+                              </span>
+                              <span>extension_dropdown_option_selected</span>
+                              <span>extension_dropdown_toggled</span>
+                              <span>extension_get_pro_badge_clicked</span>
+                              <span>
+                                extension_improved_dislike_button_clicked
+                              </span>
+                              <span>
+                                extension_improved_like_button_clicked
+                              </span>
+                              <span>extension_insert_button_clicked</span>
+                              <span>extension_login_button_clicked</span>
+                              <span>extension_memory_button_clicked</span>
+                              <span>extension_opened</span>
+                              <span>
+                                extension_post_login_upgrade_modal_shown
+                              </span>
+                              <span>
+                                extension_post_login_upgrade_pro_clicked
+                              </span>
+                              <span>extension_profile_button_clicked</span>
+                              <span>extension_send_button_clicked</span>
+                              <span>extension_settings_button_clicked</span>
+                              <span>extension_settings_cancel_clicked</span>
+                              <span>
+                                extension_settings_personality_dropdown_toggled
+                              </span>
+                              <span>
+                                extension_settings_refresh_traits_clicked
+                              </span>
+                              <span>extension_settings_save_clicked</span>
+                              <span>extension_signup_button_clicked</span>
+                              <span>extension_snooze_button_clicked</span>
+                              <span>extension_snooze_option_selected</span>
+                              <span>extension_theme_toggle_clicked</span>
+                              <span>extension_toggle_blocked</span>
+                              <span>extension_toggle_clicked</span>
+                              <span>extension_trial_activation_failed</span>
+                              <span>extension_trial_activation_started</span>
+                              <span>
+                                extension_trial_activated_successfully
+                              </span>
+                              <span>extension_trial_ended_modal_shown</span>
+                              <span>
+                                extension_try_free_trial_button_clicked
+                              </span>
+                              <span>extension_upgrade_button_clicked</span>
+                              <span>extension_user_dropdown_hovered</span>
+                              <span>
+                                extension_user_dropdown_option_selected
+                              </span>
+                            </div>
+                          </div>
+
+                          <div>
+                            <p className="font-semibold text-[10px] text-muted-foreground uppercase tracking-widest mb-1">
+                              Overlay Popup
+                            </p>
+                            <div className="grid grid-cols-1 gap-0.5 opacity-90 font-mono text-[9px]">
+                              <span>popup_accept_button_clicked</span>
+                              <span>popup_analysis_refine_button_clicked</span>
+                              <span>popup_close_button_clicked</span>
+                              <span>popup_closed</span>
+                              <span>popup_copy_button_clicked</span>
+                              <span>popup_dislike_button_clicked</span>
+                              <span>popup_like_button_clicked</span>
+                              <span>popup_opened</span>
+                              <span>
+                                popup_premium_popup_close_button_clicked
+                              </span>
+                              <span>popup_refine_button_clicked</span>
+                              <span>popup_refine_option_selected</span>
+                              <span>popup_tab_clicked</span>
+                              <span>popup_upgrade_button_clicked</span>
+                            </div>
+                          </div>
+
+                          <div>
+                            <p className="font-semibold text-[10px] text-muted-foreground uppercase tracking-widest mb-1">
+                              Input & Other
+                            </p>
+                            <div className="grid grid-cols-1 gap-0.5 opacity-90 font-mono text-[9px]">
+                              <span>form_input</span>
+                              <span>form_change</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      "Total number of events tracked by PostHog in the selected time range"
+                    )
+                  }
+                />
+                <MetricCard
+                  title="Unique Event Types"
+                  value={postHogData.uniqueEventTypes.toLocaleString()}
+                  subtitle="Found in this period"
+                  icon={Users}
+                  color={COLORS.info}
+                  tooltip="Number of distinct event types captured"
+                />
+              </>
+            )}
+          </div>
+
+          {!postHogLoading && postHogData.eventsOverTime?.length > 0 && (
+            <ChartCard
+              title="Events Over Time"
+              tooltip="Daily event volume across all event types"
+            >
+              <ChartContainer config={{}} className="h-[280px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart
+                    data={postHogData.eventsOverTime}
+                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <defs>
+                      <linearGradient
+                        id="fillEvents"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="5%"
+                          stopColor={COLORS.primary}
+                          stopOpacity={0.8}
+                        />
+                        <stop
+                          offset="95%"
+                          stopColor={COLORS.primary}
+                          stopOpacity={0}
+                        />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis
+                      dataKey="date"
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={8}
+                      tickFormatter={(tick) => {
+                        try {
+                          return format(new Date(tick), "MMM d");
+                        } catch (e) {
+                          return tick;
+                        }
+                      }}
+                    />
+
+                    <YAxis tickLine={false} axisLine={false} tickMargin={8} />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Area
+                      type="monotone"
+                      dataKey="total"
+                      stroke={COLORS.primary}
+                      fill="url(#fillEvents)"
+                      strokeWidth={2}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </ChartCard>
+          )}
+
+          {!postHogLoading && postHogData.eventBreakdown?.length > 0 && (
+            <div className="grid gap-6 md:grid-cols-2">
+              <ChartCard
+                title="Event Breakdown"
+                tooltip="Distribution of events by type"
+              >
+                <ChartContainer config={{}} className="h-[280px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RechartsPie margin={{ top: 0, bottom: 0 }}>
+                      <Pie
+                        data={postHogData.eventBreakdown.slice(0, 10)}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={85}
+                        paddingAngle={5}
+                        dataKey="count"
+                        nameKey="name"
+                      >
+                        {postHogData.eventBreakdown
+                          .slice(0, 10)
+                          .map((_, index) => (
+                            <Cell
+                              key={`event-${index}`}
+                              fill={
+                                VARIETY_COLORS[index % VARIETY_COLORS.length]
+                              }
+                            />
+                          ))}
+                      </Pie>
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                    </RechartsPie>
+                  </ResponsiveContainer>
+                </ChartContainer>
+                <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-6 px-2">
+                  {postHogData.eventBreakdown.slice(0, 8).map((event, i) => (
+                    <div key={event.name} className="flex items-center gap-2">
+                      <div
+                        className="h-2.5 w-2.5 rounded-full"
+                        style={{
+                          backgroundColor:
+                            VARIETY_COLORS[i % VARIETY_COLORS.length],
+                        }}
+                      />
+                      <span className="text-[11px] font-medium text-muted-foreground whitespace-nowrap">
+                        {event.name} ({event.count})
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </ChartCard>
+
+              <ChartCard title="Top Events" tooltip="Most frequent event types">
+                <ChartContainer
+                  config={{
+                    score: { label: "Count", color: COLORS.primary },
+                  }}
+                  className="h-[280px] w-full"
+                >
+                  <BarChart
+                    data={postHogData.eventBreakdown.slice(0, 10)}
+                    layout="vertical"
+                    margin={{ left: 160, right: 30 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                    <XAxis
+                      type="number"
+                      tickLine={false}
+                      axisLine={false}
+                      hide
+                    />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      tickLine={false}
+                      axisLine={false}
+                      width={155}
+                      tick={{ fontSize: 11 }}
+                      interval={0}
+                    />
+
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Bar
+                      dataKey="count"
+                      fill={COLORS.primary}
+                      radius={[0, 4, 4, 0]}
+                    />
+                  </BarChart>
+                </ChartContainer>
+              </ChartCard>
+            </div>
+          )}
+
+          {!postHogLoading && postHogData.events?.length > 0 && (
+            <ChartCard
+              title="Recent Events"
+              tooltip="Latest events captured by PostHog"
+            >
+              <div className="overflow-x-auto max-h-[600px] overflow-y-auto scrollbar-thin">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left p-3 font-semibold">Event</th>
+                      <th className="text-left p-3 font-semibold">Timestamp</th>
+                      <th className="text-left p-3 font-semibold">
+                        Distinct ID
+                      </th>
+                      <th className="text-left p-3 font-semibold">
+                        Properties
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {postHogData.events.map((event, i) => {
+                      const sessionId = event.properties?.$session_id;
+
+                      // Principled check: Session recording requires visual context metadata.
+                      // Events from sessions that are actually being recorded include hardware/viewport info.
+                      // Thin events (like server-side redirects or background pings) won't have these.
+                      const hasVisualContext = !!(
+                        event.properties?.$screen_width ||
+                        event.properties?.$viewport_width ||
+                        event.properties?.$lib_version
+                      );
+
+                      const replayUrl =
+                        sessionId && postHogData.projectId && hasVisualContext
+                          ? `https://app.posthog.com/project/${postHogData.projectId}/replay/${sessionId}`
+                          : null;
+
+                      return (
+                        <tr
+                          key={i}
+                          className="border-b hover:bg-muted/50 transition-colors"
+                        >
+                          <td className="p-3 font-medium">
+                            {replayUrl ? (
+                              <a
+                                href={replayUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary hover:underline flex items-center gap-1.5"
+                                title="View Session Replay"
+                              >
+                                {event.event}
+                                <ExternalLink className="h-3 w-3 opacity-50" />
+                              </a>
+                            ) : (
+                              event.event
+                            )}
+                          </td>
+                          <td className="p-3 text-muted-foreground">
+                            {new Date(event.timestamp).toLocaleString()}
+                          </td>
+                          <td className="p-3 text-muted-foreground font-mono text-xs">
+                            {event.distinct_id?.substring(0, 20)}...
+                          </td>
+                          <td className="p-3 text-muted-foreground text-xs">
+                            {event.event === "$pageview" &&
+                            event.properties?.$current_url ? (
+                              <span className="truncate max-w-[200px] inline-block">
+                                {event.properties.$current_url}
+                              </span>
+                            ) : (
+                              `${Object.keys(event.properties || {}).length} properties`
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex flex-col items-center gap-3 mt-4">
+                {postHogData.events.length < postHogData.totalEvents && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={postHogLoadMore}
+                    disabled={postHogLoadingMore}
+                    className="text-xs px-6 flex items-center gap-2"
+                  >
+                    {postHogLoadingMore ? (
+                      <>
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Loading...
+                      </>
+                    ) : (
+                      "Load More Events"
+                    )}
+                  </Button>
+                )}
+                <p className="text-[10px] text-muted-foreground opacity-70 italic">
+                  Showing {postHogData.events.length} of{" "}
+                  {postHogData.totalEvents} events for this period
+                </p>
+              </div>
+            </ChartCard>
+          )}
+        </>
+      )}
+
+      {!postHogConfigured && (
+        <div className="rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-6 text-sm text-muted-foreground">
+          <p className="font-semibold text-foreground mb-1">
+            PostHog Analytics Available
+          </p>
+          <p className="mb-4">
+            Add your PostHog credentials to see event analytics and user
+            behavior tracking.
+          </p>
+          <ol className="list-decimal list-inside space-y-1.5 text-muted-foreground">
+            <li>
+              Get your API key from{" "}
+              <a
+                href="https://app.posthog.com/project/settings"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                PostHog Settings
+              </a>
+            </li>
+            <li>
+              Add to your{" "}
+              <code className="rounded bg-muted px-1.5 py-0.5 text-foreground">
+                .env
+              </code>
+              :{" "}
+              <code className="rounded bg-muted px-1.5 py-0.5 text-foreground">
+                POSTHOG_API_KEY=your_key_here
+              </code>
+            </li>
+            <li>
+              Add your project ID:{" "}
+              <code className="rounded bg-muted px-1.5 py-0.5 text-foreground">
+                POSTHOG_PROJECT_ID=12345
+              </code>
+            </li>
+            <li className="text-amber-600 dark:text-amber-400 font-medium">
+              Restart the dev server (stop and run{" "}
+              <code className="rounded bg-muted px-1">npm run dev</code> again)
+            </li>
+          </ol>
+        </div>
       )}
 
       {/* Charts – analytics (commented out)

@@ -54,6 +54,12 @@ export function useShortIoData(
     setNeedsDomainId(false);
 
     try {
+      if (sourceFilter === "Lander") {
+        setData(emptyShortIoData);
+        setIsLoading(false);
+        return;
+      }
+
       const period = getShortIoPeriod(dateFilter);
       let url = `/api/shortio?period=${encodeURIComponent(period)}`;
 

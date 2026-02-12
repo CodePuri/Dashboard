@@ -116,13 +116,13 @@ export async function GET(request) {
     // Build the appropriate stats URL (link-specific or domain-wide)
     let statsUrl;
     if (targetLinkId) {
-      // Fetch link-specific statistics
+      // Link Statistics API uses YYYY-MM-DD for startDate/endDate in period=custom
       statsUrl = `https://statistics.short.io/statistics/link/${targetLinkId}?period=${period}&tz=UTC`;
       if (period === "custom" && from && to) {
         statsUrl = `https://statistics.short.io/statistics/link/${targetLinkId}?period=custom&startDate=${from}&endDate=${to}&tz=UTC`;
       }
     } else {
-      // Fetch domain-wide statistics
+      // Domain Statistics API uses Milliseconds for startDate/endDate in period=custom
       statsUrl = `https://api-v2.short.io/statistics/domain/${SHORT_IO_DOMAIN_ID}?period=${period}&tzOffset=${tzOffset}`;
       if (period === "custom" && from && to) {
         const startMillis = new Date(from).getTime();
@@ -131,6 +131,8 @@ export async function GET(request) {
       }
     }
 
+    console.log(`Fetching Short.io stats from: ${statsUrl}`);
+
     const statsRes = await fetch(statsUrl, {
       headers: {
         accept: "*/*",
@@ -138,13 +140,27 @@ export async function GET(request) {
       },
     });
 
-    const stats = statsRes.ok ? await statsRes.json() : null;
+    let stats = null;
+    if (statsRes.ok) {
+      stats = await statsRes.json();
+    } else {
+      const errorBody = await statsRes.text();
+      console.error(
+        `Short.io API error for ${targetLinkId ? "link" : "domain"}:`,
+        {
+          status: statsRes.status,
+          url: statsUrl,
+          body: errorBody,
+        },
+      );
+    }
 
     if (!stats) {
       return NextResponse.json(
         {
           success: false,
-          error: `Failed to fetch ${targetLinkId ? "link" : "domain"} statistics from Short.io`,
+          error: `Failed to fetch ${targetLinkId ? "link" : "domain"} statistics. Status: ${statsRes.status}`,
+          debug: { url: statsUrl },
         },
         { status: 502 },
       );
