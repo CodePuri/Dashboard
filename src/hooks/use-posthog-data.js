@@ -85,28 +85,36 @@ export function usePostHogData(
               before = endOfDay(subDays(now, 1)).toISOString();
               break;
             case "Last 7 Days":
-              after = subDays(now, 7).toISOString();
+              after = startOfDay(subDays(now, 7)).toISOString();
               break;
             case "Last 14 Days":
-              after = subDays(now, 14).toISOString();
+              after = startOfDay(subDays(now, 14)).toISOString();
               break;
             case "Last 30 Days":
-              after = subDays(now, 30).toISOString();
+              after = startOfDay(subDays(now, 30)).toISOString();
               break;
             case "Last 90 Days":
-              after = subDays(now, 90).toISOString();
+              after = startOfDay(subDays(now, 90)).toISOString();
               break;
             case "All Time":
               after = new Date("2025-01-01").toISOString(); // Project start or earlier
               break;
             default:
               // Default to last 7 days
-              after = subDays(now, 7).toISOString();
+              after = startOfDay(subDays(now, 7)).toISOString();
           }
         }
 
         if (after) params.append("after", after);
         if (before) params.append("before", before);
+
+        console.log("PostHog API Request:", {
+          dateFilter,
+          after,
+          before,
+          sourceFilter,
+          url: `/api/posthog?${params.toString()}`,
+        });
 
         const response = await fetch(`/api/posthog?${params.toString()}`);
         const result = await response.json();

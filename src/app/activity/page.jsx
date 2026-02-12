@@ -20,7 +20,14 @@ import {
   UserPlus,
   Monitor,
   MonitorOff,
+  MousePointerClick,
+  Target,
+  Copy,
+  AlertTriangle,
+  ExternalLink,
+  Loader2,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   ChartContainer,
   ChartTooltip,
@@ -39,6 +46,7 @@ import {
   Cell,
 } from "recharts";
 import { useAnalyticsData } from "@/hooks/use-analytics-data";
+import { useExtensionEventsData } from "@/hooks/use-extension-events-data";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 
@@ -118,6 +126,17 @@ export default function ActivityPage() {
     sourceFilter,
     customDateRange,
   );
+
+  // Fetch extension events data (extension-only, respects source filter)
+  const {
+    data: extensionData,
+    isLoading: extensionLoading,
+    isLoadingMore: extensionLoadingMore,
+    configured: extensionConfigured,
+    error: extensionError,
+    loadMore: extensionLoadMore,
+    shouldShow: showExtensionSection,
+  } = useExtensionEventsData(dateFilter, customDateRange, sourceFilter);
 
   if (isLoading) {
     return (
@@ -720,6 +739,359 @@ export default function ActivityPage() {
           </ChartCard>
         </div>
       </section>
+
+      {/* Extension User Interactions Section */}
+      {showExtensionSection && extensionConfigured && (
+        <section>
+          <div className="flex items-center gap-2 pt-4 border-t">
+            <MousePointerClick className="h-5 w-5 text-muted-foreground" />
+            <h2 className="text-lg md:text-xl font-bold">
+              Extension User Interactions
+            </h2>
+          </div>
+
+          {extensionError && (
+            <div className="rounded-xl border-2 border-dashed border-destructive/30 bg-destructive/5 p-6 text-sm text-muted-foreground mt-4">
+              <p className="font-semibold text-foreground mb-1">
+                Error loading extension events
+              </p>
+              <p>{extensionError}</p>
+            </div>
+          )}
+
+          {/* Metric Cards */}
+          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 mt-4">
+            {extensionLoading ? (
+              [...Array(6)].map((_, i) => (
+                <Skeleton key={i} className="h-32 rounded-xl" />
+              ))
+            ) : (
+              <>
+                <MetricCard
+                  title="Total Interactions"
+                  value={extensionData.totalInteractions.toLocaleString()}
+                  subtitle="All tracked events"
+                  icon={MousePointerClick}
+                  color="#10b981" // Emerald 500
+                  tooltip={
+                    <div className="space-y-2">
+                      <p className="font-semibold">
+                        Total count of all 20 tracked extension interaction
+                        events:
+                      </p>
+                      <div className="font-mono text-[9px] space-y-1 mt-1">
+                        <div className="flex flex-col gap-1">
+                          <div>• extension_send_button_clicked</div>
+                          <div>• button_enhance_clicked</div>
+                          <div>• button_quick_action_clicked</div>
+                          <div>• popup_accept_button_clicked</div>
+                          <div>• extension_insert_button_clicked</div>
+                          <div>• extension_copy_improved_button_clicked</div>
+                          <div>• popup_copy_button_clicked</div>
+                          <div>• extension_opened</div>
+                          <div>• extension_user_dropdown_hovered</div>
+                          <div>• extension_toggle_blocked</div>
+                          <div>• popup_closed</div>
+                          <div>
+                            <div>• extension_dropdown_toggled</div>
+                          </div>
+                          <div>• extension_dropdown_option_selected</div>
+                          <div>• button_dropdown_toggled</div>
+                          <div>• button_dropdown_option_selected</div>
+                          <div>• popup_tab_clicked</div>
+                          <div>• extension_toggle_clicked</div>
+                          <div>• popup_refine_button_clicked</div>
+                          <div>• popup_refine_option_selected</div>
+                          <div>• popup_analysis_refine_button_clicked</div>
+                        </div>
+                      </div>
+                    </div>
+                  }
+                />
+                <MetricCard
+                  title="Most Used Action"
+                  value={extensionData.topEvent.name.replace(/_/g, " ")}
+                  subtitle={`${extensionData.topEvent.count} times`}
+                  icon={BarChart2}
+                  color="#06b6d4" // Cyan 500
+                  tooltip="The most frequently triggered event among the 20 tracked extension interactions."
+                />
+              </>
+            )}
+          </div>
+
+          {/* Charts */}
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2 mt-6">
+            <ChartCard
+              title="Event Category Breakdown"
+              tooltip={
+                <div className="space-y-2">
+                  <p className="font-semibold">
+                    Distribution of events across categories:
+                  </p>
+                  <div className="space-y-1.5 text-[10px]">
+                    <div>
+                      <p className="font-semibold text-emerald-400">
+                        Core Actions:
+                      </p>
+                      <div className="font-mono text-[9px] ml-2 mt-1 space-y-1">
+                        <div className="flex flex-col gap-1">
+                          <div>• extension_send_button_clicked</div>
+                          <div>• button_enhance_clicked</div>
+                          <div>• button_quick_action_clicked</div>
+                          <div>• popup_accept_button_clicked</div>
+                          <div>• extension_insert_button_clicked</div>
+                          <div>• extension_copy_improved_button_clicked</div>
+                          <div>• popup_copy_button_clicked</div>
+                          <div>• extension_dropdown_option_selected</div>
+                          <div>• button_dropdown_option_selected</div>
+                          <div>• extension_toggle_clicked</div>
+                          <div>• popup_refine_button_clicked</div>
+                          <div>• popup_refine_option_selected</div>
+                          <div>• popup_analysis_refine_button_clicked</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-blue-400">Navigation:</p>
+                      <div className="font-mono text-[9px] ml-2 space-y-0.5">
+                        <div>• extension_opened</div>
+                        <div>• extension_user_dropdown_hovered</div>
+                        <div>• extension_dropdown_toggled</div>
+                        <div>• button_dropdown_toggled</div>
+                        <div>• popup_tab_clicked</div>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-red-400">Blockers:</p>
+                      <div className="font-mono text-[9px] ml-2 space-y-0.5">
+                        <div>• extension_toggle_blocked</div>
+                        <div>• popup_closed</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              }
+            >
+              <ChartContainer
+                config={chartConfig}
+                className="h-[200px] sm:h-[220px] md:h-[250px] w-full"
+              >
+                <RechartsPie>
+                  <Pie
+                    data={extensionData.categoryBreakdown}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) =>
+                      `${name}: ${(percent * 100).toFixed(0)}%`
+                    }
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {extensionData.categoryBreakdown.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={PIE_COLORS[index % PIE_COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                </RechartsPie>
+              </ChartContainer>
+            </ChartCard>
+
+            <ChartCard
+              title="Top Events"
+              tooltip="Ranking of the 20 tracked extension events by frequency, showing which features users interact with most."
+            >
+              <ChartContainer
+                config={chartConfig}
+                className="h-[200px] sm:h-[220px] md:h-[250px] w-full"
+              >
+                <BarChart
+                  data={extensionData.eventBreakdown.slice(0, 8)}
+                  layout="vertical"
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis type="number" />
+                  <YAxis
+                    dataKey="name"
+                    type="category"
+                    width={150}
+                    tick={{ fontSize: 10 }}
+                    tickFormatter={(value) => value.replace(/_/g, " ")}
+                  />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Bar dataKey="count" fill="#10b981" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ChartContainer>
+            </ChartCard>
+
+            <ChartCard
+              title="Daily Interaction Trend"
+              tooltip="Daily volume of all 20 extension interaction events combined, showing usage patterns over the selected time period."
+            >
+              <ChartContainer
+                config={chartConfig}
+                className="h-[200px] sm:h-[220px] md:h-[250px] w-full"
+              >
+                <AreaChart data={extensionData.eventsOverTime || []}>
+                  <defs>
+                    <linearGradient
+                      id="colorExtensionEvents"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 10 }}
+                    tickFormatter={(value) => format(new Date(value), "MMM d")}
+                  />
+                  <YAxis />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Area
+                    type="monotone"
+                    dataKey="total"
+                    stroke="#3b82f6"
+                    strokeWidth={2}
+                    fillOpacity={1}
+                    fill="url(#colorExtensionEvents)"
+                  />
+                </AreaChart>
+              </ChartContainer>
+            </ChartCard>
+          </div>
+
+          {/* Recent Events Table */}
+          <div className="mt-6">
+            <ChartCard
+              title="Recent Events"
+              tooltip="Last 20 extension interaction events, showing event name, timestamp, and user ID."
+            >
+              <div className="overflow-x-auto max-h-[600px] overflow-y-auto scrollbar-thin">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left p-3 font-semibold">Event</th>
+                      <th className="text-left p-3 font-semibold">Timestamp</th>
+                      <th className="text-left p-3 font-semibold">
+                        Distinct ID
+                      </th>
+                      <th className="text-left p-3 font-semibold">
+                        Properties
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {extensionData.recentEvents.length > 0 ? (
+                      extensionData.recentEvents.map((event, index) => {
+                        // Check multiple potential session ID fields
+                        const sessionId =
+                          event.properties?.$session_id ||
+                          event.properties?.session_id ||
+                          event.properties?.sessionId;
+
+                        const projectId = extensionData.projectId;
+
+                        const replayUrl =
+                          sessionId && projectId
+                            ? `https://app.posthog.com/project/${projectId}/replay/${sessionId}`
+                            : null;
+
+                        return (
+                          <tr
+                            key={index}
+                            className="border-b hover:bg-muted/50 transition-colors"
+                          >
+                            <td className="p-3 font-medium">
+                              {replayUrl ? (
+                                <a
+                                  href={replayUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-primary hover:underline flex items-center gap-1.5"
+                                  title="View Session Replay"
+                                >
+                                  {event.event.replace(/_/g, " ")}
+                                  <ExternalLink className="h-3 w-3 opacity-50" />
+                                </a>
+                              ) : (
+                                event.event.replace(/_/g, " ")
+                              )}
+                            </td>
+                            <td className="p-3 text-muted-foreground">
+                              {format(
+                                new Date(event.timestamp),
+                                "MMM d, yyyy HH:mm",
+                              )}
+                            </td>
+                            <td className="p-3 font-mono text-xs text-muted-foreground">
+                              {event.distinct_id?.substring(0, 20)}...
+                            </td>
+                            <td className="p-3 text-muted-foreground text-xs">
+                              {event.event === "$pageview" &&
+                              event.properties?.$current_url ? (
+                                <span className="truncate max-w-[200px] inline-block">
+                                  {event.properties.$current_url}
+                                </span>
+                              ) : (
+                                `${Object.keys(event.properties || {}).length} properties`
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan={3}
+                          className="p-4 text-center text-muted-foreground"
+                        >
+                          No recent events found
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex flex-col items-center gap-3 mt-4">
+                {extensionData.recentEvents.length <
+                  extensionData.totalEvents && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={extensionLoadMore}
+                    disabled={extensionLoadingMore}
+                    className="text-xs px-6 flex items-center gap-2"
+                  >
+                    {extensionLoadingMore ? (
+                      <>
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Loading...
+                      </>
+                    ) : (
+                      "Load More Events"
+                    )}
+                  </Button>
+                )}
+                <p className="text-[10px] text-muted-foreground opacity-70 italic">
+                  Showing {extensionData.recentEvents.length} of{" "}
+                  {extensionData.totalEvents} interactions for this period
+                </p>
+              </div>
+            </ChartCard>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

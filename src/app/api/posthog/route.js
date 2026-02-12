@@ -49,7 +49,6 @@ export async function GET(request) {
     "button_dropdown_toggled",
     "button_enhance_clicked",
     "button_get_pro_clicked",
-    "button_quick_action_clicked",
 
     // Extension Events (Browser Popup)
     "extension_copy_improved_button_clicked",
@@ -102,8 +101,6 @@ export async function GET(request) {
     "popup_upgrade_button_clicked",
 
     // Tracking Events
-    "form_input",
-    "form_change",
   ];
 
   const extensionFilter = `event IN (${extensionEvents.map((e) => `'${e}'`).join(", ")})`;
@@ -133,8 +130,29 @@ export async function GET(request) {
       conditions.push(`NOT (${extensionFilter})`);
       conditions.push(`NOT (${chatFilter})`);
 
-      // Exclude specific noisy/default events requested by the user
-      const excludedLanderEvents = [
+      // Exclude ALL PostHog autocaptured and native events
+      const excludedPostHogNativeEvents = [
+        // PostHog native events
+        "$pageview",
+        "$pageleave",
+        "$autocapture",
+        "$rageclick",
+        "$screen",
+        "$identify",
+        "$set",
+        "$set_once",
+        "$feature_flag_called",
+        "$feature_enrollment",
+        "$capture_metrics",
+        "$web_vitals",
+        "$performance_event",
+        "$exception",
+        "$groupidentify",
+        "$create_alias",
+        "$merge_dangerously",
+        "$snapshot",
+        "$session_recording_start",
+        // Additional noisy/default events
         "page_visibility_change",
         "button_click",
         "popup_opened",
@@ -142,9 +160,43 @@ export async function GET(request) {
         "session_start",
         "page_unload",
         "form_change",
+        "form_input",
+        // Popup done events (not in EVENT_TRACKING_FLOWS.md)
+        "popup_done_popup_close_button_clicked",
+        "popup_done_button_clicked",
+        // Excluded button events
+        "button_quick_action_clicked",
       ];
       conditions.push(
-        `event NOT IN (${excludedLanderEvents.map((e) => `'${e}'`).join(", ")})`,
+        `event NOT IN (${excludedPostHogNativeEvents.map((e) => `'${e}'`).join(", ")})`,
+      );
+    } else if (source === "ExtensionInteraction") {
+      // Strict filter for the 11 core extension events
+      const coreEvents = [
+        "extension_send_button_clicked",
+        "button_enhance_clicked",
+        "button_quick_action_clicked",
+        "popup_accept_button_clicked",
+        "extension_insert_button_clicked",
+        "extension_copy_improved_button_clicked",
+        "popup_copy_button_clicked",
+        "extension_opened",
+        "extension_user_dropdown_hovered",
+        "extension_toggle_blocked",
+        "popup_closed",
+        // Additional events requested
+        "extension_dropdown_toggled",
+        "extension_dropdown_option_selected",
+        "button_dropdown_toggled",
+        "button_dropdown_option_selected",
+        "popup_tab_clicked",
+        "extension_toggle_clicked",
+        "popup_refine_button_clicked",
+        "popup_refine_option_selected",
+        "popup_analysis_refine_button_clicked",
+      ];
+      conditions.push(
+        `event IN (${coreEvents.map((e) => `'${e}'`).join(", ")})`,
       );
     }
 

@@ -59,6 +59,84 @@ const VARIETY_COLORS = [
   "#14b8a6", // teal
 ];
 
+// Transform technical event names to user-friendly labels
+const transformEventName = (eventName, sourceFilter) => {
+  // Chat tab transformations
+  if (sourceFilter === "Chat" && eventName === "$pageview") {
+    return "Chat Page View";
+  }
+
+  // Extension tab transformations
+  if (sourceFilter === "Extension") {
+    const extensionEventMap = {
+      // Browser Extension Events
+      extension_opened: "Extension Opened",
+      extension_login_button_clicked: "Login Button Clicked",
+      extension_signup_button_clicked: "Sign Up Button Clicked",
+      extension_send_button_clicked: "Enhance Button Clicked",
+      extension_insert_button_clicked: "Insert Text Clicked",
+      extension_copy_improved_button_clicked: "Copy Enhanced Text",
+      extension_improved_like_button_clicked: "Liked Enhancement",
+      extension_improved_dislike_button_clicked: "Disliked Enhancement",
+      extension_toggle_clicked: "Extension Toggle Clicked",
+      extension_toggle_blocked: "Extension Toggle Blocked",
+      extension_dropdown_toggled: "Mode Dropdown Toggled",
+      extension_dropdown_option_selected: "Mode Selected",
+      extension_settings_button_clicked: "Settings Opened",
+      extension_theme_toggle_clicked: "Theme Toggle",
+      extension_settings_save_clicked: "Settings Saved",
+      extension_settings_cancel_clicked: "Settings Cancelled",
+      extension_settings_personality_dropdown_toggled: "Personality Dropdown",
+      extension_upgrade_button_clicked: "Upgrade Clicked",
+      extension_try_free_trial_button_clicked: "Free Trial Started",
+      extension_trial_activated_successfully: "Trial Activated",
+      extension_trial_activation_failed: "Trial Activation Failed",
+      extension_trial_activation_started: "Trial Activation Started",
+      extension_trial_ended_modal_shown: "Trial Ended Modal",
+      extension_post_login_upgrade_modal_shown: "Post-Login Upgrade Modal",
+      extension_post_login_upgrade_pro_clicked: "Post-Login Upgrade Clicked",
+      extension_profile_button_clicked: "Profile Clicked",
+      extension_memory_button_clicked: "Memory Clicked",
+      extension_get_pro_badge_clicked: "Get Pro Badge Clicked",
+      extension_user_dropdown_hovered: "User Dropdown Hovered",
+      extension_user_dropdown_option_selected: "User Dropdown Option Selected",
+      extension_snooze_button_clicked: "Snooze Clicked",
+      extension_snooze_option_selected: "Snooze Duration Selected",
+
+      // Injected Button Events
+      button_enhance_clicked: "Injected Enhance Button Clicked",
+      button_dropdown_toggled: "Injected Dropdown Toggled",
+      button_dropdown_option_selected: "Injected Mode Selected",
+      button_get_pro_clicked: "Injected Get Pro Clicked",
+
+      // Popup Overlay Events
+      popup_opened: "Popup Opened",
+      popup_closed: "Popup Interface Dismissed",
+      popup_close_button_clicked: "Popup Close Button Clicked",
+      popup_tab_clicked: "Popup Tab Switched",
+      popup_accept_button_clicked: "Popup Accept/Insert Clicked",
+      popup_copy_button_clicked: "Popup Copy Result",
+      popup_like_button_clicked: "Popup Liked Result",
+      popup_dislike_button_clicked: "Popup Disliked Result",
+      popup_refine_button_clicked: "Popup Refine Clicked",
+      popup_refine_option_selected: "Popup Refinement Selected",
+      popup_analysis_refine_button_clicked: "Popup Analysis Refine Clicked",
+      popup_upgrade_button_clicked: "Popup Upgrade Clicked",
+      popup_premium_popup_close_button_clicked: "Popup Premium Modal Closed",
+
+      // API Events
+      api_enhance_request: "API Request Started",
+      api_enhance_response: "API Response Received",
+      api_enhance_error: "API Error",
+    };
+
+    return extensionEventMap[eventName] || eventName;
+  }
+
+  // Return original name if no transformation needed
+  return eventName;
+};
+
 // const chartConfig = {
 //   sessions: { label: "Total Sessions", color: COLORS.primary },
 //   unique: { label: "Unique Users", color: COLORS.info },
@@ -143,6 +221,7 @@ export default function ReachPage() {
           customDateRange={customDateRange}
           onCustomDateChange={setCustomDateRange}
           hideAllPlatformFilter={true}
+          showLanderFilter={true}
         />
       </div>
 
@@ -938,13 +1017,35 @@ export default function ReachPage() {
             ) : (
               <>
                 <MetricCard
-                  title="Total Events"
+                  title={
+                    sourceFilter === "Chat"
+                      ? "Total Chat Page Views"
+                      : "Total Events"
+                  }
                   value={postHogData.totalEvents.toLocaleString()}
                   subtitle="Full analysis for period"
                   icon={MousePointerClick}
                   color={COLORS.primary}
                   tooltip={
-                    sourceFilter === "Extension" ? (
+                    sourceFilter === "Chat" ? (
+                      <div className="space-y-2">
+                        <p className="font-bold text-primary mb-1">
+                          Chat Page Views
+                        </p>
+                        <p className="text-xs">
+                          Tracks all page views on the Velocity chat application
+                          (thinkvelocity.in/chat/*).
+                        </p>
+                        <div className="mt-2 pt-2 border-t">
+                          <p className="font-semibold text-[10px] text-muted-foreground uppercase tracking-widest mb-1">
+                            Tracked Event
+                          </p>
+                          <div className="font-mono text-[9px] opacity-90">
+                            <span>$pageview</span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : sourceFilter === "Extension" ? (
                       <div className="space-y-3 max-h-[350px] overflow-auto pr-2 scrollbar-thin">
                         <p className="font-bold border-b pb-1 mb-2 text-primary">
                           All Tracked Extension Events:
@@ -971,7 +1072,6 @@ export default function ReachPage() {
                               <span>button_dropdown_toggled</span>
                               <span>button_enhance_clicked</span>
                               <span>button_get_pro_clicked</span>
-                              <span>button_quick_action_clicked</span>
                             </div>
                           </div>
 
@@ -1008,9 +1108,6 @@ export default function ReachPage() {
                               <span>extension_settings_cancel_clicked</span>
                               <span>
                                 extension_settings_personality_dropdown_toggled
-                              </span>
-                              <span>
-                                extension_settings_refresh_traits_clicked
                               </span>
                               <span>extension_settings_save_clicked</span>
                               <span>extension_signup_button_clicked</span>
@@ -1058,16 +1155,24 @@ export default function ReachPage() {
                               <span>popup_upgrade_button_clicked</span>
                             </div>
                           </div>
-
-                          <div>
-                            <p className="font-semibold text-[10px] text-muted-foreground uppercase tracking-widest mb-1">
-                              Input & Other
-                            </p>
-                            <div className="grid grid-cols-1 gap-0.5 opacity-90 font-mono text-[9px]">
-                              <span>form_input</span>
-                              <span>form_change</span>
-                            </div>
-                          </div>
+                        </div>
+                      </div>
+                    ) : sourceFilter === "Lander" ? (
+                      <div className="space-y-2">
+                        <p className="font-bold text-primary mb-1">
+                          Landing Page Events
+                        </p>
+                        <p className="text-xs">
+                          Custom events from the landing page, excluding all
+                          extension, chat, and PostHog autocaptured events.
+                        </p>
+                        <div className="mt-2 pt-2 border-t">
+                          <p className="text-[10px] text-muted-foreground">
+                            <strong>Excluded:</strong> All
+                            extension/button/popup/API events, chat pageviews,
+                            and PostHog native events ($pageview, $autocapture,
+                            etc.)
+                          </p>
                         </div>
                       </div>
                     ) : (
@@ -1081,11 +1186,159 @@ export default function ReachPage() {
                   subtitle="Found in this period"
                   icon={Users}
                   color={COLORS.info}
-                  tooltip="Number of distinct event types captured"
+                  tooltip={
+                    sourceFilter === "Chat" ? (
+                      <div className="space-y-2">
+                        <p className="font-bold text-primary mb-1">
+                          Unique Chat Event Types
+                        </p>
+                        <p className="text-xs">
+                          Number of distinct event types captured on the chat
+                          page.
+                        </p>
+                        <div className="mt-2 pt-2 border-t">
+                          <p className="font-semibold text-[10px] text-muted-foreground uppercase tracking-widest mb-1">
+                            Events Included
+                          </p>
+                          <div className="font-mono text-[9px] opacity-90">
+                            <span>$pageview</span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : sourceFilter === "Extension" ? (
+                      <div className="space-y-3 max-h-[350px] overflow-auto pr-2 scrollbar-thin">
+                        <p className="font-bold border-b pb-1 mb-2 text-primary">
+                          Unique Extension Event Types:
+                        </p>
+                        <div className="space-y-2">
+                          <div>
+                            <p className="font-semibold text-[10px] text-muted-foreground uppercase tracking-widest mb-1">
+                              API Operations
+                            </p>
+                            <div className="grid grid-cols-1 gap-0.5 opacity-90 font-mono text-[9px]">
+                              <span>api_enhance_error</span>
+                              <span>api_enhance_request</span>
+                              <span>api_enhance_response</span>
+                            </div>
+                          </div>
+
+                          <div>
+                            <p className="font-semibold text-[10px] text-muted-foreground uppercase tracking-widest mb-1">
+                              Injected Buttons
+                            </p>
+                            <div className="grid grid-cols-1 gap-0.5 opacity-90 font-mono text-[9px]">
+                              <span>button_dropdown_option_selected</span>
+                              <span>button_dropdown_toggled</span>
+                              <span>button_enhance_clicked</span>
+                              <span>button_get_pro_clicked</span>
+                            </div>
+                          </div>
+
+                          <div>
+                            <p className="font-semibold text-[10px] text-muted-foreground uppercase tracking-widest mb-1">
+                              Browser Extension
+                            </p>
+                            <div className="grid grid-cols-1 gap-0.5 opacity-90 font-mono text-[9px]">
+                              <span>
+                                extension_copy_improved_button_clicked
+                              </span>
+                              <span>extension_dropdown_option_selected</span>
+                              <span>extension_dropdown_toggled</span>
+                              <span>extension_get_pro_badge_clicked</span>
+                              <span>
+                                extension_improved_dislike_button_clicked
+                              </span>
+                              <span>
+                                extension_improved_like_button_clicked
+                              </span>
+                              <span>extension_insert_button_clicked</span>
+                              <span>extension_login_button_clicked</span>
+                              <span>extension_memory_button_clicked</span>
+                              <span>extension_opened</span>
+                              <span>
+                                extension_post_login_upgrade_modal_shown
+                              </span>
+                              <span>
+                                extension_post_login_upgrade_pro_clicked
+                              </span>
+                              <span>extension_profile_button_clicked</span>
+                              <span>extension_send_button_clicked</span>
+                              <span>extension_settings_button_clicked</span>
+                              <span>extension_settings_cancel_clicked</span>
+                              <span>
+                                extension_settings_personality_dropdown_toggled
+                              </span>
+                              <span>extension_settings_save_clicked</span>
+                              <span>extension_signup_button_clicked</span>
+                              <span>extension_snooze_button_clicked</span>
+                              <span>extension_snooze_option_selected</span>
+                              <span>extension_theme_toggle_clicked</span>
+                              <span>extension_toggle_blocked</span>
+                              <span>extension_toggle_clicked</span>
+                              <span>extension_trial_activation_failed</span>
+                              <span>extension_trial_activation_started</span>
+                              <span>
+                                extension_trial_activated_successfully
+                              </span>
+                              <span>extension_trial_ended_modal_shown</span>
+                              <span>
+                                extension_try_free_trial_button_clicked
+                              </span>
+                              <span>extension_upgrade_button_clicked</span>
+                              <span>extension_user_dropdown_hovered</span>
+                              <span>
+                                extension_user_dropdown_option_selected
+                              </span>
+                            </div>
+                          </div>
+
+                          <div>
+                            <p className="font-semibold text-[10px] text-muted-foreground uppercase tracking-widest mb-1">
+                              Overlay Popup
+                            </p>
+                            <div className="grid grid-cols-1 gap-0.5 opacity-90 font-mono text-[9px]">
+                              <span>popup_accept_button_clicked</span>
+                              <span>popup_analysis_refine_button_clicked</span>
+                              <span>popup_close_button_clicked</span>
+                              <span>popup_closed</span>
+                              <span>popup_copy_button_clicked</span>
+                              <span>popup_dislike_button_clicked</span>
+                              <span>popup_like_button_clicked</span>
+                              <span>popup_opened</span>
+                              <span>
+                                popup_premium_popup_close_button_clicked
+                              </span>
+                              <span>popup_refine_button_clicked</span>
+                              <span>popup_refine_option_selected</span>
+                              <span>popup_tab_clicked</span>
+                              <span>popup_upgrade_button_clicked</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      "Number of distinct event types captured"
+                    )
+                  }
                 />
               </>
             )}
           </div>
+
+          {!postHogLoading &&
+            sourceFilter === "Lander" &&
+            postHogData.totalEvents === 0 && (
+              <div className="rounded-xl border-2 border-dashed border-muted-foreground/30 bg-muted/20 p-8 text-center">
+                <MousePointerClick className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                <p className="font-semibold text-lg text-foreground mb-2">
+                  No Lander Events Found
+                </p>
+                <p className="text-xs text-muted-foreground/70 mt-4">
+                  Try adjusting the date range or check if lander event tracking
+                  is configured.
+                </p>
+              </div>
+            )}
 
           {!postHogLoading && postHogData.eventsOverTime?.length > 0 && (
             <ChartCard
@@ -1158,7 +1411,12 @@ export default function ReachPage() {
                   <ResponsiveContainer width="100%" height="100%">
                     <RechartsPie margin={{ top: 0, bottom: 0 }}>
                       <Pie
-                        data={postHogData.eventBreakdown.slice(0, 10)}
+                        data={postHogData.eventBreakdown
+                          .slice(0, 10)
+                          .map((event) => ({
+                            ...event,
+                            name: transformEventName(event.name, sourceFilter),
+                          }))}
                         cx="50%"
                         cy="50%"
                         innerRadius={60}
@@ -1193,7 +1451,8 @@ export default function ReachPage() {
                         }}
                       />
                       <span className="text-[11px] font-medium text-muted-foreground whitespace-nowrap">
-                        {event.name} ({event.count})
+                        {transformEventName(event.name, sourceFilter)} (
+                        {event.count})
                       </span>
                     </div>
                   ))}
@@ -1208,9 +1467,14 @@ export default function ReachPage() {
                   className="h-[280px] w-full"
                 >
                   <BarChart
-                    data={postHogData.eventBreakdown.slice(0, 10)}
+                    data={postHogData.eventBreakdown
+                      .slice(0, 10)
+                      .map((event) => ({
+                        ...event,
+                        name: transformEventName(event.name, sourceFilter),
+                      }))}
                     layout="vertical"
-                    margin={{ left: 160, right: 30 }}
+                    margin={{ left: 20, right: 30 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                     <XAxis
@@ -1224,7 +1488,13 @@ export default function ReachPage() {
                       dataKey="name"
                       tickLine={false}
                       axisLine={false}
-                      width={155}
+                      width={
+                        sourceFilter === "Extension"
+                          ? 200
+                          : sourceFilter === "Chat"
+                            ? 130
+                            : 155
+                      }
                       tick={{ fontSize: 11 }}
                       interval={0}
                     />
