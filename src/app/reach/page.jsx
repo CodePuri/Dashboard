@@ -1350,7 +1350,7 @@ export default function ReachPage() {
         </>
       )}
 
-      {!postHogConfigured && (
+      {!postHogConfigured && !postHogLoading && (
         <div className="rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-6 text-sm text-muted-foreground">
           <p className="font-semibold text-foreground mb-1">
             PostHog Analytics Available
@@ -1388,8 +1388,9 @@ export default function ReachPage() {
               </code>
             </li>
             <li className="text-amber-600 dark:text-amber-400 font-medium">
-              Restart the dev server (stop and run{" "}
-              <code className="rounded bg-muted px-1">npm run dev</code> again)
+              Restart the server (stop and run{" "}
+              <code className="rounded bg-muted px-1">npm run dev</code> or
+              redeploy)
             </li>
           </ol>
         </div>
