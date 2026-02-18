@@ -63,24 +63,24 @@ const chartConfig = {
     label: "Count",
     color: COLORS.primary,
   },
-  Free: {
-    label: "Free",
+  "Free User Prompts": {
+    label: "Free User Prompts",
     color: "#a78bfa", // Violet 400
   },
-  Freetrial: {
-    label: "Free Trial",
+  "Freetrial User Prompts": {
+    label: "Freetrial User Prompts",
     color: "#22d3ee", // Cyan 400
   },
-  Pro: {
-    label: "Pro",
+  "Pro User Prompts": {
+    label: "Pro User Prompts",
     color: "#fb7185", // Rose 400
   },
 };
 
 const SEGMENT_COLORS = {
-  Free: "#a78bfa", // Violet
-  Freetrial: "#22d3ee", // Cyan
-  Pro: "#fb7185", // Rose
+  "Free User Prompts": "#a78bfa", // Violet
+  "Freetrial User Prompts": "#22d3ee", // Cyan
+  "Pro User Prompts": "#fb7185", // Rose
 };
 
 // Define distinct palettes for each chart
@@ -505,19 +505,19 @@ export default function ActivityPage() {
                 <YAxis hide />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <Bar
-                  dataKey="Free"
+                  dataKey="Free User Prompts"
                   stackId="a"
                   fill={PALETTES.dayOfWeek.Free}
                   radius={[0, 0, 0, 0]}
                 />
                 <Bar
-                  dataKey="Freetrial"
+                  dataKey="Freetrial User Prompts"
                   stackId="a"
                   fill={PALETTES.dayOfWeek.Freetrial}
                   radius={[0, 0, 0, 0]}
                 />
                 <Bar
-                  dataKey="Pro"
+                  dataKey="Pro User Prompts"
                   stackId="a"
                   fill={PALETTES.dayOfWeek.Pro}
                   radius={[4, 4, 0, 0]}
@@ -540,19 +540,19 @@ export default function ActivityPage() {
                 <YAxis />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <Bar
-                  dataKey="Free"
+                  dataKey="Free User Prompts"
                   stackId="a"
                   fill={PALETTES.timeOfDay.Free}
                   radius={[0, 0, 0, 0]}
                 />
                 <Bar
-                  dataKey="Freetrial"
+                  dataKey="Freetrial User Prompts"
                   stackId="a"
                   fill={PALETTES.timeOfDay.Freetrial}
                   radius={[0, 0, 0, 0]}
                 />
                 <Bar
-                  dataKey="Pro"
+                  dataKey="Pro User Prompts"
                   stackId="a"
                   fill={PALETTES.timeOfDay.Pro}
                   radius={[4, 4, 0, 0]}
@@ -591,19 +591,19 @@ export default function ActivityPage() {
                 />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <Bar
-                  dataKey="Free"
+                  dataKey="Free User Prompts"
                   stackId="a"
                   fill={PALETTES.intents.Free}
                   radius={[0, 0, 0, 0]}
                 />
                 <Bar
-                  dataKey="Freetrial"
+                  dataKey="Freetrial User Prompts"
                   stackId="a"
                   fill={PALETTES.intents.Freetrial}
                   radius={[0, 0, 0, 0]}
                 />
                 <Bar
-                  dataKey="Pro"
+                  dataKey="Pro User Prompts"
                   stackId="a"
                   fill={PALETTES.intents.Pro}
                   radius={[0, 4, 4, 0]}
@@ -634,19 +634,19 @@ export default function ActivityPage() {
                 />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <Bar
-                  dataKey="Free"
+                  dataKey="Free User Prompts"
                   stackId="a"
                   fill={PALETTES.domains.Free}
                   radius={[0, 0, 0, 0]}
                 />
                 <Bar
-                  dataKey="Freetrial"
+                  dataKey="Freetrial User Prompts"
                   stackId="a"
                   fill={PALETTES.domains.Freetrial}
                   radius={[0, 0, 0, 0]}
                 />
                 <Bar
-                  dataKey="Pro"
+                  dataKey="Pro User Prompts"
                   stackId="a"
                   fill={PALETTES.domains.Pro}
                   radius={[0, 4, 4, 0]}
@@ -670,19 +670,19 @@ export default function ActivityPage() {
                 <YAxis />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <Bar
-                  dataKey="Free"
+                  dataKey="Free User Prompts"
                   stackId="a"
                   fill={PALETTES.mode.Free}
                   radius={[0, 0, 0, 0]}
                 />
                 <Bar
-                  dataKey="Freetrial"
+                  dataKey="Freetrial User Prompts"
                   stackId="a"
                   fill={PALETTES.mode.Freetrial}
                   radius={[0, 0, 0, 0]}
                 />
                 <Bar
-                  dataKey="Pro"
+                  dataKey="Pro User Prompts"
                   stackId="a"
                   fill={PALETTES.mode.Pro}
                   radius={[4, 4, 0, 0]}
@@ -717,19 +717,19 @@ export default function ActivityPage() {
                 />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <Bar
-                  dataKey="Free"
+                  dataKey="Free User Prompts"
                   stackId="a"
                   fill={PALETTES.llm.Free}
                   radius={[0, 0, 0, 0]}
                 />
                 <Bar
-                  dataKey="Freetrial"
+                  dataKey="Freetrial User Prompts"
                   stackId="a"
                   fill={PALETTES.llm.Freetrial}
                   radius={[0, 0, 0, 0]}
                 />
                 <Bar
-                  dataKey="Pro"
+                  dataKey="Pro User Prompts"
                   stackId="a"
                   fill={PALETTES.llm.Pro}
                   radius={[0, 4, 4, 0]}
@@ -934,7 +934,9 @@ export default function ActivityPage() {
               tooltip="Daily volume of all 20 extension interaction events combined, showing usage patterns over the selected time period."
             >
               <ChartContainer
-                config={chartConfig}
+                config={{
+                  count: { label: "Total Events", color: "#3b82f6" },
+                }}
                 className="h-[200px] sm:h-[220px] md:h-[250px] w-full"
               >
                 <AreaChart data={extensionData.eventsOverTime || []}>
@@ -960,7 +962,7 @@ export default function ActivityPage() {
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Area
                     type="monotone"
-                    dataKey="total"
+                    dataKey="count"
                     stroke="#3b82f6"
                     strokeWidth={2}
                     fillOpacity={1}

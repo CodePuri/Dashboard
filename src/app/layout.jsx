@@ -15,7 +15,7 @@ const jetBrainsMono = JetBrains_Mono({
 
 export const metadata = {
   title: "Velocity Analytics",
-  description: "Product analytics dashboard powered by Velocity",
+  description: "Product analytics dashboard for Velocity",
 };
 
 export const viewport = {

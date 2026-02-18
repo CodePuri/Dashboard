@@ -220,11 +220,11 @@ export default function RetentionPage() {
         <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           <MetricCard
             title="Retention Rate"
-            value={`${(retentionRate || 0).toFixed(1)}%`}
-            subtitle="Overall Retention"
+            value={`${(metrics?.retentionMetrics?.d1 || 0).toFixed(1)}%`}
+            subtitle="D1 Retention"
             icon={Repeat}
             color={COLORS.primary}
-            tooltip="Retention Rate (%). Percentage of unique users who were active on more than one distinct day within the selected period. The chart shows Day 1, Day 3, and Day 7 retention."
+            tooltip="Retention Rate (%). Percentage of unique users who were active on Day 1 after their first active date. The chart shows Day 1, Day 3, and Day 7 retention."
             chart={
               <RetentionDropOffSparkline
                 data={[

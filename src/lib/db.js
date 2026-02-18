@@ -939,6 +939,91 @@ export async function getActiveUserIds(
   return rows.map((r) => r.user_id);
 }
 
+// Get daily churn activity accurately
+export async function getDailyChurnActivity(
+  startDate,
+  endDate,
+  source = "All",
+  excludeUsers = TEST_USER_IDS,
+) {
+  const params = [];
+  const sourceJoinConditions = [];
+
+  // Exclude test users
+  if (excludeUsers.length > 0) {
+    const placeholders = excludeUsers.map(
+      (_, i) => `$${params.length + i + 1}`,
+    );
+    excludeUsers.forEach((id) => params.push(String(id)));
+    sourceJoinConditions.push(
+      `up.user_id::text NOT IN (${placeholders.join(", ")})`,
+    );
+  }
+
+  // Source filtering logic
+  // We ALWAYS need to join save_enhance_prompt to check last_status (Success/Failure)
+  const sourceJoin =
+    "LEFT JOIN save_enhance_prompt sep ON up.prompt_id = sep.prompt_id";
+
+  if (source === "Chat") {
+    params.push("velocity");
+    sourceJoinConditions.push(`sep.llm_used ILIKE $${params.length}`);
+  } else if (source === "Extension") {
+    params.push("velocity");
+    sourceJoinConditions.push(
+      `(sep.llm_used NOT ILIKE $${params.length} OR sep.llm_used IS NULL)`,
+    );
+  }
+
+  const whereClause =
+    sourceJoinConditions.length > 0
+      ? `WHERE ${sourceJoinConditions.join(" AND ")}`
+      : "";
+
+  // We need to find users whose last_active date + 7 days falls within [startDate, endDate]
+  // This means last_active falls within [startDate - 7 days, endDate - 7 days]
+  const finalParams = [...params];
+  let dateConditions = [];
+  if (startDate) {
+    const sDateParam = new Date(startDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+    finalParams.push(sDateParam.toISOString());
+    dateConditions.push(`last_active >= $${finalParams.length}`);
+  }
+  if (endDate) {
+    const eDateParam = new Date(endDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+    finalParams.push(eDateParam.toISOString());
+    dateConditions.push(`last_active <= $${finalParams.length}`);
+  }
+
+  const dateWhere =
+    dateConditions.length > 0 ? `WHERE ${dateConditions.join(" AND ")}` : "";
+
+  const query = `
+    WITH UserLastPrompt AS (
+      SELECT 
+        up.user_id,
+        MAX(up.created_at) as last_active,
+        COUNT(up.prompt_id) as total_prompts,
+        CASE WHEN MAX(sep.enhanced_prompt) IS NULL OR MAX(sep.enhanced_prompt) = '' THEN 'Failure' ELSE 'Success' END as last_status
+      FROM user_prompts up
+      ${sourceJoin}
+      ${whereClause}
+      GROUP BY up.user_id
+    )
+    SELECT 
+      (last_active + INTERVAL '7 days')::date as date,
+      COUNT(*) as "churnCount",
+      SUM(CASE WHEN total_prompts >= 20 THEN 1 ELSE 0 END) as "regrettableChurn",
+      SUM(CASE WHEN last_status = 'Failure' THEN 1 ELSE 0 END) as "exitTriggers"
+    FROM UserLastPrompt
+    ${dateWhere}
+    GROUP BY date
+    ORDER BY date ASC
+  `;
+
+  return executeQuery(query, finalParams);
+}
+
 // Close pool on exit
 export async function closePool() {
   await pool.end();

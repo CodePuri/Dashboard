@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
-import { getUserAttritionData, getActiveUserIds } from "@/lib/db";
+import {
+  getUserAttritionData,
+  getActiveUserIds,
+  getDailyChurnActivity,
+} from "@/lib/db";
 import { getDateRange } from "@/lib/date-utils";
 
 // Metrics logic here to keep DB logic pure
 function processAttrition(rawData, endDate) {
   const refDate = endDate ? new Date(endDate) : new Date();
-  // IST adjustment for "now" isn't strictly necessary if comparing relative days,
-  // but consistency is good. rawData times are likely UTC strings.
 
   const processed = rawData
     .filter((user) => String(user.user_id) !== "329") // Standard exclusion
@@ -25,8 +27,6 @@ function processAttrition(rawData, endDate) {
       // Churned status: inactive for > 7 days
       const isChurned = daysSinceLastActive > 7;
 
-      // Success status of last prompt
-      // If enhanced_prompt is null or empty, it failed.
       const lastStatus =
         user.last_enhanced_prompt && user.last_enhanced_prompt.length > 0
           ? "Success"
@@ -36,12 +36,12 @@ function processAttrition(rawData, endDate) {
         userId: String(user.user_id || ""),
         promptCount: Number(user.total_prompts),
         daysSinceLastActive,
-        lifespanDays: Math.max(0, lifespanDays), // Prevent negative if clocks distinct
+        lifespanDays: Math.max(0, lifespanDays),
         isChurned,
         lastIntent: user.last_intent || "Unknown",
         lastMode: user.last_mode || "Standard",
         lastStatus,
-        lastActiveDate: user.last_active, // Added for daily trends
+        lastActiveDate: user.last_active,
         plan: user.user_status || "free",
       };
     });
@@ -52,51 +52,61 @@ function processAttrition(rawData, endDate) {
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
-    const dateFilter = searchParams.get("date") || "All Time"; // Default to All Time for Attrition
+    const dateFilter = searchParams.get("date") || "All Time";
     const sourceFilter = searchParams.get("source") || "All";
 
-    const { startDate, endDate } = getDateRange(dateFilter);
+    let { startDate, endDate } = getDateRange(dateFilter);
 
-    // Calculate previous period for trend analysis
-    let prevStartDate = null;
-    let prevEndDate = null;
-    let prev2StartDate = null;
-    let prev2EndDate = null;
+    const queryStartDate = searchParams.get("startDate");
+    const queryEndDate = searchParams.get("endDate");
 
-    if (startDate && endDate) {
-      const durationMs = endDate.getTime() - startDate.getTime();
-      prevEndDate = new Date(startDate.getTime() - 1);
-      prevStartDate = new Date(startDate.getTime() - durationMs - 1);
-
-      prev2EndDate = new Date(prevStartDate.getTime() - 1);
-      prev2StartDate = new Date(prevStartDate.getTime() - durationMs - 1);
+    if (queryStartDate && queryEndDate) {
+      startDate = new Date(queryStartDate);
+      endDate = new Date(queryEndDate);
     }
 
-    const [rawData, prevRawData, currActiveIds, prevActiveIds, prev2ActiveIds] =
-      await Promise.all([
-        getUserAttritionData(startDate, endDate, sourceFilter),
-        prevStartDate && prevEndDate
-          ? getUserAttritionData(prevStartDate, prevEndDate, sourceFilter)
-          : Promise.resolve([]),
-        // IDs for Rolling Churn
-        getActiveUserIds(startDate, endDate, sourceFilter),
-        prevStartDate && prevEndDate
-          ? getActiveUserIds(prevStartDate, prevEndDate, sourceFilter)
-          : Promise.resolve([]),
-        prev2StartDate && prev2EndDate
-          ? getActiveUserIds(prev2StartDate, prev2EndDate, sourceFilter)
-          : Promise.resolve([]),
-      ]);
+    // Baseline: calculate durations and previous periods
+    const durationMs =
+      startDate && endDate
+        ? endDate.getTime() - startDate.getTime()
+        : 30 * 24 * 60 * 60 * 1000;
+    const effectiveEndDate = endDate || new Date();
+    const effectiveStartDate =
+      startDate || new Date(effectiveEndDate.getTime() - durationMs);
+
+    const prevEndDate = new Date(effectiveStartDate.getTime() - 1);
+    const prevStartDate = new Date(
+      effectiveStartDate.getTime() - durationMs - 1,
+    );
+
+    const prev2EndDate = new Date(prevStartDate.getTime() - 1);
+    const prev2StartDate = new Date(prevStartDate.getTime() - durationMs - 1);
+
+    const [
+      rawData,
+      dailyChurnData,
+      currActiveIds,
+      prevActiveIds,
+      prev2ActiveIds,
+    ] = await Promise.all([
+      getUserAttritionData(startDate, endDate, sourceFilter),
+      getDailyChurnActivity(startDate, endDate, sourceFilter),
+      getActiveUserIds(startDate, endDate, sourceFilter),
+      getActiveUserIds(prevStartDate, prevEndDate, sourceFilter),
+      getActiveUserIds(prev2StartDate, prev2EndDate, sourceFilter),
+    ]);
+
+    console.log("Attrition Data fetched:", {
+      rawData: rawData?.length,
+      currActive: currActiveIds?.length,
+      prevActive: prevActiveIds?.length,
+    });
 
     const data = processAttrition(rawData, endDate);
-    // Note: processAttrition logic might not be relevant for churn RATE anymore if we use Rolling Churn,
-    // but the list of users is still used for the table.
 
     // Calculate Rolling Churn Rate
-    // Churned = Users active in Prev Period who are NOT active in Curr Period
     const calculateRollingChurn = (activePrev, activeCurr) => {
       if (!activePrev || activePrev.length === 0) return 0;
-      // Convert to Set for O(1) lookup? IDs are strings/numbers.
       const currSet = new Set(activeCurr.map(String));
       const lostCount = activePrev.filter(
         (id) => !currSet.has(String(id)),
@@ -107,6 +117,7 @@ export async function GET(request) {
     const currentRate = calculateRollingChurn(prevActiveIds, currActiveIds);
     const previousRate = calculateRollingChurn(prev2ActiveIds, prevActiveIds);
 
+    // Handle trend calculation
     let trend = null;
     if (previousRate > 0) {
       trend = ((currentRate - previousRate) / previousRate) * 100;
@@ -116,47 +127,36 @@ export async function GET(request) {
       trend = 0;
     }
 
-    // Calculate Daily Trends
-    const dailyTrends = {};
-    data.forEach((u) => {
-      // Use existing logic for daily trends?
-      // existing logic used u.isChurned based on 7 days inactivity.
-      // We should arguably stick to "Attrition Table" logic for WHO is listed,
-      // but ensure the aggregate RATE matches the Rolling definition.
-      // Or align them?
-      // Since "churned" status in table is useful for spotting individuals, we keep it based on threshold.
-      if (!u.isChurned) return;
+    console.log("Churn calculation done:", { currentRate, previousRate });
 
-      const lastActiveStr =
-        u.lastActiveDate instanceof Date
-          ? u.lastActiveDate.toISOString()
-          : String(u.lastActiveDate);
-      const date = lastActiveStr.split("T")[0];
-
-      if (!dailyTrends[date]) {
-        dailyTrends[date] = {
-          date,
-          regrettableChurn: 0,
-          totalLifespan: 0,
-          churnCount: 0,
-          exitTriggers: 0,
-        };
+    // Map the accurate daily activity from the specific churn query
+    const dailyActivity = (dailyChurnData || []).map((d) => {
+      let dateStr = "";
+      try {
+        if (d.date instanceof Date) {
+          dateStr = d.date.toISOString().split("T")[0];
+        } else if (typeof d.date === "string") {
+          dateStr = d.date.split("T")[0];
+        } else {
+          dateStr = new Date(d.date).toISOString().split("T")[0];
+        }
+      } catch (err) {
+        console.error("Date formatting error:", err, d.date);
+        dateStr = String(d.date);
       }
-      const day = dailyTrends[date];
-      day.churnCount++;
-      if (u.promptCount >= 20) day.regrettableChurn++;
-      day.totalLifespan += u.lifespanDays;
-      if (u.lastStatus === "Failure") day.exitTriggers++;
-    });
 
-    const dailyActivity = Object.values(dailyTrends)
-      .sort((a, b) => a.date.localeCompare(b.date))
-      .map((d) => ({
-        ...d,
-        avgLifespan: d.churnCount > 0 ? d.totalLifespan / d.churnCount : 0,
+      return {
+        date: dateStr,
+        churnCount: parseInt(d.churnCount) || 0,
+        regrettableChurn: parseInt(d.regrettableChurn) || 0,
+        exitTriggers: parseInt(d.exitTriggers) || 0,
+        avgLifespan: 0,
         exitTriggerRate:
           d.churnCount > 0 ? (d.exitTriggers / d.churnCount) * 100 : 0,
-      }));
+      };
+    });
+
+    console.log("Response prepared, returning JSON");
 
     return NextResponse.json({
       success: true,
@@ -169,9 +169,13 @@ export async function GET(request) {
       },
     });
   } catch (error) {
-    console.error("Attrition API Error:", error);
+    console.error("Attrition API Error:", error.message, error.stack);
     return NextResponse.json(
-      { success: false, error: "Failed to fetch attrition data" },
+      {
+        success: false,
+        error: "Failed to fetch attrition data",
+        details: error.message,
+      },
       { status: 500 },
     );
   }

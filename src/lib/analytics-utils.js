@@ -23,9 +23,9 @@ export function processData(
       status.includes("pro") ||
       status.includes("premium")
     )
-      return "Pro";
-    if (status.includes("trial")) return "Freetrial";
-    return "Free";
+      return "Pro User Prompts";
+    if (status.includes("trial")) return "Freetrial User Prompts";
+    return "Free User Prompts";
   };
 
   const buildDistribution = (data, keyFn) => {
@@ -34,7 +34,12 @@ export function processData(
       const key = keyFn(d);
       const segment = getSegment(d);
       if (!counts[key])
-        counts[key] = { total: 0, Free: 0, Freetrial: 0, Pro: 0 };
+        counts[key] = {
+          total: 0,
+          "Free User Prompts": 0,
+          "Freetrial User Prompts": 0,
+          "Pro User Prompts": 0,
+        };
       counts[key].total++;
       counts[key][segment]++;
     });
@@ -45,9 +50,9 @@ export function processData(
     let entries = Object.entries(counts).map(([name, val]) => ({
       name,
       count: val.total,
-      Free: val.Free,
-      Freetrial: val.Freetrial,
-      Pro: val.Pro,
+      "Free User Prompts": val["Free User Prompts"],
+      "Freetrial User Prompts": val["Freetrial User Prompts"],
+      "Pro User Prompts": val["Pro User Prompts"],
     }));
     entries.sort((a, b) => b.count - a.count);
     if (topK) entries = entries.slice(0, topK);
@@ -477,19 +482,19 @@ export function processData(
       peakUsage,
       // Change: Divide by segment user count for "Avg Intensity of Segment" or total users?
       // User asked for "peak". If we stick to "Avg Max Prompts", splitting the average by segment user base is more accurate for "Segment Intensity".
-      peakFree:
+      "Free User Prompts Intensity":
         daySegmentUserCounts.Free > 0
           ? daySegmentMaxSum.Free / daySegmentUserCounts.Free
           : 0,
-      peakTrial:
+      "Freetrial User Prompts Intensity":
         daySegmentUserCounts.Freetrial > 0
           ? daySegmentMaxSum.Freetrial / daySegmentUserCounts.Freetrial
           : 0,
-      peakPro:
+      "Pro User Prompts Intensity":
         daySegmentUserCounts.Pro > 0
           ? daySegmentMaxSum.Pro / daySegmentUserCounts.Pro
           : 0,
-      peakTotal:
+      "Total Prompts Intensity":
         totalDayActiveUsers > 0
           ? (daySegmentMaxSum.Free +
               daySegmentMaxSum.Freetrial +
@@ -551,13 +556,18 @@ export function processData(
     "Sunday",
   ];
   const dayOfWeekData = dayOrder.map((name) => {
-    const val = dowCounts[name] || { total: 0, Free: 0, Freetrial: 0, Pro: 0 };
+    const val = dowCounts[name] || {
+      total: 0,
+      "Free User Prompts": 0,
+      "Freetrial User Prompts": 0,
+      "Pro User Prompts": 0,
+    };
     return {
       name,
       count: val.total,
-      Free: val.Free,
-      Freetrial: val.Freetrial,
-      Pro: val.Pro,
+      "Free User Prompts": val["Free User Prompts"],
+      "Freetrial User Prompts": val["Freetrial User Prompts"],
+      "Pro User Prompts": val["Pro User Prompts"],
     };
   });
 
@@ -575,16 +585,16 @@ export function processData(
   const timePeriodData = periodOrder.map((name) => {
     const val = periodCounts[name] || {
       total: 0,
-      Free: 0,
-      Freetrial: 0,
-      Pro: 0,
+      "Free User Prompts": 0,
+      "Freetrial User Prompts": 0,
+      "Pro User Prompts": 0,
     };
     return {
       name,
       count: val.total,
-      Free: val.Free,
-      Freetrial: val.Freetrial,
-      Pro: val.Pro,
+      "Free User Prompts": val["Free User Prompts"],
+      "Freetrial User Prompts": val["Freetrial User Prompts"],
+      "Pro User Prompts": val["Pro User Prompts"],
     };
   });
 
@@ -602,7 +612,11 @@ export function processData(
     userPromptCounts[d.user_id] = (userPromptCounts[d.user_id] || 0) + 1;
   });
 
-  const segmentCounts = { Free: 0, Freetrial: 0, Pro: 0 };
+  const segmentCounts = {
+    "Free User Prompts": 0,
+    "Freetrial User Prompts": 0,
+    "Pro User Prompts": 0,
+  };
   const processedUsers = new Set();
 
   unique.forEach((d) => {
@@ -615,11 +629,11 @@ export function processData(
       status.includes("pro") ||
       status.includes("premium")
     ) {
-      segmentCounts["Pro"]++;
+      segmentCounts["Pro User Prompts"]++;
     } else if (status.includes("trial")) {
-      segmentCounts["Freetrial"]++;
+      segmentCounts["Freetrial User Prompts"]++;
     } else {
-      segmentCounts["Free"]++;
+      segmentCounts["Free User Prompts"]++;
     }
   });
 

@@ -175,10 +175,10 @@ const CustomTooltip = ({ active, payload, label, colors = DEFAULT_COLORS }) => {
                 className="w-2.5 h-2.5 rounded-sm"
                 style={{ background: colors.free }}
               />
-              <span>Free</span>
+              <span>Free User Prompts</span>
             </div>
             <span className="font-mono font-semibold">
-              {data?.free || 0}
+              {data?.["Free User Prompts"] || 0}
               {data?.freePower > 0 && (
                 <span className="text-muted-foreground ml-1">
                   ({data?.freePower})
@@ -192,10 +192,10 @@ const CustomTooltip = ({ active, payload, label, colors = DEFAULT_COLORS }) => {
                 className="w-2.5 h-2.5 rounded-sm"
                 style={{ background: colors.trial }}
               />
-              <span>Trial</span>
+              <span>Freetrial User Prompts</span>
             </div>
             <span className="font-mono font-semibold">
-              {data?.trial || 0}
+              {data?.["Freetrial User Prompts"] || 0}
               {data?.trialPower > 0 && (
                 <span className="text-muted-foreground ml-1">
                   ({data?.trialPower})
@@ -209,10 +209,10 @@ const CustomTooltip = ({ active, payload, label, colors = DEFAULT_COLORS }) => {
                 className="w-2.5 h-2.5 rounded-sm"
                 style={{ background: colors.pro }}
               />
-              <span>Pro</span>
+              <span>Pro User Prompts</span>
             </div>
             <span className="font-mono font-semibold">
-              {data?.pro || 0}
+              {data?.["Pro User Prompts"] || 0}
               {data?.proPower > 0 && (
                 <span className="text-muted-foreground ml-1">
                   ({data?.proPower})
@@ -256,9 +256,12 @@ export function ActiveUsersChart({
   }
 
   const chartConfig = {
-    free: { label: "Free", color: colors.free },
-    trial: { label: "Trial", color: colors.trial },
-    pro: { label: "Pro", color: colors.pro },
+    "Free User Prompts": { label: "Free User Prompts", color: colors.free },
+    "Freetrial User Prompts": {
+      label: "Freetrial User Prompts",
+      color: colors.trial,
+    },
+    "Pro User Prompts": { label: "Pro User Prompts", color: colors.pro },
     total: { label: "Total", color: colors.line },
   };
 
@@ -331,21 +334,21 @@ export function ActiveUsersChart({
 
         {/* Stacked Bars with power user texture */}
         <Bar
-          dataKey="free"
+          dataKey="Free User Prompts"
           stackId="users"
           fill={colors.free}
           shape={<PowerUserBar patternId={`stripe-free-${chartId}`} />}
           radius={[0, 0, 0, 0]}
         />
         <Bar
-          dataKey="trial"
+          dataKey="Freetrial User Prompts"
           stackId="users"
           fill={colors.trial}
           shape={<PowerUserBar patternId={`stripe-trial-${chartId}`} />}
           radius={[0, 0, 0, 0]}
         />
         <Bar
-          dataKey="pro"
+          dataKey="Pro User Prompts"
           stackId="users"
           fill={colors.pro}
           shape={<PowerUserBar patternId={`stripe-pro-${chartId}`} />}

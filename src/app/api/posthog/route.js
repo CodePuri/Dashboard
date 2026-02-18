@@ -103,8 +103,77 @@ export async function GET(request) {
     // Tracking Events
   ];
 
+  const landerEvents = [
+    // Page Views
+    "Home Page Viewed",
+    "Login Page Viewed",
+    "About Us Page Viewed",
+    "Pricing Page Viewed",
+
+    // Navigation
+    "Navbar Logo Clicked",
+    "Navbar Sign Up Clicked",
+    "Navbar Pricing Link Clicked",
+
+    // Engagement
+    "FAQ Toggled",
+    "Video Played",
+    "CTA Button Clicked",
+    "Prompt Submitted",
+
+    // Pricing
+    "Pricing Plan Selected",
+    "Pricing Subscribe Clicked",
+    "Pricing Subscription Checkout Cancelled",
+
+    // Onboarding
+    "Onboarding Step 1 Completed",
+    "Onboarding Step 2 Completed",
+    "Onboarding Step 3 Completed",
+    "Onboarding Step 4 Completed",
+    "Onboarding Step 5 Completed",
+    "Onboarding Completed",
+
+    // Footer
+    "Footer Page/Link Clicked",
+
+    // Auth
+    "User Login",
+  ];
+
+  const chatEvents = [
+    // Page & Session
+    "Chat Page Viewed",
+    "Session Started / Ended",
+
+    // Prompt Interactions
+    "Prompt Sent",
+    "Prompt Refined",
+    "Refine Action",
+    "Refine Suggestion Clicked",
+    "Suggestion Clicked",
+
+    // API Events
+    "api_enhance_request",
+    "api_enhance_response",
+    "api_enhance_error",
+
+    // User Actions
+    "Message Copied",
+    "Open in Platform Selected",
+    "Mobile Sidebar Toggled",
+    "Public Popup Opened/Closed",
+    "Install Clicked",
+
+    // Navigation
+    "User Profile Page Viewed",
+    "extension_settings_save_clicked",
+    "User Logout",
+  ];
+
   const extensionFilter = `event IN (${extensionEvents.map((e) => `'${e}'`).join(", ")})`;
-  const chatFilter = `(event = '$pageview' AND properties.$current_url LIKE '%https://thinkvelocity.in/chat/%')`;
+  const chatFilter = `event IN (${chatEvents.map((e) => `'${e}'`).join(", ")})`;
+  const landerFilter = `event IN (${landerEvents.map((e) => `'${e}'`).join(", ")})`;
 
   // Helper to build the WHERE clause based on available dates and source filter
   const whereClause = (() => {
@@ -126,50 +195,8 @@ export async function GET(request) {
     } else if (source === "Chat") {
       conditions.push(chatFilter);
     } else if (source === "Lander") {
-      // Show every other event other than extension and chat
-      conditions.push(`NOT (${extensionFilter})`);
-      conditions.push(`NOT (${chatFilter})`);
-
-      // Exclude ALL PostHog autocaptured and native events
-      const excludedPostHogNativeEvents = [
-        // PostHog native events
-        "$pageview",
-        "$pageleave",
-        "$autocapture",
-        "$rageclick",
-        "$screen",
-        "$identify",
-        "$set",
-        "$set_once",
-        "$feature_flag_called",
-        "$feature_enrollment",
-        "$capture_metrics",
-        "$web_vitals",
-        "$performance_event",
-        "$exception",
-        "$groupidentify",
-        "$create_alias",
-        "$merge_dangerously",
-        "$snapshot",
-        "$session_recording_start",
-        // Additional noisy/default events
-        "page_visibility_change",
-        "button_click",
-        "popup_opened",
-        "error_occurred",
-        "session_start",
-        "page_unload",
-        "form_change",
-        "form_input",
-        // Popup done events (not in EVENT_TRACKING_FLOWS.md)
-        "popup_done_popup_close_button_clicked",
-        "popup_done_button_clicked",
-        // Excluded button events
-        "button_quick_action_clicked",
-      ];
-      conditions.push(
-        `event NOT IN (${excludedPostHogNativeEvents.map((e) => `'${e}'`).join(", ")})`,
-      );
+      // Show only lander-specific events
+      conditions.push(landerFilter);
     } else if (source === "ExtensionInteraction") {
       // Strict filter for the 11 core extension events
       const coreEvents = [
@@ -247,7 +274,7 @@ export async function GET(request) {
           ${whereClause}
           GROUP BY event
           ORDER BY count DESC
-          LIMIT 20
+          LIMIT 500
         `,
       },
     };
@@ -314,7 +341,7 @@ export async function GET(request) {
 
     const eventsOverTime = (timelineData.results || []).map((row) => ({
       date: row[0] ? String(row[0]).split(/[ T]/)[0] : row[0], // Handle 'YYYY-MM-DD HH:mm:ss' or 'YYYY-MM-DDTHH:mm:ssZ'
-      total: row[1],
+      count: row[1],
     }));
 
     const eventBreakdown = (breakdownData.results || []).map((row) => ({

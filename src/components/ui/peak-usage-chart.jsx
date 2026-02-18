@@ -29,7 +29,8 @@ const PEAK_COLORS = {
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
-    const total = payload.find((p) => p.dataKey === "peakTotal")?.value || 0;
+    const total =
+      payload.find((p) => p.dataKey === "Total Prompts Intensity")?.value || 0;
 
     const getPercent = (val) => {
       if (!total || total === 0) return "0%";
@@ -53,20 +54,20 @@ const CustomTooltip = ({ active, payload, label }) => {
         <div className="space-y-2">
           {[
             {
-              key: "peakPro",
-              label: "Pro Avg Max",
+              key: "Pro User Prompts Intensity",
+              label: "Pro User Prompts Intensity",
               color: PEAK_COLORS.pro,
               shadow: "rgba(245,158,11,0.5)",
             },
             {
-              key: "peakTrial",
-              label: "Trial Avg Max",
+              key: "Freetrial User Prompts Intensity",
+              label: "Freetrial User Prompts Intensity",
               color: PEAK_COLORS.trial,
               shadow: "rgba(16,185,129,0.5)",
             },
             {
-              key: "peakFree",
-              label: "Free Avg Max",
+              key: "Free User Prompts Intensity",
+              label: "Free User Prompts Intensity",
               color: PEAK_COLORS.free,
               shadow: "rgba(14,165,233,0.5)",
             },
@@ -139,10 +140,22 @@ export function PeakUsageChart({
   }
 
   const chartConfig = {
-    peakFree: { label: "Free", color: PEAK_COLORS.free },
-    peakTrial: { label: "Trial", color: PEAK_COLORS.trial },
-    peakPro: { label: "Pro", color: PEAK_COLORS.pro },
-    peakTotal: { label: "Total Intensity", color: PEAK_COLORS.total },
+    "Free User Prompts Intensity": {
+      label: "Free User Prompts Intensity",
+      color: PEAK_COLORS.free,
+    },
+    "Freetrial User Prompts Intensity": {
+      label: "Freetrial User Prompts Intensity",
+      color: PEAK_COLORS.trial,
+    },
+    "Pro User Prompts Intensity": {
+      label: "Pro User Prompts Intensity",
+      color: PEAK_COLORS.pro,
+    },
+    "Total Prompts Intensity": {
+      label: "Total Intensity",
+      color: PEAK_COLORS.total,
+    },
   };
 
   return (
@@ -228,7 +241,7 @@ export function PeakUsageChart({
           {/* Ridge Plot - Overlapping Areas (No stackId) */}
           <Area
             type="monotone"
-            dataKey="peakFree"
+            dataKey="Free User Prompts Intensity"
             stroke={PEAK_COLORS.free}
             strokeWidth={2.5}
             fillOpacity={1}
@@ -237,7 +250,7 @@ export function PeakUsageChart({
           />
           <Area
             type="monotone"
-            dataKey="peakTrial"
+            dataKey="Freetrial User Prompts Intensity"
             stroke={PEAK_COLORS.trial}
             strokeWidth={2.5}
             fillOpacity={1}
@@ -246,7 +259,7 @@ export function PeakUsageChart({
           />
           <Area
             type="monotone"
-            dataKey="peakPro"
+            dataKey="Pro User Prompts Intensity"
             stroke={PEAK_COLORS.pro}
             strokeWidth={2.5}
             fillOpacity={1}
@@ -257,7 +270,7 @@ export function PeakUsageChart({
           {/* Total Intensity Trend Line */}
           <Line
             type="monotone"
-            dataKey="peakTotal"
+            dataKey="Total Prompts Intensity"
             stroke={PEAK_COLORS.total}
             strokeWidth={2}
             strokeDasharray="5 5"

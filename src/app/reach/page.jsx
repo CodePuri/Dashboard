@@ -18,6 +18,11 @@ import {
   MousePointerClick,
   ExternalLink,
   Loader2,
+  ThumbsUp,
+  ThumbsDown,
+  MessageSquare,
+  Activity,
+  RefreshCw,
 } from "lucide-react";
 import {
   ChartContainer,
@@ -202,6 +207,25 @@ export default function ReachPage() {
   //   hour: d.name,
   //   sessions: d.count,
   // }));
+
+  // Calculate Liked and Disliked metrics from eventBreakdown
+  const eventBreakdown = postHogData?.eventBreakdown || [];
+
+  const totalLiked = eventBreakdown
+    .filter(
+      (e) =>
+        e.name === "extension_improved_like_button_clicked" ||
+        e.name === "popup_like_button_clicked",
+    )
+    .reduce((acc, curr) => acc + curr.count, 0);
+
+  const totalDisliked = eventBreakdown
+    .filter(
+      (e) =>
+        e.name === "extension_improved_dislike_button_clicked" ||
+        e.name === "popup_dislike_button_clicked",
+    )
+    .reduce((acc, curr) => acc + curr.count, 0);
 
   return (
     <div className="space-y-6">
@@ -1016,6 +1040,7 @@ export default function ReachPage() {
               ))
             ) : (
               <>
+                {/* Commented out as requested:
                 <MetricCard
                   title={
                     sourceFilter === "Chat"
@@ -1180,150 +1205,550 @@ export default function ReachPage() {
                     )
                   }
                 />
-                <MetricCard
-                  title="Unique Event Types"
-                  value={postHogData.uniqueEventTypes.toLocaleString()}
-                  subtitle="Found in this period"
-                  icon={Users}
-                  color={COLORS.info}
-                  tooltip={
-                    sourceFilter === "Chat" ? (
-                      <div className="space-y-2">
-                        <p className="font-bold text-primary mb-1">
-                          Unique Chat Event Types
-                        </p>
-                        <p className="text-xs">
-                          Number of distinct event types captured on the chat
-                          page.
-                        </p>
-                        <div className="mt-2 pt-2 border-t">
-                          <p className="font-semibold text-[10px] text-muted-foreground uppercase tracking-widest mb-1">
-                            Events Included
-                          </p>
-                          <div className="font-mono text-[9px] opacity-90">
-                            <span>$pageview</span>
-                          </div>
-                        </div>
-                      </div>
-                    ) : sourceFilter === "Extension" ? (
-                      <div className="space-y-3 max-h-[350px] overflow-auto pr-2 scrollbar-thin">
-                        <p className="font-bold border-b pb-1 mb-2 text-primary">
-                          Unique Extension Event Types:
-                        </p>
-                        <div className="space-y-2">
-                          <div>
-                            <p className="font-semibold text-[10px] text-muted-foreground uppercase tracking-widest mb-1">
-                              API Operations
+                */}
+                {sourceFilter === "Extension" ? (
+                  <>
+                    <MetricCard
+                      title="Liked"
+                      value={totalLiked.toLocaleString()}
+                      subtitle="Positive feedback"
+                      icon={ThumbsUp}
+                      color={COLORS.success} // Green
+                      tooltip="Total number of times users clicked the Like button (Extension + Popup)"
+                    />
+                    <MetricCard
+                      title="Disliked"
+                      value={totalDisliked.toLocaleString()}
+                      subtitle="Negative feedback"
+                      icon={ThumbsDown}
+                      color={COLORS.destructive} // Red
+                      tooltip="Total number of times users clicked the Dislike button (Extension + Popup)"
+                    />
+                  </>
+                ) : (
+                  <>
+                    {/* Commented out as requested:
+                    <MetricCard
+                      title="Unique Event Types"
+                      value={postHogData.uniqueEventTypes.toLocaleString()}
+                      subtitle="Found in this period"
+                      icon={Users}
+                      color={COLORS.info}
+                      tooltip={
+                        sourceFilter === "Chat" ? (
+                          <div className="space-y-2">
+                            <p className="font-bold text-primary mb-1">
+                              Unique Chat Event Types
                             </p>
-                            <div className="grid grid-cols-1 gap-0.5 opacity-90 font-mono text-[9px]">
-                              <span>api_enhance_error</span>
-                              <span>api_enhance_request</span>
-                              <span>api_enhance_response</span>
+                            <p className="text-xs">
+                              Number of distinct event types captured on the chat
+                              page.
+                            </p>
+                            <div className="mt-2 pt-2 border-t">
+                              <p className="font-semibold text-[10px] text-muted-foreground uppercase tracking-widest mb-1">
+                                Events Included
+                              </p>
+                              <div className="font-mono text-[9px] opacity-90">
+                                <span>$pageview</span>
+                              </div>
                             </div>
                           </div>
-
-                          <div>
-                            <p className="font-semibold text-[10px] text-muted-foreground uppercase tracking-widest mb-1">
-                              Injected Buttons
-                            </p>
-                            <div className="grid grid-cols-1 gap-0.5 opacity-90 font-mono text-[9px]">
-                              <span>button_dropdown_option_selected</span>
-                              <span>button_dropdown_toggled</span>
-                              <span>button_enhance_clicked</span>
-                              <span>button_get_pro_clicked</span>
-                            </div>
-                          </div>
-
-                          <div>
-                            <p className="font-semibold text-[10px] text-muted-foreground uppercase tracking-widest mb-1">
-                              Browser Extension
-                            </p>
-                            <div className="grid grid-cols-1 gap-0.5 opacity-90 font-mono text-[9px]">
-                              <span>
-                                extension_copy_improved_button_clicked
-                              </span>
-                              <span>extension_dropdown_option_selected</span>
-                              <span>extension_dropdown_toggled</span>
-                              <span>extension_get_pro_badge_clicked</span>
-                              <span>
-                                extension_improved_dislike_button_clicked
-                              </span>
-                              <span>
-                                extension_improved_like_button_clicked
-                              </span>
-                              <span>extension_insert_button_clicked</span>
-                              <span>extension_login_button_clicked</span>
-                              <span>extension_memory_button_clicked</span>
-                              <span>extension_opened</span>
-                              <span>
-                                extension_post_login_upgrade_modal_shown
-                              </span>
-                              <span>
-                                extension_post_login_upgrade_pro_clicked
-                              </span>
-                              <span>extension_profile_button_clicked</span>
-                              <span>extension_send_button_clicked</span>
-                              <span>extension_settings_button_clicked</span>
-                              <span>extension_settings_cancel_clicked</span>
-                              <span>
-                                extension_settings_personality_dropdown_toggled
-                              </span>
-                              <span>extension_settings_save_clicked</span>
-                              <span>extension_signup_button_clicked</span>
-                              <span>extension_snooze_button_clicked</span>
-                              <span>extension_snooze_option_selected</span>
-                              <span>extension_theme_toggle_clicked</span>
-                              <span>extension_toggle_blocked</span>
-                              <span>extension_toggle_clicked</span>
-                              <span>extension_trial_activation_failed</span>
-                              <span>extension_trial_activation_started</span>
-                              <span>
-                                extension_trial_activated_successfully
-                              </span>
-                              <span>extension_trial_ended_modal_shown</span>
-                              <span>
-                                extension_try_free_trial_button_clicked
-                              </span>
-                              <span>extension_upgrade_button_clicked</span>
-                              <span>extension_user_dropdown_hovered</span>
-                              <span>
-                                extension_user_dropdown_option_selected
-                              </span>
-                            </div>
-                          </div>
-
-                          <div>
-                            <p className="font-semibold text-[10px] text-muted-foreground uppercase tracking-widest mb-1">
-                              Overlay Popup
-                            </p>
-                            <div className="grid grid-cols-1 gap-0.5 opacity-90 font-mono text-[9px]">
-                              <span>popup_accept_button_clicked</span>
-                              <span>popup_analysis_refine_button_clicked</span>
-                              <span>popup_close_button_clicked</span>
-                              <span>popup_closed</span>
-                              <span>popup_copy_button_clicked</span>
-                              <span>popup_dislike_button_clicked</span>
-                              <span>popup_like_button_clicked</span>
-                              <span>popup_opened</span>
-                              <span>
-                                popup_premium_popup_close_button_clicked
-                              </span>
-                              <span>popup_refine_button_clicked</span>
-                              <span>popup_refine_option_selected</span>
-                              <span>popup_tab_clicked</span>
-                              <span>popup_upgrade_button_clicked</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      "Number of distinct event types captured"
-                    )
-                  }
-                />
+                        ) : (
+                          "Number of distinct event types captured"
+                        )
+                      }
+                    />
+                    */}
+                  </>
+                )}
               </>
             )}
           </div>
+
+          {/* Chat Analytics Section */}
+          {!postHogLoading &&
+            sourceFilter === "Chat" &&
+            postHogData.totalEvents > 0 && (
+              <>
+                {/* Calculate Chat Metrics */}
+                {(() => {
+                  const events = postHogData.eventBreakdown || [];
+                  
+                  // Page & Session
+                  const chatPageViews = events.find(e => e.name === "Chat Page Viewed")?.count || 0;
+                  const sessionEvents = events.find(e => e.name === "Session Started / Ended")?.count || 0;
+                  
+                  // Prompt Interactions
+                  const promptsSent = events.find(e => e.name === "Prompt Sent")?.count || 0;
+                  const promptsRefined = events.find(e => e.name === "Prompt Refined")?.count || 0;
+                  const refineActions = events.find(e => e.name === "Refine Action")?.count || 0;
+                  const refineSuggestionClicked = events.find(e => e.name === "Refine Suggestion Clicked")?.count || 0;
+                  const suggestionClicked = events.find(e => e.name === "Suggestion Clicked")?.count || 0;
+                  
+                  // API Events
+                  const apiRequests = events.find(e => e.name === "api_enhance_request")?.count || 0;
+                  const apiResponses = events.find(e => e.name === "api_enhance_response")?.count || 0;
+                  const apiErrors = events.find(e => e.name === "api_enhance_error")?.count || 0;
+                  
+                  // User Actions
+                  const messageCopied = events.find(e => e.name === "Message Copied")?.count || 0;
+                  const openInPlatform = events.find(e => e.name === "Open in Platform Selected")?.count || 0;
+                  const sidebarToggled = events.find(e => e.name === "Mobile Sidebar Toggled")?.count || 0;
+                  const popupToggled = events.find(e => e.name === "Public Popup Opened/Closed")?.count || 0;
+                  const installClicked = events.find(e => e.name === "Install Clicked")?.count || 0;
+                  
+                  // Navigation
+                  const profileViewed = events.find(e => e.name === "User Profile Page Viewed")?.count || 0;
+                  const settingsSaved = events.find(e => e.name === "extension_settings_save_clicked")?.count || 0;
+                  const userLogout = events.find(e => e.name === "User Logout")?.count || 0;
+                  
+                  // Calculations
+                  const apiSuccessRate = apiRequests > 0 ? ((apiResponses / apiRequests) * 100).toFixed(1) : 0;
+                  const refinementRate = promptsSent > 0 ? ((promptsRefined / promptsSent) * 100).toFixed(1) : 0;
+                  const totalSessions = sessionEvents / 2; // Divide by 2 since each session has start and end
+                  
+                  // Funnel calculations
+                  const viewToPrompt = chatPageViews > 0 ? ((promptsSent / chatPageViews) * 100).toFixed(1) : 0;
+                  const promptToRefine = promptsSent > 0 ? ((promptsRefined / promptsSent) * 100).toFixed(1) : 0;
+                  
+                  // Total engagement actions
+                  const totalEngagement = messageCopied + openInPlatform + suggestionClicked + refineActions;
+                  
+                  // Activity over time
+                  const activityOverTime = (postHogData.eventsOverTime || []).map(day => {
+                    const dayEvents = postHogData.events?.filter(e => 
+                      e.timestamp?.startsWith(day.date)
+                    ) || [];
+                    
+                    return {
+                      date: day.date,
+                      Views: dayEvents.filter(e => e.event === "Chat Page Viewed").length,
+                      Prompts: dayEvents.filter(e => e.event === "Prompt Sent").length,
+                      Refinements: dayEvents.filter(e => e.event === "Prompt Refined").length,
+                      API_Requests: dayEvents.filter(e => e.event === "api_enhance_request").length,
+                    };
+                  });
+
+                  return (
+                    <>
+                      {/* Journey Metric Cards */}
+                      <div className="grid gap-4 md:grid-cols-3 mb-6">
+                        <MetricCard
+                          title="Chat Page Viewed"
+                          value={chatPageViews.toLocaleString()}
+                          subtitle="100% - Entry point"
+                          icon={MousePointerClick}
+                          color={COLORS.primary}
+                          tooltip="Total views on the Chat application page"
+                          chart={
+                            <SparklineV2
+                              data={activityOverTime}
+                              dataKey="Views"
+                              color={COLORS.primary}
+                            />
+                          }
+                          detailedChart={
+                            <DetailedChartV2
+                              data={activityOverTime}
+                              dataKey="Views"
+                              color={COLORS.primary}
+                              title="Chat Page Views Trend"
+                            />
+                          }
+                        />
+                        <MetricCard
+                          title="Prompt Sent"
+                          value={promptsSent.toLocaleString()}
+                          subtitle={`${viewToPrompt}% conversion`}
+                          icon={MessageSquare}
+                          color={COLORS.info}
+                          tooltip="Number of prompts sent relative to page views"
+                          chart={
+                            <SparklineV2
+                              data={activityOverTime}
+                              dataKey="Prompts"
+                              color={COLORS.info}
+                            />
+                          }
+                          detailedChart={
+                            <DetailedChartV2
+                              data={activityOverTime}
+                              dataKey="Prompts"
+                              color={COLORS.info}
+                              title="Prompts Sent Trend"
+                            />
+                          }
+                        />
+                        <MetricCard
+                          title="Prompt Refined"
+                          value={promptsRefined.toLocaleString()}
+                          subtitle={`${promptToRefine}% from prompts sent`}
+                          icon={RefreshCw}
+                          color={COLORS.success}
+                          tooltip="Number of refined prompts relative to prompts sent"
+                          chart={
+                            <SparklineV2
+                              data={activityOverTime}
+                              dataKey="Refinements"
+                              color={COLORS.success}
+                            />
+                          }
+                          detailedChart={
+                            <DetailedChartV2
+                              data={activityOverTime}
+                              dataKey="Refinements"
+                              color={COLORS.success}
+                              title="Prompts Refined Trend"
+                            />
+                          }
+                        />
+                      </div>
+
+                      {/* Commented out as requested:
+                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                        <MetricCard
+                          title="Chat Sessions"
+                          value={Math.round(totalSessions).toLocaleString()}
+                          subtitle="Total user sessions"
+                          icon={Users}
+                          color={COLORS.primary}
+                          tooltip="Number of chat sessions (Session Started / Ended events divided by 2)"
+                        />
+                        <MetricCard
+                          title="Prompts Sent"
+                          value={promptsSent.toLocaleString()}
+                          subtitle="Total prompts submitted"
+                          icon={MessageSquare}
+                          color={COLORS.info}
+                          tooltip="Total number of prompts sent by users in chat"
+                        />
+                        <MetricCard
+                          title="API Success Rate"
+                          value={`${apiSuccessRate}%`}
+                          subtitle={`${apiResponses}/${apiRequests} successful`}
+                          icon={Activity}
+                          color={apiSuccessRate >= 95 ? COLORS.success : apiSuccessRate >= 80 ? COLORS.warning : COLORS.danger}
+                          tooltip="Percentage of API enhance requests that completed successfully"
+                        />
+                        <MetricCard
+                          title="Refinement Rate"
+                          value={`${refinementRate}%`}
+                          subtitle="Prompts refined"
+                          icon={RefreshCw}
+                          color={COLORS.warning}
+                          tooltip="Percentage of prompts that were refined by users"
+                        />
+                      </div>
+                      */}
+
+                      {/* User Journey & API Performance */}
+                      <div className="grid gap-6 md:grid-cols-2">
+                        {/* User Journey Funnel */}
+                        <ChartCard
+                          title="User Journey Funnel"
+                          tooltip="User progression from page view to refinement"
+                        >
+                          <div className="space-y-4 p-4">
+                            {/* Step 1: Chat Page Viewed */}
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium">Chat Page Viewed</span>
+                                <span className="text-sm font-bold text-primary">{chatPageViews}</span>
+                              </div>
+                              <div className="h-3 bg-muted rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all"
+                                  style={{ width: chatPageViews > 0 ? '100%' : '0%' }}
+                                />
+                              </div>
+                              <p className="text-xs text-muted-foreground">100% - Entry point</p>
+                            </div>
+
+                            {/* Arrow */}
+                            <div className="flex justify-center">
+                              <div className="text-muted-foreground">↓</div>
+                            </div>
+
+                            {/* Step 2: Prompt Sent */}
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium">Prompt Sent</span>
+                                <span className="text-sm font-bold text-info">{promptsSent}</span>
+                              </div>
+                              <div className="h-3 bg-muted rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full bg-gradient-to-r from-cyan-500 to-cyan-600 transition-all"
+                                  style={{ width: chatPageViews > 0 ? `${(promptsSent / chatPageViews) * 100}%` : '0%' }}
+                                />
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                {viewToPrompt}% conversion
+                              </p>
+                            </div>
+
+                            {/* Arrow */}
+                            <div className="flex justify-center">
+                              <div className="text-muted-foreground">↓</div>
+                            </div>
+
+                            {/* Step 3: Prompt Refined */}
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium">Prompt Refined</span>
+                                <span className="text-sm font-bold text-success">{promptsRefined}</span>
+                              </div>
+                              <div className="h-3 bg-muted rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all"
+                                  style={{ width: chatPageViews > 0 ? `${(promptsRefined / chatPageViews) * 100}%` : '0%' }}
+                                />
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                {promptToRefine}% from prompts sent
+                              </p>
+                            </div>
+                          </div>
+                        </ChartCard>
+
+                        {/* API Performance */}
+                        <ChartCard
+                          title="API Performance"
+                          tooltip="API enhance request success vs error rate"
+                        >
+                          <ChartContainer config={{}} className="h-[280px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <RechartsPie margin={{ top: 0, bottom: 0 }}>
+                                <Pie
+                                  data={[
+                                    { name: "Successful", value: apiResponses },
+                                    { name: "Errors", value: apiErrors },
+                                  ].filter(item => item.value > 0)}
+                                  cx="50%"
+                                  cy="50%"
+                                  innerRadius={60}
+                                  outerRadius={85}
+                                  paddingAngle={5}
+                                  dataKey="value"
+                                  nameKey="name"
+                                >
+                                  <Cell fill={COLORS.success} />
+                                  <Cell fill={COLORS.danger} />
+                                </Pie>
+                                <ChartTooltip content={<ChartTooltipContent />} />
+                              </RechartsPie>
+                            </ResponsiveContainer>
+                          </ChartContainer>
+                          <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-6 px-2">
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="h-2.5 w-2.5 rounded-full"
+                                style={{ backgroundColor: COLORS.success }}
+                              />
+                              <span className="text-[11px] font-medium text-muted-foreground whitespace-nowrap">
+                                Successful ({apiResponses})
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="h-2.5 w-2.5 rounded-full"
+                                style={{ backgroundColor: COLORS.danger }}
+                              />
+                              <span className="text-[11px] font-medium text-muted-foreground whitespace-nowrap">
+                                Errors ({apiErrors})
+                              </span>
+                            </div>
+                          </div>
+                          <div className="mt-4 pt-4 border-t text-center">
+                            <p className="text-xs text-muted-foreground">
+                              Total Requests: <span className="font-semibold text-foreground">{apiRequests}</span>
+                            </p>
+                          </div>
+                        </ChartCard>
+                      </div>
+
+                      {/* Engagement & Feature Usage */}
+                      <div className="grid gap-6 md:grid-cols-2">
+                        {/* Engagement Breakdown */}
+                        <ChartCard
+                          title="Engagement Actions"
+                          tooltip="User interactions and engagement events"
+                        >
+                          <ChartContainer
+                            config={{
+                              count: { label: "Actions", color: COLORS.info },
+                            }}
+                            className="h-[280px] w-full"
+                          >
+                            <BarChart
+                              data={[
+                                { name: "Message Copied", count: messageCopied },
+                                { name: "Suggestions", count: suggestionClicked },
+                                { name: "Refine Actions", count: refineActions },
+                                { name: "Open Platform", count: openInPlatform },
+                              ].filter(item => item.count > 0)}
+                              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                            >
+                              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                              <XAxis
+                                dataKey="name"
+                                tickLine={false}
+                                axisLine={false}
+                                tickMargin={8}
+                                tick={{ fontSize: 10 }}
+                                angle={-15}
+                                textAnchor="end"
+                                height={60}
+                              />
+                              <YAxis tickLine={false} axisLine={false} tickMargin={8} />
+                              <ChartTooltip content={<ChartTooltipContent />} />
+                              <Bar
+                                dataKey="count"
+                                fill={COLORS.info}
+                                radius={[4, 4, 0, 0]}
+                              />
+                            </BarChart>
+                          </ChartContainer>
+                        </ChartCard>
+
+                        {/* Feature Usage */}
+                        <ChartCard
+                          title="Feature Usage"
+                          tooltip="Navigation and feature interaction events"
+                        >
+                          <ChartContainer config={{}} className="h-[280px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <RechartsPie margin={{ top: 0, bottom: 0 }}>
+                                <Pie
+                                  data={[
+                                    { name: "Install Clicked", value: installClicked },
+                                    { name: "Profile Viewed", value: profileViewed },
+                                    { name: "Settings Saved", value: settingsSaved },
+                                    { name: "Sidebar Toggled", value: sidebarToggled },
+                                    { name: "Popup Toggled", value: popupToggled },
+                                  ].filter(item => item.value > 0)}
+                                  cx="50%"
+                                  cy="50%"
+                                  innerRadius={60}
+                                  outerRadius={85}
+                                  paddingAngle={5}
+                                  dataKey="value"
+                                  nameKey="name"
+                                >
+                                  {[
+                                    { name: "Install Clicked", value: installClicked },
+                                    { name: "Profile Viewed", value: profileViewed },
+                                    { name: "Settings Saved", value: settingsSaved },
+                                    { name: "Sidebar Toggled", value: sidebarToggled },
+                                    { name: "Popup Toggled", value: popupToggled },
+                                  ].filter(item => item.value > 0).map((_, index) => (
+                                    <Cell
+                                      key={`feature-${index}`}
+                                      fill={VARIETY_COLORS[index % VARIETY_COLORS.length]}
+                                    />
+                                  ))}
+                                </Pie>
+                                <ChartTooltip content={<ChartTooltipContent />} />
+                              </RechartsPie>
+                            </ResponsiveContainer>
+                          </ChartContainer>
+                          <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-6 px-2">
+                            {[
+                              { name: "Install Clicked", value: installClicked },
+                              { name: "Profile Viewed", value: profileViewed },
+                              { name: "Settings Saved", value: settingsSaved },
+                              { name: "Sidebar Toggled", value: sidebarToggled },
+                              { name: "Popup Toggled", value: popupToggled },
+                            ].filter(item => item.value > 0).map((item, i) => (
+                              <div key={item.name} className="flex items-center gap-2">
+                                <div
+                                  className="h-2.5 w-2.5 rounded-full"
+                                  style={{
+                                    backgroundColor: VARIETY_COLORS[i % VARIETY_COLORS.length],
+                                  }}
+                                />
+                                <span className="text-[11px] font-medium text-muted-foreground whitespace-nowrap">
+                                  {item.name} ({item.value})
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </ChartCard>
+                      </div>
+
+                      {/* Activity Over Time */}
+                      {activityOverTime.length > 0 && (
+                        <ChartCard
+                          title="Activity Over Time"
+                          tooltip="Daily prompts, refinements, and API requests"
+                        >
+                          <ChartContainer config={{}} className="h-[280px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <LineChart
+                                data={activityOverTime}
+                                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                              >
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                <XAxis
+                                  dataKey="date"
+                                  tickLine={false}
+                                  axisLine={false}
+                                  tickMargin={8}
+                                  tickFormatter={(tick) => {
+                                    try {
+                                      return format(new Date(tick), "MMM d");
+                                    } catch (e) {
+                                      return tick;
+                                    }
+                                  }}
+                                />
+                                <YAxis tickLine={false} axisLine={false} tickMargin={8} />
+                                <ChartTooltip content={<ChartTooltipContent />} />
+                                <Line
+                                  type="monotone"
+                                  dataKey="Prompts"
+                                  stroke={VARIETY_COLORS[0]}
+                                  strokeWidth={2}
+                                  dot={{ r: 3 }}
+                                />
+                                <Line
+                                  type="monotone"
+                                  dataKey="Refinements"
+                                  stroke={VARIETY_COLORS[1]}
+                                  strokeWidth={2}
+                                  dot={{ r: 3 }}
+                                />
+                                <Line
+                                  type="monotone"
+                                  dataKey="API_Requests"
+                                  stroke={VARIETY_COLORS[2]}
+                                  strokeWidth={2}
+                                  dot={{ r: 3 }}
+                                />
+                              </LineChart>
+                            </ResponsiveContainer>
+                          </ChartContainer>
+                          <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-6 px-2">
+                            {["Prompts", "Refinements", "API Requests"].map((metric, i) => (
+                              <div key={metric} className="flex items-center gap-2">
+                                <div
+                                  className="h-2.5 w-2.5 rounded-full"
+                                  style={{
+                                    backgroundColor: VARIETY_COLORS[i % VARIETY_COLORS.length],
+                                  }}
+                                />
+                                <span className="text-[11px] font-medium text-muted-foreground whitespace-nowrap">
+                                  {metric}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </ChartCard>
+                      )}
+                    </>
+                  );
+                })()}
+              </>
+            )}
 
           {!postHogLoading &&
             sourceFilter === "Lander" &&
@@ -1340,12 +1765,486 @@ export default function ReachPage() {
               </div>
             )}
 
+          {/* Lander Analytics Section */}
+          {!postHogLoading &&
+            sourceFilter === "Lander" &&
+            postHogData.totalEvents > 0 && (
+              <>
+                {/* Calculate Lander Metrics */}
+                {(() => {
+                  const events = postHogData.eventBreakdown || [];
+                  
+                  // Page Views
+                  const homePageViews = events.find(e => e.name === "Home Page Viewed")?.count || 0;
+                  const loginPageViews = events.find(e => e.name === "Login Page Viewed")?.count || 0;
+                  const pricingPageViews = events.find(e => e.name === "Pricing Page Viewed")?.count || 0;
+                  const aboutPageViews = events.find(e => e.name === "About Us Page Viewed")?.count || 0;
+                  const totalPageViews = homePageViews + loginPageViews + pricingPageViews + aboutPageViews;
+                  
+                  // Engagement Events
+                  const faqToggled = events.find(e => e.name === "FAQ Toggled")?.count || 0;
+                  const videoPlayed = events.find(e => e.name === "Video Played")?.count || 0;
+                  const ctaClicked = events.find(e => e.name === "CTA Button Clicked")?.count || 0;
+                  const promptSubmitted = events.find(e => e.name === "Prompt Submitted")?.count || 0;
+                  const footerClicked = events.find(e => e.name === "Footer Page/Link Clicked")?.count || 0;
+                  const totalEngagement = faqToggled + videoPlayed + ctaClicked + promptSubmitted + footerClicked;
+                  
+                  // Navigation
+                  const navbarSignUp = events.find(e => e.name === "Navbar Sign Up Clicked")?.count || 0;
+                  const navbarPricing = events.find(e => e.name === "Navbar Pricing Link Clicked")?.count || 0;
+                  
+                  // Pricing Funnel
+                  const pricingPlanSelected = events.find(e => e.name === "Pricing Plan Selected")?.count || 0;
+                  const pricingSubscribeClicked = events.find(e => e.name === "Pricing Subscribe Clicked")?.count || 0;
+                  const checkoutCancelled = events.find(e => e.name === "Pricing Subscription Checkout Cancelled")?.count || 0;
+                  
+                  // Onboarding
+                  const onboardingStep1 = events.find(e => e.name === "Onboarding Step 1 Completed")?.count || 0;
+                  const onboardingStep2 = events.find(e => e.name === "Onboarding Step 2 Completed")?.count || 0;
+                  const onboardingStep3 = events.find(e => e.name === "Onboarding Step 3 Completed")?.count || 0;
+                  const onboardingStep4 = events.find(e => e.name === "Onboarding Step 4 Completed")?.count || 0;
+                  const onboardingStep5 = events.find(e => e.name === "Onboarding Step 5 Completed")?.count || 0;
+                  const onboardingCompleted = events.find(e => e.name === "Onboarding Completed")?.count || 0;
+                  
+                  // Auth
+                  const userLogin = events.find(e => e.name === "User Login")?.count || 0;
+                  
+                  // Conversion Funnel Calculations
+                  const signupOrLogin = navbarSignUp + loginPageViews + userLogin;
+                  const discoveryConversionRate = homePageViews > 0 ? ((signupOrLogin / homePageViews) * 100).toFixed(1) : 0;
+                  const promptConversionRate = signupOrLogin > 0 ? ((promptSubmitted / signupOrLogin) * 100).toFixed(1) : 0;
+                  const overallConversionRate = homePageViews > 0 ? ((promptSubmitted / homePageViews) * 100).toFixed(1) : 0;
+                  
+                  // Pricing Funnel Calculations
+                  const pricingViewToSelect = pricingPageViews > 0 ? ((pricingPlanSelected / pricingPageViews) * 100).toFixed(1) : 0;
+                  const selectToSubscribe = pricingPlanSelected > 0 ? ((pricingSubscribeClicked / pricingPlanSelected) * 100).toFixed(1) : 0;
+                  
+                  // Engagement Rate
+                  const engagementRate = totalPageViews > 0 ? ((totalEngagement / totalPageViews) * 100).toFixed(1) : 0;
+
+                  // Page Views Over Time by Type
+                  const pageViewsOverTime = (postHogData.eventsOverTime || []).map(day => {
+                    const dayEvents = postHogData.events?.filter(e => 
+                      e.timestamp?.startsWith(day.date)
+                    ) || [];
+                    
+                    return {
+                      date: day.date,
+                      Home: dayEvents.filter(e => e.event === "Home Page Viewed").length,
+                      Pricing: dayEvents.filter(e => e.event === "Pricing Page Viewed").length,
+                      Login: dayEvents.filter(e => e.event === "Login Page Viewed").length,
+                      About: dayEvents.filter(e => e.event === "About Us Page Viewed").length,
+                    };
+                  });
+
+                  return (
+                    <>
+                      {/* Metric Cards */}
+                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                        <MetricCard
+                          title="Total Page Views"
+                          value={totalPageViews.toLocaleString()}
+                          subtitle="Across all landing pages"
+                          icon={MousePointerClick}
+                          color={COLORS.primary}
+                          tooltip="Total views of Home, Pricing, Login, and About pages"
+                        />
+                        <MetricCard
+                          title="Engagement Rate"
+                          value={`${engagementRate}%`}
+                          subtitle="Users taking action"
+                          icon={Users}
+                          color={COLORS.info}
+                          tooltip="Percentage of page views that resulted in engagement (FAQ, Video, CTA, Prompt, Footer)"
+                        />
+                        <MetricCard
+                          title="Conversion Rate"
+                          value={`${overallConversionRate}%`}
+                          subtitle="Home → Prompt Submitted"
+                          icon={ExternalLink}
+                          color={COLORS.success}
+                          tooltip="Percentage of home page viewers who submitted a prompt"
+                        />
+                        <MetricCard
+                          title="Prompt Submissions"
+                          value={promptSubmitted.toLocaleString()}
+                          subtitle="Try it now feature"
+                          icon={Link2}
+                          color={COLORS.warning}
+                          tooltip="Total prompts submitted via the Hero/Lander 'Try it now' feature"
+                        />
+                      </div>
+
+                      {/* Conversion Funnels */}
+                      <div className="grid gap-6 md:grid-cols-2">
+                        {/* Primary Discovery Funnel */}
+                        <ChartCard
+                          title="Discovery to Conversion Funnel"
+                          tooltip="User journey from landing to prompt submission"
+                        >
+                          <div className="space-y-4 p-4">
+                            {/* Step 1: Home Page */}
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium">Home Page Viewed</span>
+                                <span className="text-sm font-bold text-primary">{homePageViews}</span>
+                              </div>
+                              <div className="h-3 bg-muted rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all"
+                                  style={{ width: '100%' }}
+                                />
+                              </div>
+                              <p className="text-xs text-muted-foreground">100% - Entry point</p>
+                            </div>
+
+                            {/* Arrow */}
+                            <div className="flex justify-center">
+                              <div className="text-muted-foreground">↓</div>
+                            </div>
+
+                            {/* Step 2: Signup/Login */}
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium">Login / Sign Up Intent</span>
+                                <span className="text-sm font-bold text-info">{signupOrLogin}</span>
+                              </div>
+                              <div className="h-3 bg-muted rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full bg-gradient-to-r from-cyan-500 to-cyan-600 transition-all"
+                                  style={{ width: homePageViews > 0 ? `${(signupOrLogin / homePageViews) * 100}%` : '0%' }}
+                                />
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                {discoveryConversionRate}% conversion
+                              </p>
+                            </div>
+
+                            {/* Arrow */}
+                            <div className="flex justify-center">
+                              <div className="text-muted-foreground">↓</div>
+                            </div>
+
+                            {/* Step 3: Prompt Submitted */}
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium">Prompt Submitted</span>
+                                <span className="text-sm font-bold text-success">{promptSubmitted}</span>
+                              </div>
+                              <div className="h-3 bg-muted rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all"
+                                  style={{ width: homePageViews > 0 ? `${(promptSubmitted / homePageViews) * 100}%` : '0%' }}
+                                />
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                {overallConversionRate}% overall conversion
+                              </p>
+                            </div>
+                          </div>
+                        </ChartCard>
+
+                        {/* Pricing Funnel */}
+                        <ChartCard
+                          title="Pricing Conversion Funnel"
+                          tooltip="User journey through pricing and subscription"
+                        >
+                          <div className="space-y-4 p-4">
+                            {/* Step 1: Pricing Page */}
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium">Pricing Page Viewed</span>
+                                <span className="text-sm font-bold text-primary">{pricingPageViews}</span>
+                              </div>
+                              <div className="h-3 bg-muted rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full bg-gradient-to-r from-purple-500 to-purple-600 transition-all"
+                                  style={{ width: '100%' }}
+                                />
+                              </div>
+                              <p className="text-xs text-muted-foreground">100% - Entry point</p>
+                            </div>
+
+                            {/* Arrow */}
+                            <div className="flex justify-center">
+                              <div className="text-muted-foreground">↓</div>
+                            </div>
+
+                            {/* Step 2: Plan Selected */}
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium">Plan Selected</span>
+                                <span className="text-sm font-bold text-warning">{pricingPlanSelected}</span>
+                              </div>
+                              <div className="h-3 bg-muted rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full bg-gradient-to-r from-amber-500 to-amber-600 transition-all"
+                                  style={{ width: pricingPageViews > 0 ? `${(pricingPlanSelected / pricingPageViews) * 100}%` : '0%' }}
+                                />
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                {pricingViewToSelect}% conversion
+                              </p>
+                            </div>
+
+                            {/* Arrow */}
+                            <div className="flex justify-center">
+                              <div className="text-muted-foreground">↓</div>
+                            </div>
+
+                            {/* Step 3: Subscribe Clicked */}
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium">Subscribe Clicked</span>
+                                <span className="text-sm font-bold text-success">{pricingSubscribeClicked}</span>
+                              </div>
+                              <div className="h-3 bg-muted rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full bg-gradient-to-r from-emerald-500 to-emerald-600 transition-all"
+                                  style={{ width: pricingPageViews > 0 ? `${(pricingSubscribeClicked / pricingPageViews) * 100}%` : '0%' }}
+                                />
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                {selectToSubscribe}% from plan selection
+                              </p>
+                            </div>
+
+                            {/* Checkout Cancelled */}
+                            {checkoutCancelled > 0 && (
+                              <div className="mt-4 pt-4 border-t">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs text-muted-foreground">Checkout Cancelled</span>
+                                  <span className="text-xs font-semibold text-destructive">{checkoutCancelled}</span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </ChartCard>
+                      </div>
+
+                      {/* Engagement & Onboarding */}
+                      <div className="grid gap-6 md:grid-cols-2">
+                        {/* Engagement Breakdown */}
+                        <ChartCard
+                          title="Engagement Breakdown"
+                          tooltip="How users interact with landing page features"
+                        >
+                          <ChartContainer config={{}} className="h-[280px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <RechartsPie margin={{ top: 0, bottom: 0 }}>
+                                <Pie
+                                  data={[
+                                    { name: "FAQ Toggled", value: faqToggled },
+                                    { name: "Video Played", value: videoPlayed },
+                                    { name: "CTA Clicked", value: ctaClicked },
+                                    { name: "Prompt Submitted", value: promptSubmitted },
+                                    { name: "Footer Clicked", value: footerClicked },
+                                  ].filter(item => item.value > 0)}
+                                  cx="50%"
+                                  cy="50%"
+                                  innerRadius={60}
+                                  outerRadius={85}
+                                  paddingAngle={5}
+                                  dataKey="value"
+                                  nameKey="name"
+                                >
+                                  {[
+                                    { name: "FAQ Toggled", value: faqToggled },
+                                    { name: "Video Played", value: videoPlayed },
+                                    { name: "CTA Clicked", value: ctaClicked },
+                                    { name: "Prompt Submitted", value: promptSubmitted },
+                                    { name: "Footer Clicked", value: footerClicked },
+                                  ].filter(item => item.value > 0).map((_, index) => (
+                                    <Cell
+                                      key={`engagement-${index}`}
+                                      fill={VARIETY_COLORS[index % VARIETY_COLORS.length]}
+                                    />
+                                  ))}
+                                </Pie>
+                                <ChartTooltip content={<ChartTooltipContent />} />
+                              </RechartsPie>
+                            </ResponsiveContainer>
+                          </ChartContainer>
+                          <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-6 px-2">
+                            {[
+                              { name: "FAQ Toggled", value: faqToggled },
+                              { name: "Video Played", value: videoPlayed },
+                              { name: "CTA Clicked", value: ctaClicked },
+                              { name: "Prompt Submitted", value: promptSubmitted },
+                              { name: "Footer Clicked", value: footerClicked },
+                            ].filter(item => item.value > 0).map((item, i) => (
+                              <div key={item.name} className="flex items-center gap-2">
+                                <div
+                                  className="h-2.5 w-2.5 rounded-full"
+                                  style={{
+                                    backgroundColor: VARIETY_COLORS[i % VARIETY_COLORS.length],
+                                  }}
+                                />
+                                <span className="text-[11px] font-medium text-muted-foreground whitespace-nowrap">
+                                  {item.name} ({item.value})
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </ChartCard>
+
+                        {/* Onboarding Progress */}
+                        <ChartCard
+                          title="Onboarding Progress"
+                          tooltip="User completion rates across onboarding steps"
+                        >
+                          <ChartContainer
+                            config={{
+                              count: { label: "Completions", color: COLORS.success },
+                            }}
+                            className="h-[280px] w-full"
+                          >
+                            <BarChart
+                              data={[
+                                { name: "Step 1", count: onboardingStep1 },
+                                { name: "Step 2", count: onboardingStep2 },
+                                { name: "Step 3", count: onboardingStep3 },
+                                { name: "Step 4", count: onboardingStep4 },
+                                { name: "Step 5", count: onboardingStep5 },
+                                { name: "Completed", count: onboardingCompleted },
+                              ]}
+                              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                            >
+                              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                              <XAxis
+                                dataKey="name"
+                                tickLine={false}
+                                axisLine={false}
+                                tickMargin={8}
+                                tick={{ fontSize: 11 }}
+                              />
+                              <YAxis tickLine={false} axisLine={false} tickMargin={8} />
+                              <ChartTooltip content={<ChartTooltipContent />} />
+                              <Bar
+                                dataKey="count"
+                                fill={COLORS.success}
+                                radius={[4, 4, 0, 0]}
+                              />
+                            </BarChart>
+                          </ChartContainer>
+                        </ChartCard>
+                      </div>
+
+                      {/* Page Views Over Time */}
+                      {pageViewsOverTime.length > 0 && (
+                        <ChartCard
+                          title="Page Views Over Time"
+                          tooltip="Daily page view trends by page type"
+                        >
+                          <ChartContainer config={{}} className="h-[280px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <AreaChart
+                                data={pageViewsOverTime}
+                                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                              >
+                                <defs>
+                                  <linearGradient id="fillHome" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor={VARIETY_COLORS[0]} stopOpacity={0.8} />
+                                    <stop offset="95%" stopColor={VARIETY_COLORS[0]} stopOpacity={0} />
+                                  </linearGradient>
+                                  <linearGradient id="fillPricing" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor={VARIETY_COLORS[1]} stopOpacity={0.8} />
+                                    <stop offset="95%" stopColor={VARIETY_COLORS[1]} stopOpacity={0} />
+                                  </linearGradient>
+                                  <linearGradient id="fillLogin" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor={VARIETY_COLORS[2]} stopOpacity={0.8} />
+                                    <stop offset="95%" stopColor={VARIETY_COLORS[2]} stopOpacity={0} />
+                                  </linearGradient>
+                                  <linearGradient id="fillAbout" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor={VARIETY_COLORS[3]} stopOpacity={0.8} />
+                                    <stop offset="95%" stopColor={VARIETY_COLORS[3]} stopOpacity={0} />
+                                  </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                <XAxis
+                                  dataKey="date"
+                                  tickLine={false}
+                                  axisLine={false}
+                                  tickMargin={8}
+                                  tickFormatter={(tick) => {
+                                    try {
+                                      return format(new Date(tick), "MMM d");
+                                    } catch (e) {
+                                      return tick;
+                                    }
+                                  }}
+                                />
+                                <YAxis tickLine={false} axisLine={false} tickMargin={8} />
+                                <ChartTooltip content={<ChartTooltipContent />} />
+                                <Area
+                                  type="monotone"
+                                  dataKey="Home"
+                                  stackId="1"
+                                  stroke={VARIETY_COLORS[0]}
+                                  fill="url(#fillHome)"
+                                  strokeWidth={2}
+                                />
+                                <Area
+                                  type="monotone"
+                                  dataKey="Pricing"
+                                  stackId="1"
+                                  stroke={VARIETY_COLORS[1]}
+                                  fill="url(#fillPricing)"
+                                  strokeWidth={2}
+                                />
+                                <Area
+                                  type="monotone"
+                                  dataKey="Login"
+                                  stackId="1"
+                                  stroke={VARIETY_COLORS[2]}
+                                  fill="url(#fillLogin)"
+                                  strokeWidth={2}
+                                />
+                                <Area
+                                  type="monotone"
+                                  dataKey="About"
+                                  stackId="1"
+                                  stroke={VARIETY_COLORS[3]}
+                                  fill="url(#fillAbout)"
+                                  strokeWidth={2}
+                                />
+                              </AreaChart>
+                            </ResponsiveContainer>
+                          </ChartContainer>
+                          <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-6 px-2">
+                            {["Home", "Pricing", "Login", "About"].map((page, i) => (
+                              <div key={page} className="flex items-center gap-2">
+                                <div
+                                  className="h-2.5 w-2.5 rounded-full"
+                                  style={{
+                                    backgroundColor: VARIETY_COLORS[i % VARIETY_COLORS.length],
+                                  }}
+                                />
+                                <span className="text-[11px] font-medium text-muted-foreground whitespace-nowrap">
+                                  {page}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </ChartCard>
+                      )}
+                    </>
+                  );
+                })()}
+              </>
+            )}
+
           {!postHogLoading && postHogData.eventsOverTime?.length > 0 && (
             <ChartCard
               title="Events Over Time"
               tooltip="Daily event volume across all event types"
             >
-              <ChartContainer config={{}} className="h-[280px] w-full">
+              <ChartContainer
+                config={{
+                  count: { label: "Total Events", color: COLORS.primary },
+                }}
+                className="h-[280px] w-full"
+              >
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart
                     data={postHogData.eventsOverTime}
@@ -1390,7 +2289,7 @@ export default function ReachPage() {
                     <ChartTooltip content={<ChartTooltipContent />} />
                     <Area
                       type="monotone"
-                      dataKey="total"
+                      dataKey="count"
                       stroke={COLORS.primary}
                       fill="url(#fillEvents)"
                       strokeWidth={2}

@@ -119,7 +119,9 @@ export async function GET(request) {
       // Link Statistics API uses YYYY-MM-DD for startDate/endDate in period=custom
       statsUrl = `https://statistics.short.io/statistics/link/${targetLinkId}?period=${period}&tz=UTC`;
       if (period === "custom" && from && to) {
-        statsUrl = `https://statistics.short.io/statistics/link/${targetLinkId}?period=custom&startDate=${from}&endDate=${to}&tz=UTC`;
+        const startDate = new Date(from).toISOString();
+        const endDate = new Date(to).toISOString();
+        statsUrl = `https://statistics.short.io/statistics/link/${targetLinkId}?period=custom&startDate=${startDate}&endDate=${endDate}&tz=UTC`;
       }
     } else {
       // Domain Statistics API uses Milliseconds for startDate/endDate in period=custom

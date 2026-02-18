@@ -171,8 +171,7 @@ export default function OverviewPage() {
   const totalPrompts = analytics?.metrics?.total || 0;
   const totalUsersLifetime = attrition?.list?.length || 0;
   const churnedUsers = attrition?.list?.filter((u) => u.isChurned).length || 0;
-  const churnRate =
-    totalUsersLifetime > 0 ? (churnedUsers / totalUsersLifetime) * 100 : 0;
+  const churnRate = attrition?.metrics?.churnRate || 0;
   const churnTrend = attrition?.metrics?.trend;
   const dailyTrend = analytics?.timeAnalysis?.dailyActivity || [];
   const dateLabel = getDateLabel(dateFilter);
@@ -635,6 +634,7 @@ export default function OverviewPage() {
           color={COLORS.danger}
           icon={UserMinus}
           change={churnTrend ?? undefined}
+          invertTrendColor={true}
           tooltip="Churn Rate (%). Percentage of users who have been inactive for more than 7 days. Calculated as (Churned Users / Total Users) * 100."
           chart={
             <SparklineV2

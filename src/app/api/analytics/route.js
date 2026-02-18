@@ -82,9 +82,9 @@ export async function GET(request) {
     // Transform daily breakdown into chart data
     const activeUsersChartData = (activeBreakdownRaw || []).map((row) => ({
       date: row.date,
-      free: parseInt(row.free_users || 0),
-      trial: parseInt(row.trial_users || 0),
-      pro: parseInt(row.pro_users || 0),
+      "Free User Prompts": parseInt(row.free_users || 0),
+      "Freetrial User Prompts": parseInt(row.trial_users || 0),
+      "Pro User Prompts": parseInt(row.pro_users || 0),
       // Aggregated Power Counts (Users with >= 5 prompts)
       freePower: parseInt(row.free_ge_5 || 0),
       trialPower: parseInt(row.trial_ge_5 || 0),
